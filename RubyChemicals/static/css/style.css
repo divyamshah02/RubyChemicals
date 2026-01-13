@@ -1,0 +1,104 @@
+/* ===== Global ===== */
+body {
+  background-color: #f5f6fa;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ===== Sidebar ===== */
+nav {
+  min-height: 100vh;
+}
+
+nav > div:first-child {
+  background: #1f2933;
+}
+
+nav h5 {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+nav a {
+  padding: 8px 10px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+nav a:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* ===== Page Content ===== */
+.flex-grow-1 {
+  background: #f5f6fa;
+}
+
+/* ===== Tables ===== */
+.table {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table th {
+  background: #eef1f5;
+  font-weight: 600;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+/* ===== Buttons ===== */
+.btn-primary {
+  background-color: #2563eb;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-success {
+  background-color: #16a34a;
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #15803d;
+}
+
+/* ===== Modals ===== */
+.modal-content {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+}
+
+.modal h5 {
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+/* ===== Forms ===== */
+input, select {
+  border-radius: 6px !important;
+  border: 1px solid #d1d5db !important;
+}
+
+input:focus, select:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 1px rgba(37,99,235,0.3) !important;
+}
+
+/* ===== Page Headings ===== */
+h4 {
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* ===== Utility ===== */
+.container {
+  max-width: 100%;
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+</head>
+
+<body>
+
+{% include 'header.html' %}
+
+<div class="container mt-4">
+  <h4>Stock Items</h4>
+
+  <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addItemModal">
+    Add Stock Item
+  </button>
+
+  <table class="table table-bordered" id="itemTable"></table>
+</div>
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal">
+  <div class="modal-dialog">
+    <div class="modal-content p-3">
+      <h5>Add Stock Item</h5>
+      <input id="itemName" class="form-control mb-2" placeholder="Item Name">
+      <select id="itemGroup" class="form-control mb-2"></select>
+      <select id="itemUnit" class="form-control mb-2">
+        <option value="kg">KG</option>
+        <option value="g">Gram</option>
+        <option value="pcs">Pieces</option>
+      </select>
+      <button class="btn btn-success" onclick="createItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inward Modal -->
+<div class="modal fade" id="inwardModal">
+  <div class="modal-dialog">
+    <div class="modal-content p-3">
+      <h5>Stock Inward</h5>
+      <input id="inwardQty" type="number" class="form-control mb-2" placeholder="Quantity">
+      <input id="inwardDate" type="date" class="form-control mb-2">
+      <button class="btn btn-success" onclick="markInward()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/api_caller.js"></script>
+<script src="/static/js/stock_items.js"></script>
+<script>
+  init("{{csrf_token}}", {
+    items: "/operation-api/stock-item-api/",
+    groups: "/operation-api/stock-group-api/",
+    inward: "/operation-api/stock-inward-api/"
+  })
+</script>
+
+  </div>
+</nav>
+
+</body>
+</html>
