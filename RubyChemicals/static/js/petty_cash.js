@@ -37,16 +37,15 @@ async function loadExpenses(){
   const [ok, res] = await callApi("GET", endpoints.cash)
   if(ok){
     const table = document.getElementById("expenseTable")
-    table.innerHTML = `
-      <tr><th>Date</th><th>Head</th><th>Amount</th><th>Notes</th></tr>
-      ${res.data.map(e => `
-        <tr>
-          <td>${e.expense_date}</td>
-          <td>${e.expense_head_name}</td>
-          <td>${e.amount}</td>
-          <td>${e.notes || ""}</td>
-        </tr>
-      `).join("")}
-    `
+    const headers = `<thead><tr><th><i class="fas fa-calendar"></i> Date</th><th><i class="fas fa-tag"></i> Head</th><th><i class="fas fa-rupee-sign"></i> Amount</th><th><i class="fas fa-notes-medical"></i> Notes</th></tr></thead>`
+    const rows = res.data.map(e => `
+      <tr>
+        <td>${e.expense_date}</td>
+        <td><span style="background: #f3e8ff; color: #7e22ce; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">${e.expense_head_name}</span></td>
+        <td><strong style="color: #059669;">₹ ${parseFloat(e.amount).toFixed(2)}</strong></td>
+        <td>${e.notes || "<em style='color: #94a3b8;'>—</em>"}</td>
+      </tr>
+    `).join("")
+    table.innerHTML = headers + `<tbody>${rows}</tbody>`
   }
 }

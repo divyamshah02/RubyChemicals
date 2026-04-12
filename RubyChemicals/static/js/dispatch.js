@@ -32,16 +32,15 @@ async function loadDispatches(){
   const [ok, res] = await callApi("GET", endpoints.dispatch)
   if(ok){
     const table = document.getElementById("dispatchTable")
-    table.innerHTML = `
-      <tr><th>Date</th><th>Customer</th><th>Product</th><th>Qty</th></tr>
-      ${res.data.map(d => `
-        <tr>
-          <td>${d.dispatch_date}</td>
-          <td>${d.customer_name}</td>
-          <td>${d.stock_item_name}</td>
-          <td>${d.quantity}</td>
-        </tr>
-      `).join("")}
-    `
+    const headers = `<thead><tr><th><i class="fas fa-calendar"></i> Date</th><th><i class="fas fa-user"></i> Customer</th><th><i class="fas fa-cube"></i> Product</th><th><i class="fas fa-weight"></i> Quantity</th></tr></thead>`
+    const rows = res.data.map(d => `
+      <tr>
+        <td>${d.dispatch_date}</td>
+        <td><strong>${d.customer_name}</strong></td>
+        <td>${d.stock_item_name}</td>
+        <td><span style="background: #bfdbfe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-weight: 600;">${d.quantity}</span></td>
+      </tr>
+    `).join("")
+    table.innerHTML = headers + `<tbody>${rows}</tbody>`
   }
 }

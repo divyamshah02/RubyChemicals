@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Stock Items - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -15,29 +15,41 @@
 
 {% include 'header.html' %}
 
-<div class="container mt-4">
-  <h4>Stock Items</h4>
+<div class="container">
+  <h4><i class="fas fa-cube" style="color: #3b82f6;"></i> Stock Items</h4>
 
   <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addItemModal">
-    Add Stock Item
+    <i class="fas fa-plus"></i> Add Stock Item
   </button>
 
-  <table class="table table-bordered" id="itemTable"></table>
+  <table class="table" id="itemTable"></table>
 </div>
 
 <!-- Add Item Modal -->
 <div class="modal fade" id="addItemModal">
   <div class="modal-dialog">
-    <div class="modal-content p-3">
-      <h5>Add Stock Item</h5>
-      <input id="itemName" class="form-control mb-2" placeholder="Item Name">
-      <select id="itemGroup" class="form-control mb-2"></select>
-      <select id="itemUnit" class="form-control mb-2">
-        <option value="kg">KG</option>
-        <option value="g">Gram</option>
-        <option value="pcs">Pieces</option>
-      </select>
-      <button class="btn btn-success" onclick="createItem()">Save</button>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-cube" style="color: #3b82f6;"></i> Add Stock Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <label for="itemName">Item Name</label>
+        <input id="itemName" class="form-control mb-3" placeholder="Enter item name" autocomplete="off">
+        <label for="itemGroup">Stock Group</label>
+        <select id="itemGroup" class="form-control mb-3"></select>
+        <label for="itemUnit">Unit of Measurement</label>
+        <select id="itemUnit" class="form-control">
+          <option value="">Select Unit</option>
+          <option value="kg">Kilogram (KG)</option>
+          <option value="g">Gram (g)</option>
+          <option value="pcs">Pieces (Pcs)</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-success" onclick="createItem()"><i class="fas fa-save"></i> Save Item</button>
+      </div>
     </div>
   </div>
 </div>
@@ -45,11 +57,21 @@
 <!-- Inward Modal -->
 <div class="modal fade" id="inwardModal">
   <div class="modal-dialog">
-    <div class="modal-content p-3">
-      <h5>Stock Inward</h5>
-      <input id="inwardQty" type="number" class="form-control mb-2" placeholder="Quantity">
-      <input id="inwardDate" type="date" class="form-control mb-2">
-      <button class="btn btn-success" onclick="markInward()">Submit</button>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-arrow-down" style="color: #10b981;"></i> Stock Inward</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <label for="inwardQty">Quantity</label>
+        <input id="inwardQty" type="number" class="form-control mb-3" placeholder="Enter quantity" autocomplete="off">
+        <label for="inwardDate">Inward Date</label>
+        <input id="inwardDate" type="date" class="form-control">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-success" onclick="markInward()"><i class="fas fa-check"></i> Submit Inward</button>
+      </div>
     </div>
   </div>
 </div>

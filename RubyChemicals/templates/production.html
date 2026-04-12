@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Production</title>
+    <title>Production - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -13,40 +13,64 @@
 
     {% include 'header.html' %}
 
-    <div class="container mt-4">
-        <h4>Production</h4>
+    <div class="container">
+        <h4><i class="fas fa-industry" style="color: #3b82f6;"></i> Production Management</h4>
 
         <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#productionModal">
-            Create Production
+            <i class="fas fa-plus"></i> Create Production Batch
         </button>
 
-        <table class="table table-bordered" id="productionTable"></table>
+        <table class="table" id="productionTable"></table>
     </div>
 
     <!-- Production Modal -->
     <div class="modal fade" id="productionModal">
         <div class="modal-dialog modal-lg">
-            <div class="modal-content p-3">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-industry" style="color: #3b82f6;"></i> Create Production Batch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="batchCode">Batch Code</label>
+                            <input id="batchCode" class="form-control mb-3" placeholder="e.g., BATCH-001" autocomplete="off">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="productionDate">Production Date</label>
+                            <input id="productionDate" type="date" class="form-control mb-3">
+                        </div>
+                    </div>
 
-                <h5>Create Production</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="productSelect">Finished Product</label>
+                            <select id="productSelect" class="form-control mb-3"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="outputQty">Output Quantity</label>
+                            <input id="outputQty" class="form-control mb-3" placeholder="0" autocomplete="off">
+                        </div>
+                    </div>
 
-                <input id="batchCode" class="form-control mb-2" placeholder="Batch Code">
-                <input id="productionDate" type="date" class="form-control mb-2">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="lossQty">Loss Quantity</label>
+                            <input id="lossQty" class="form-control mb-3" placeholder="0" autocomplete="off">
+                        </div>
+                    </div>
 
-                <label>Finished Product</label>
-                <select id="productSelect" class="form-control mb-2"></select>
+                    <hr style="border-color: #e2e8f0; margin: 1.5rem 0;">
+                    <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-flask"></i> Raw Materials</h6>
+                    <div id="rawList" style="max-height: 300px; overflow-y: auto;"></div>
 
-                <input id="outputQty" class="form-control mb-2" placeholder="Output Quantity">
-                <input id="lossQty" class="form-control mb-2" placeholder="Loss Quantity">
-
-                <hr>
-                <h6>Raw Materials</h6>
-                <div id="rawList"></div>
-
-                <button class="btn btn-secondary btn-sm mt-2" onclick="addRow()">Add Material</button>
-                <br><br>
-                <button class="btn btn-success" onclick="createProduction()">Save Production</button>
-
+                    <button class="btn btn-secondary btn-sm mt-3" onclick="addRow()"><i class="fas fa-plus"></i> Add Material</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success" onclick="createProduction()"><i class="fas fa-save"></i> Save Production</button>
+                </div>
             </div>
         </div>
     </div>

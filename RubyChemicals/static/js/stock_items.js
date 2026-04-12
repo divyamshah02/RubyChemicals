@@ -22,19 +22,18 @@ async function loadItems() {
 
 function renderItems(items){
   const table = document.getElementById("itemTable")
-  table.innerHTML = `
-    <tr><th>Name</th><th>Group</th><th>Qty</th><th>Action</th></tr>
-    ${items.map(i => `
-      <tr>
-        <td>${i.name}</td>
-        <td>${i.group_name}</td>
-        <td>${i.current_quantity}</td>
-        <td>
-          <button class="btn btn-sm btn-success" onclick="openInward(${i.id})">Inward</button>
-        </td>
-      </tr>
-    `).join("")}
-  `
+  const headers = `<thead><tr><th><i class="fas fa-cube"></i> Name</th><th><i class="fas fa-layer-group"></i> Group</th><th><i class="fas fa-weight"></i> Quantity</th><th><i class="fas fa-cogs"></i> Action</th></tr></thead>`
+  const rows = items.map(i => `
+    <tr>
+      <td>${i.name}</td>
+      <td><span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">${i.group_name}</span></td>
+      <td><strong>${i.current_quantity}</strong></td>
+      <td>
+        <button class="btn btn-sm btn-success" onclick="openInward(${i.id})"><i class="fas fa-arrow-down"></i> Inward</button>
+      </td>
+    </tr>
+  `).join("")
+  table.innerHTML = headers + `<tbody>${rows}</tbody>`
 }
 
 async function createItem(){

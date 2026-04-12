@@ -13,7 +13,9 @@ async function loadGroups() {
 
 function render(groups){
   const table = document.getElementById("groupTable")
-  table.innerHTML = groups.map(g => `<tr><td>${g.name}</td></tr>`).join("")
+  const headers = `<thead><tr><th><i class="fas fa-layer-group"></i> Group Name</th></tr></thead>`
+  const rows = groups.map(g => `<tr><td>${g.name}</td></tr>`).join("")
+  table.innerHTML = headers + `<tbody>${rows}</tbody>`
 }
 
 async function createGroup(){

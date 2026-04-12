@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Dispatch</title>
+    <title>Dispatch - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -12,32 +12,41 @@
 
     {% include 'header.html' %}
 
-    <div class="container mt-4">
-        <h4>Dispatch</h4>
+    <div class="container">
+        <h4><i class="fas fa-shipping-fast" style="color: #3b82f6;"></i> Dispatch Management</h4>
 
         <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#dispatchModal">
-            Create Dispatch
+            <i class="fas fa-plus"></i> Create Dispatch
         </button>
 
-        <table class="table table-bordered" id="dispatchTable"></table>
+        <table class="table" id="dispatchTable"></table>
     </div>
 
     <!-- Dispatch Modal -->
     <div class="modal fade" id="dispatchModal">
         <div class="modal-dialog">
-            <div class="modal-content p-3">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-shipping-fast" style="color: #3b82f6;"></i> Create Dispatch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="dispatchItem">Product</label>
+                    <select id="dispatchItem" class="form-control mb-3"></select>
 
-                <h5>Create Dispatch</h5>
-
-                <label>Product</label>
-                <select id="dispatchItem" class="form-control mb-2"></select>
-
-                <input id="dispatchQty" class="form-control mb-2" placeholder="Quantity">
-                <input id="dispatchCustomer" class="form-control mb-2" placeholder="Customer Name">
-                <input id="dispatchDate" type="date" class="form-control mb-2">
-
-                <button class="btn btn-success" onclick="createDispatch()">Save</button>
-
+                    <label for="dispatchQty">Quantity</label>
+                    <input id="dispatchQty" class="form-control mb-3" placeholder="0" autocomplete="off">
+                    
+                    <label for="dispatchCustomer">Customer Name</label>
+                    <input id="dispatchCustomer" class="form-control mb-3" placeholder="Enter customer name" autocomplete="off">
+                    
+                    <label for="dispatchDate">Dispatch Date</label>
+                    <input id="dispatchDate" type="date" class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success" onclick="createDispatch()"><i class="fas fa-save"></i> Save Dispatch</button>
+                </div>
             </div>
         </div>
     </div>
