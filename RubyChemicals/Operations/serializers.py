@@ -31,6 +31,27 @@ class StockAdjustmentSerializer(serializers.ModelSerializer):
         model = StockAdjustment
         fields = "__all__"
 
+class ProductionCardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductionCard
+        fields = [
+            "id", "production_code", "production_date", "total_output_quantity",
+            "unit", "notes", "created_by"
+        ]
+
+
+class ProductionBatchSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_unit = serializers.CharField(source="product.unit", read_only=True)
+
+    class Meta:
+        model = ProductionBatch
+        fields = [
+            "id", "batch_code", "production_card", "product", "product_name",
+            "product_unit", "output_quantity", "loss_quantity"
+        ]
+
+
 class ProductionConsumptionSerializer(serializers.ModelSerializer):
     stock_item_name = serializers.CharField(source="stock_item.name", read_only=True)
 
@@ -39,16 +60,15 @@ class ProductionConsumptionSerializer(serializers.ModelSerializer):
         fields = ["id", "stock_item", "stock_item_name", "quantity_used"]
 
 
-class ProductionBatchSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source="product.name", read_only=True)
+class ProductionCardDetailSerializer(serializers.ModelSerializer):
+    batches = ProductionBatchSerializer(many=True, read_only=True)
     consumptions = ProductionConsumptionSerializer(many=True, read_only=True)
 
     class Meta:
-        model = ProductionBatch
+        model = ProductionCard
         fields = [
-            "id", "batch_code", "product", "product_name",
-            "production_date", "output_quantity",
-            "loss_quantity", "consumptions"
+            "id", "production_code", "production_date", "total_output_quantity",
+            "unit", "notes", "batches", "consumptions", "created_by"
         ]
 
 class DispatchSerializer(serializers.ModelSerializer):

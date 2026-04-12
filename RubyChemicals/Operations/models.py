@@ -94,16 +94,51 @@ class StockAdjustment(models.Model):
     def __str__(self):
         return f"Adjustment - {self.stock_item.name}"
 
+class ProductionCard(models.Model):
+    production_code = models.CharField(max_length=20, unique=True)
+    production_date = models.DateField()
+    
+    total_output_quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+        default=0
+    )
+    
+    unit = models.CharField(max_length=10, default='kg', choices=[
+        ('kg', 'Kilogram'),
+        ('g', 'Gram'),
+        ('pcs', 'Pieces'),
+    ])
+    
+    notes = models.TextField(blank=True)
+    
+    created_by = models.ForeignKey(
+        'UserDetail.User',
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.production_code
+
+
 class ProductionBatch(models.Model):
     batch_code = models.CharField(max_length=20, unique=True)
+    production_card = models.ForeignKey(
+        ProductionCard,
+        on_delete=models.CASCADE,
+        related_name='batches',
+        null=True,
+        blank=True
+    )
+    
     product = models.ForeignKey(
         StockItem,
         on_delete=models.PROTECT,
         related_name='production_batches'
     )
-
-    production_date = models.DateField()
-
+    
     output_quantity = models.DecimalField(
         max_digits=12,
         decimal_places=3
@@ -113,24 +148,27 @@ class ProductionBatch(models.Model):
         decimal_places=3,
         default=0
     )
-
+    
     notes = models.TextField(blank=True)
-
+    
     created_by = models.ForeignKey(
         'UserDetail.User',
         on_delete=models.SET_NULL,
         null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     def __str__(self):
         return self.batch_code
 
+
 class ProductionConsumption(models.Model):
-    batch = models.ForeignKey(
-        ProductionBatch,
+    production_card = models.ForeignKey(
+        ProductionCard,
         on_delete=models.CASCADE,
-        related_name='consumptions'
+        related_name='consumptions',
+        null=True,
+        blank=True
     )
     stock_item = models.ForeignKey(
         StockItem,
@@ -140,9 +178,10 @@ class ProductionConsumption(models.Model):
         max_digits=12,
         decimal_places=3
     )
-
+    
     def __str__(self):
-        return f"{self.stock_item.name} - {self.batch.batch_code}"
+        return f"{self.stock_item.name}"
+        return f"{self.stock_item.name} - {self.production_card.production_code}"
 
 class Dispatch(models.Model):
     dispatch_date = models.DateField()

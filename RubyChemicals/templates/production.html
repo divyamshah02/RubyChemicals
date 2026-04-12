@@ -16,60 +16,85 @@
     <div class="container">
         <h4><i class="fas fa-industry" style="color: #3b82f6;"></i> Production Management</h4>
 
-        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#productionModal">
-            <i class="fas fa-plus"></i> Create Production Batch
+        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#productionCardModal">
+            <i class="fas fa-plus"></i> Create Production Card
         </button>
 
-        <table class="table" id="productionTable"></table>
+        <table class="table" id="batchTable"></table>
     </div>
 
-    <!-- Production Modal -->
-    <div class="modal fade" id="productionModal">
-        <div class="modal-dialog modal-lg">
+    <!-- Production Card Modal with Batches -->
+    <div class="modal fade" id="productionCardModal">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-industry" style="color: #3b82f6;"></i> Create Production Batch</h5>
+                    <h5 class="modal-title"><i class="fas fa-industry" style="color: #3b82f6;"></i> Create Production Card with Batches</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label for="batchCode">Batch Code</label>
-                            <input id="batchCode" class="form-control mb-3" placeholder="e.g., BATCH-001" autocomplete="off">
+                <div class="modal-body" style="max-height: 85vh; overflow-y: auto;">
+                    <!-- Card Info Section -->
+                    <div style="background: #f0f9ff; padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem;">
+                        <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-id-card"></i> Card Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="productionCode">Production Code</label>
+                                <input id="productionCode" class="form-control mb-3" placeholder="e.g., PROD-001" autocomplete="off">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="productionDate">Production Date</label>
+                                <input id="productionDate" type="date" class="form-control mb-3">
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label for="productionDate">Production Date</label>
-                            <input id="productionDate" type="date" class="form-control mb-3">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="totalOutputQty">Total Output Qty</label>
+                                <input id="totalOutputQty" type="number" class="form-control mb-3" placeholder="0" autocomplete="off">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="unitSelect">Unit of Measurement</label>
+                                <select id="unitSelect" class="form-control mb-3">
+                                    <option value="kg">Kilogram (KG)</option>
+                                    <option value="g">Gram (g)</option>
+                                    <option value="pcs">Pieces (Pcs)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label for="productSelect">Finished Product</label>
-                            <select id="productSelect" class="form-control mb-3"></select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="outputQty">Output Quantity</label>
-                            <input id="outputQty" class="form-control mb-3" placeholder="0" autocomplete="off">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label for="lossQty">Loss Quantity</label>
-                            <input id="lossQty" class="form-control mb-3" placeholder="0" autocomplete="off">
-                        </div>
-                    </div>
-
-                    <hr style="border-color: #e2e8f0; margin: 1.5rem 0;">
+                    <!-- Raw Materials Section -->
+                    <hr style="border-color: #e2e8f0;">
                     <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-flask"></i> Raw Materials</h6>
-                    <div id="rawList" style="max-height: 300px; overflow-y: auto;"></div>
+                    <div id="rawList" style="background: #fafafa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;"></div>
+                    <button class="btn btn-secondary btn-sm mb-3" onclick="addRawMaterialRow()"><i class="fas fa-plus"></i> Add Material</button>
 
-                    <button class="btn btn-secondary btn-sm mt-3" onclick="addRow()"><i class="fas fa-plus"></i> Add Material</button>
+                    <!-- Batches Section -->
+                    <hr style="border-color: #e2e8f0;">
+                    <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-cubes"></i> Production Batches</h6>
+                    <div id="batchesList" style="background: #fafafa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;"></div>
+                    <button class="btn btn-primary btn-sm" onclick="addBatchRow()"><i class="fas fa-plus"></i> Add Batch</button>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-success" onclick="createProduction()"><i class="fas fa-save"></i> Save Production</button>
+                    <button class="btn btn-success" onclick="createProductionCardWithBatches()"><i class="fas fa-save"></i> Save Card & Batches</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Production Card Detail Modal -->
+    <div class="modal fade" id="productionDetailModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-industry" style="color: #3b82f6;"></i> Production Card Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="cardDetailsContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -80,8 +105,32 @@
     <script src="/static/js/production.js"></script>
     <script>
         init("{{csrf_token}}", {
-            production: "/operation-api/production-api/",
+            productionCard: "/operation-api/production-card-api/",
+            productionBatch: "/operation-api/production-batch-api/",
             stock: "/operation-api/stock-item-api/"
+        })
+
+        // Initialize when card modal opens
+        const productionCardModal = document.getElementById("productionCardModal")
+        productionCardModal.addEventListener("show.bs.modal", function(){
+          const rawList = document.getElementById("rawList")
+          const batchesList = document.getElementById("batchesList")
+          if(rawList.innerHTML === ""){
+            addRawMaterialRow()
+          }
+          if(batchesList.innerHTML === ""){
+            addBatchRow()
+          }
+        })
+
+        // Clear form when card modal closes
+        productionCardModal.addEventListener("hide.bs.modal", function(){
+          document.getElementById("productionCode").value = ""
+          document.getElementById("productionDate").value = ""
+          document.getElementById("totalOutputQty").value = ""
+          document.getElementById("unitSelect").value = "kg"
+          document.getElementById("rawList").innerHTML = ""
+          document.getElementById("batchesList").innerHTML = ""
         })
     </script>
 

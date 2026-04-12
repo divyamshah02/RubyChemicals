@@ -360,26 +360,80 @@ class StockAdjustmentViewSet(viewsets.ViewSet):
         }, status=201)
 
 
-class ProductionBatchViewSet(viewsets.ViewSet):
+class ProductionCardViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
     def list(self, request):
-        batches = ProductionBatch.objects.all().order_by("-production_date", "-created_at")
-
+        cards = ProductionCard.objects.all().prefetch_related('batches').order_by("-production_date", "-created_at")
         data = []
-
-        for b in batches:
+        for card in cards:
             data.append({
-                "id": b.id,
-                "batch_code": b.batch_code,
-                "product_id": b.product.id,
-                "product_name": b.product.name,
-                "production_date": b.production_date,
-                "output_quantity": b.output_quantity,
-                "loss_quantity": b.loss_quantity,
-                "created_by": b.created_by.name if b.created_by else None,
+                "id": card.id,
+                "production_code": card.production_code,
+                "production_date": card.production_date,
+                "total_output_quantity": card.total_output_quantity,
+                "unit": card.unit,
+                "batch_count": card.batches.count(),
+                "created_by": card.created_by.name if card.created_by else None,
             })
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": data,
+            "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
+    def retrieve(self, request, pk=None):
+        try:
+            card = ProductionCard.objects.prefetch_related('batches', 'consumptions__stock_item').get(pk=pk)
+        except ProductionCard.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Production card not found"
+            }, status=404)
+
+        batches = []
+        for batch in card.batches.all():
+            batches.append({
+                "id": batch.id,
+                "batch_code": batch.batch_code,
+                "product_id": batch.product.id,
+                "product_name": batch.product.name,
+                "product_unit": batch.product.unit,
+                "output_quantity": batch.output_quantity,
+                "loss_quantity": batch.loss_quantity,
+            })
+
+        consumptions = []
+        for consumption in card.consumptions.all():
+            consumptions.append({
+                "id": consumption.id,
+                "stock_item_id": consumption.stock_item.id,
+                "stock_item_name": consumption.stock_item.name,
+                "stock_item_unit": consumption.stock_item.unit,
+                "quantity_used": consumption.quantity_used,
+            })
+
+        data = {
+            "production_card": {
+                "id": card.id,
+                "production_code": card.production_code,
+                "production_date": card.production_date,
+                "total_output_quantity": card.total_output_quantity,
+                "unit": card.unit,
+                "notes": card.notes,
+                "created_by": card.created_by.name if card.created_by else None,
+            },
+            "batches": batches,
+            "consumptions": consumptions,
+        }
 
         return Response({
             "success": True,
@@ -393,15 +447,214 @@ class ProductionBatchViewSet(viewsets.ViewSet):
     @check_authentication()
     def create(self, request):
         data = request.data
-
-        batch_code = data.get("batch_code")
-        product_stock_item_id = data.get("product_stock_item_id")
+        production_code = data.get("production_code")
         production_date = data.get("production_date")
+        total_output_quantity = data.get("total_output_quantity")
+        unit = data.get("unit", "kg")
+        consumptions = data.get("consumptions", [])
+        batches = data.get("batches", [])
+
+        if not all([production_code, production_date, total_output_quantity, consumptions, batches]):
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Missing required fields - need production code, date, output qty, consumptions, and batches"
+            }, status=400)
+
+        try:
+            total_output_quantity = float(total_output_quantity)
+        except:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Invalid quantity"
+            }, status=400)
+
+        with transaction.atomic():
+            # Get all stock items needed
+            raw_stock_ids = [c["stock_item_id"] for c in consumptions]
+            batch_product_ids = [b["product_stock_item_id"] for b in batches]
+            all_stock_ids = list(set(raw_stock_ids + batch_product_ids))
+            
+            items = StockItem.objects.select_for_update().filter(id__in=all_stock_ids)
+            item_map = {item.id: item for item in items}
+
+            # Check raw material stock availability
+            for c in consumptions:
+                item = item_map.get(int(c["stock_item_id"]))
+                qty = float(c["quantity"])
+                # if not item or item.current_quantity < qty:
+                if not item:
+                    return Response({
+                        "success": False,
+                        "user_not_logged_in": False,
+                        "user_unauthorized": False,
+                        "data": None,
+                        "error": f"Insufficient stock for {item.name if item else 'material'}"
+                    }, status=400)
+
+            # Create production card
+            card = ProductionCard.objects.create(
+                production_code=production_code,
+                production_date=production_date,
+                total_output_quantity=total_output_quantity,
+                unit=unit,
+                created_by=request.user
+            )
+
+            # Create consumptions (raw materials deducted)
+            for c in consumptions:
+                item = item_map[int(c["stock_item_id"])]
+                qty = float(c["quantity"])
+                ProductionConsumption.objects.create(
+                    production_card=card,
+                    stock_item=item,
+                    quantity_used=qty
+                )
+                item.current_quantity -= Decimal(qty)
+                item.save()
+
+            # Create batches and add finished goods to inventory
+            for b in batches:
+                product_item = item_map[int(b["product_stock_item_id"])]
+                output_qty = float(b["output_quantity"])
+                loss_qty = float(b.get("loss_quantity", 0))
+
+                batch = ProductionBatch.objects.create(
+                    batch_code=b["batch_code"],
+                    production_card=card,
+                    product=product_item,
+                    output_quantity=output_qty,
+                    loss_quantity=loss_qty,
+                    created_by=request.user
+                )
+
+                product_item.current_quantity += Decimal(output_qty)
+                product_item.save()
+
+        ActivityLog.objects.create(
+            user=request.user,
+            action="PRODUCTION_CREATE",
+            model_name="ProductionCard",
+            record_id=card.production_code,
+            description=f"Created production card {card.production_code} with {len(batches)} batches"
+        )
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": {"production_card": card.production_code, "batches_created": len(batches)},
+            "error": None
+        }, status=201)
+
+        try:
+            total_output_quantity = float(total_output_quantity)
+        except:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Invalid quantity"
+            }, status=400)
+
+        with transaction.atomic():
+            stock_ids = [c["stock_item_id"] for c in consumptions]
+            items = StockItem.objects.select_for_update().filter(id__in=stock_ids)
+            item_map = {item.id: item for item in items}
+
+            for c in consumptions:
+                item = item_map.get(int(c["stock_item_id"]))
+                qty = float(c["quantity"])
+                if not item or item.current_quantity < qty:
+                    return Response({
+                        "success": False,
+                        "user_not_logged_in": False,
+                        "user_unauthorized": False,
+                        "data": None,
+                        "error": f"Insufficient stock for {item.name if item else 'item'}"
+                    }, status=400)
+
+            card = ProductionCard.objects.create(
+                production_code=production_code,
+                production_date=production_date,
+                total_output_quantity=total_output_quantity,
+                unit=unit,
+                created_by=request.user
+            )
+
+            for c in consumptions:
+                item = item_map[int(c["stock_item_id"])]
+                qty = float(c["quantity"])
+                ProductionConsumption.objects.create(
+                    production_card=card,
+                    stock_item=item,
+                    quantity_used=qty
+                )
+                item.current_quantity -= Decimal(qty)
+                item.save()
+
+        ActivityLog.objects.create(
+            user=request.user,
+            action="PRODUCTION_CREATE",
+            model_name="ProductionCard",
+            record_id=card.production_code,
+            description=f"Created production card {card.production_code}"
+        )
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": {"production_card": card.production_code},
+            "error": None
+        }, status=201)
+
+
+class ProductionBatchViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        batches = ProductionBatch.objects.select_related('product', 'production_card').order_by("-created_at")
+        data = []
+        for b in batches:
+            data.append({
+                "id": b.id,
+                "batch_code": b.batch_code,
+                "production_card_id": b.production_card.id,
+                "production_code": b.production_card.production_code,
+                "product_id": b.product.id,
+                "product_name": b.product.name,
+                "product_unit": b.product.unit,
+                "output_quantity": b.output_quantity,
+                "loss_quantity": b.loss_quantity,
+                "created_by": b.created_by.name if b.created_by else None,
+            })
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": data,
+            "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
+    def create(self, request):
+        data = request.data
+        batch_code = data.get("batch_code")
+        production_card_id = data.get("production_card_id")
+        product_stock_item_id = data.get("product_stock_item_id")
         output_quantity = data.get("output_quantity")
         loss_quantity = data.get("loss_quantity", 0)
-        consumptions = data.get("consumptions", [])
 
-        if not all([batch_code, product_stock_item_id, production_date, output_quantity, consumptions]):
+        if not all([batch_code, production_card_id, product_stock_item_id, output_quantity]):
             return Response({
                 "success": False,
                 "user_not_logged_in": False,
@@ -423,75 +676,39 @@ class ProductionBatchViewSet(viewsets.ViewSet):
             }, status=400)
 
         try:
+            card = ProductionCard.objects.get(id=production_card_id)
             product_item = StockItem.objects.select_for_update().get(id=product_stock_item_id)
-        except StockItem.DoesNotExist:
+        except (ProductionCard.DoesNotExist, StockItem.DoesNotExist):
             return Response({
                 "success": False,
                 "user_not_logged_in": False,
                 "user_unauthorized": False,
                 "data": None,
-                "error": "Invalid product stock item"
+                "error": "Invalid production card or product"
             }, status=404)
 
         with transaction.atomic():
-
-            # Lock all consumed stock items
-            stock_ids = [c["stock_item_id"] for c in consumptions]
-            items = StockItem.objects.select_for_update().filter(id__in=stock_ids)
-
-            item_map = {item.id: item for item in items}
-
-            # Check stock availability
-            for c in consumptions:
-                item = item_map.get(int(c["stock_item_id"]))
-                qty = float(c["quantity"])
-
-                if not item:
-                    raise Exception("Invalid stock item in consumption")
-
-                if item.current_quantity < qty:
-                    return Response({
-                        "success": False,
-                        "user_not_logged_in": False,
-                        "user_unauthorized": False,
-                        "data": None,
-                        "error": f"Insufficient stock for {item.name}"
-                    }, status=400)
-
-            # Create batch
             batch = ProductionBatch.objects.create(
                 batch_code=batch_code,
+                production_card=card,
                 product=product_item,
-                production_date=production_date,
                 output_quantity=output_quantity,
                 loss_quantity=loss_quantity,
                 created_by=request.user
             )
 
-            # Consume raw + packing
-            for c in consumptions:
-                item = item_map[int(c["stock_item_id"])]
-                qty = float(c["quantity"])
-
-                ProductionConsumption.objects.create(
-                    batch=batch,
-                    stock_item=item,
-                    quantity_used=qty
-                )
-
-                item.current_quantity -= Decimal(qty)
-                item.save()
-
-            # Increase finished goods
             product_item.current_quantity += Decimal(output_quantity)
             product_item.save()
 
+            card.total_output_quantity += Decimal(output_quantity)
+            card.save()
+
         ActivityLog.objects.create(
             user=request.user,
-            action="PRODUCTION",
+            action="BATCH_CREATE",
             model_name="ProductionBatch",
             record_id=batch.batch_code,
-            description=f"Produced {output_quantity} {product_item.unit} of {product_item.name}"
+            description=f"Created batch {batch.batch_code} in {card.production_code}"
         )
 
         return Response({

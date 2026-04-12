@@ -34,18 +34,31 @@ class StockAdjustmentAdmin(admin.ModelAdmin):
     ordering = ("-date",)
 
 
-class ProductionConsumptionInline(admin.TabularInline):
-    model = ProductionConsumption
+class ProductionBatchInline(admin.TabularInline):
+    model = ProductionBatch
     extra = 0
+
+
+@admin.register(ProductionCard)
+class ProductionCardAdmin(admin.ModelAdmin):
+    list_display = ("production_code", "production_date", "total_output_quantity", "unit", "created_by")
+    list_filter = ("production_date",)
+    search_fields = ("production_code",)
+    ordering = ("-production_date",)
+    inlines = [ProductionBatchInline]
 
 
 @admin.register(ProductionBatch)
 class ProductionBatchAdmin(admin.ModelAdmin):
-    list_display = ("batch_code", "product", "production_date", "output_quantity", "loss_quantity", "created_by")
-    list_filter = ("production_date", "product")
+    list_display = ("batch_code", "production_card", "product", "output_quantity", "loss_quantity", "created_by")
+    list_filter = ("production_card__production_date", "product")
     search_fields = ("batch_code", "product__name")
-    ordering = ("-production_date",)
-    inlines = [ProductionConsumptionInline]
+    ordering = ("-created_at",)
+
+
+class ProductionConsumptionInline(admin.TabularInline):
+    model = ProductionConsumption
+    extra = 0
 
 
 @admin.register(Dispatch)
