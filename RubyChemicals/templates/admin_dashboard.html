@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Admin Dashboard - Ruby Chemicals</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            background: #f8fafc;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2rem 0 1.5rem 0;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .quick-add-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-add-btn:hover {
+            background: #2563eb;
+        }
+
+        .data-table {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .data-table table {
+            margin-bottom: 0;
+        }
+
+        .data-table thead {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .data-table tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.2s;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .badge-critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .modal-header {
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .form-control,
+        .form-select {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include 'header.html' %}
+
+    <div class="container-fluid mt-4">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+            <div>
+                <h2 style="color: #1e293b; font-weight: 700; margin: 0;"><i class="fas fa-chart-line"
+                        style="color: #3b82f6; margin-right: 0.5rem;"></i> Admin Dashboard</h2>
+                <p style="color: #64748b; font-size: 0.875rem; margin: 0.25rem 0 0 0;">Manage inventory, production, and
+                    operations</p>
+            </div>
+            <button class="quick-add-btn" data-bs-toggle="modal" data-bs-target="#quickAddStockModal">
+                <i class="fas fa-plus"></i> Add Stock Item
+            </button>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card" style="border-left: 4px solid #ef4444;">
+                    <div class="stat-icon" style="color: #ef4444;"><i class="fas fa-triangle-exclamation"></i></div>
+                    <div class="stat-label">Negative Stock</div>
+                    <div class="stat-value" id="negativeStockCount" style="color: #ef4444;">0</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+                    <div class="stat-icon" style="color: #f59e0b;"><i class="fas fa-circle-exclamation"></i></div>
+                    <div class="stat-label">Low Stock Items</div>
+                    <div class="stat-value" id="lowStockCount" style="color: #f59e0b;">0</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card" style="border-left: 4px solid #10b981;">
+                    <div class="stat-icon" style="color: #10b981;"><i class="fas fa-cube"></i></div>
+                    <div class="stat-label">Total Stock Items</div>
+                    <div class="stat-value" id="totalItemsCount" style="color: #10b981;">0</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card" style="border-left: 4px solid #8b5cf6;">
+                    <div class="stat-icon" style="color: #8b5cf6;"><i class="fas fa-layer-group"></i></div>
+                    <div class="stat-label">Stock Groups</div>
+                    <div class="stat-value" id="totalGroupsCount" style="color: #8b5cf6;">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="stat-card" style="border-left: 4px solid #06b6d4;">
+                    <div class="stat-icon" style="color: #06b6d4;"><i class="fas fa-clipboard-check"></i></div>
+                    <div class="stat-label">Unaccounted Production Cards</div>
+                    <div class="stat-value" id="unaccountedCount" style="color: #06b6d4;">0</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-card" style="border-left: 4px solid #ec4899;">
+                    <div class="stat-icon" style="color: #ec4899;"><i class="fas fa-cubes"></i></div>
+                    <div class="stat-label">Recent Batches</div>
+                    <div class="stat-value" id="recentBatchesCount" style="color: #ec4899;">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Critical Stock Items Section -->
+        <div class="section-header">
+            <div class="section-title"><i class="fas fa-exclamation-circle"
+                    style="color: #ef4444; margin-right: 0.5rem;"></i>Critical Stock Alerts</div>
+        </div>
+        <div class="data-table" style="margin-bottom: 2rem; max-height: 500px; overflow-y: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Group</th>
+                        <th>Current Qty</th>
+                        <th>Unit</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="lowStockTable">
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Unaccounted Cards Section -->
+        <div class="section-header">
+            <div class="section-title"><i class="fas fa-clipboard-list"
+                    style="color: #06b6d4; margin-right: 0.5rem;"></i>Pending Accounting</div>
+        </div>
+        <div class="data-table" style="margin-bottom: 2rem; max-height: 500px; overflow-y: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Production Code</th>
+                        <th>Date</th>
+                        <th>Output</th>
+                        <th>Unit</th>
+                        <th>Batches</th>
+                        <th>Materials</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="unaccountedCardsTable">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Recent Batches Section -->
+        <div class="section-header">
+            <div class="section-title"><i class="fas fa-history"
+                    style="color: #ec4899; margin-right: 0.5rem;"></i>Recent Production Batches</div>
+        </div>
+        <div class="data-table" style="max-height: 500px; overflow-y: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Batch Code</th>
+                        <th>Production Card</th>
+                        <th>Product</th>
+                        <th>Output Qty</th>
+                        <th>Loss Qty</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody id="recentBatchesTable">
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Quick Add Stock Item Modal -->
+    <div class="modal fade" id="quickAddStockModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Add Stock Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="quickAddName">Item Name</label>
+                        <input type="text" class="form-control" id="quickAddName" placeholder="e.g., Sodium Chloride"
+                            autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label for="quickAddGroup">Stock Group</label>
+                        <select class="form-select" id="quickAddGroup"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quickAddUnit">Unit</label>
+                        <input type="text" class="form-control" id="quickAddUnit" placeholder="e.g., kg, pcs, liters"
+                            autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label for="quickAddQty">Initial Quantity</label>
+                        <input type="number" class="form-control" id="quickAddQty" placeholder="0" step="0.01"
+                            autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="quickAddStockItem()">Add Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/api_caller.js"></script>
+    <script src="/static/js/admin_dashboard.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            toggle_loader()
+            await loadAdminDashboard('{{csrf_token}}');
+            await loadStockGroups();
+            toggle_loader()
+            // Refresh every 30 seconds
+            // setInterval(loadAdminDashboard, 30000);
+        });
+
+    </script>
+</body>
+
+</html>

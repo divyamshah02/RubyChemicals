@@ -36,7 +36,7 @@ class ProductionCardSerializer(serializers.ModelSerializer):
         model = ProductionCard
         fields = [
             "id", "production_code", "production_date", "total_output_quantity",
-            "unit", "notes", "created_by"
+            "unit", "accounted", "notes", "created_by"
         ]
 
 
@@ -68,15 +68,19 @@ class ProductionCardDetailSerializer(serializers.ModelSerializer):
         model = ProductionCard
         fields = [
             "id", "production_code", "production_date", "total_output_quantity",
-            "unit", "notes", "batches", "consumptions", "created_by"
+            "unit", "accounted", "notes", "batches", "consumptions", "created_by"
         ]
 
 class DispatchSerializer(serializers.ModelSerializer):
     stock_item_name = serializers.CharField(source="stock_item.name", read_only=True)
+    client_name = serializers.CharField(source="client.company_name", read_only=True)
 
     class Meta:
         model = Dispatch
-        fields = "__all__"
+        fields = [
+            "id", "dispatch_code", "dispatch_date", "stock_item", "stock_item_name",
+            "client", "client_name", "dispatch_quantity", "unit", "shipping_address", "notes"
+        ]
 
 class ExpenseHeadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -90,3 +94,31 @@ class PettyCashSerializer(serializers.ModelSerializer):
     class Meta:
         model = PettyCash
         fields = "__all__"
+
+
+class ClientAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClientAddress
+        fields = [
+            "id", "client", "address_type", "street", "city", "state",
+            "postal_code", "country", "is_default"
+        ]
+
+
+class ClientProfileSerializer(serializers.ModelSerializer):
+    addresses = ClientAddressSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ClientProfile
+        fields = [
+            "id", "company_name", "contact_person", "email", "phone",
+            "gst_no", "notes", "is_active", "addresses"
+        ]
+
+
+class ClientProfileListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClientProfile
+        fields = [
+            "id", "company_name", "contact_person", "email", "phone", "is_active"
+        ]

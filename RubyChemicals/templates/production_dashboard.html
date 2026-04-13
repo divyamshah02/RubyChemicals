@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Production Dashboard - Ruby Chemicals</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    {% include 'header.html' %}
+
+    <div class="container mt-4">
+        <h3><i class="fas fa-industry" style="color: #3b82f6;"></i> Production Dashboard</h3>
+        <hr style="border-color: #e2e8f0;">
+
+        <!-- Stats Row -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card" style="border-left: 4px solid #3b82f6;">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Stock Items</h6>
+                        <h3 id="totalItemsCount" style="color: #3b82f6;">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card" style="border-left: 4px solid #10b981;">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Production Cards</h6>
+                        <h3 id="totalCardCount" style="color: #10b981;">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card" style="border-left: 4px solid #f59e0b;">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Batches</h6>
+                        <h3 id="totalBatchCount" style="color: #f59e0b;">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card" style="border-left: 4px solid #ef4444;">
+                    <div class="card-body">
+                        <h6 class="text-muted">Low Stock Items</h6>
+                        <h3 id="lowStockCount" style="color: #ef4444;">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Items Section -->
+        <h5 style="color: #1e40af; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">
+            <i class="fas fa-boxes"></i> All Stock Items
+        </h5>
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <table class="table table-sm mb-0">
+                <thead style="background: #f0f9ff; position: sticky; top: 0;">
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Group</th>
+                        <th>Current Qty</th>
+                        <th>Unit</th>
+                        <th>Rate</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="stockItemsTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Production Cards Section -->
+        <h5 style="color: #1e40af; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">
+            <i class="fas fa-industry"></i> Production Cards
+        </h5>
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <table class="table table-sm mb-0">
+                <thead style="background: #f0f9ff; position: sticky; top: 0;">
+                    <tr>
+                        <th>Code</th>
+                        <th>Date</th>
+                        <th>Output</th>
+                        <th>Unit</th>
+                        <th>Batches</th>
+                        <th>Accounted</th>
+                    </tr>
+                </thead>
+                <tbody id="productionCardsTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Stock Groups Section -->
+        <h5 style="color: #1e40af; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">
+            <i class="fas fa-layer-group"></i> Stock Groups
+        </h5>
+        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <table class="table table-sm mb-0">
+                <thead style="background: #f0f9ff; position: sticky; top: 0;">
+                    <tr>
+                        <th>Group Name</th>
+                    </tr>
+                </thead>
+                <tbody id="stockGroupsTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/api_caller.js"></script>
+    <script>
+        const PRODUCTION_DASHBOARD_API = "/operation-api/production-dashboard-api/";
+
+        async function loadProductionDashboard() {
+            const [ok, res] = await callApi("GET", PRODUCTION_DASHBOARD_API);
+            if (ok && res.data) {
+                const data = res.data;
+
+                document.getElementById("totalItemsCount").textContent = data.total_items;
+                document.getElementById("totalCardCount").textContent = data.total_productions;
+                document.getElementById("totalBatchCount").textContent = data.total_batches;
+                document.getElementById("lowStockCount").textContent = data.low_stock_count;
+
+                // Stock Items Table
+                const stockItemsTable = document.getElementById("stockItemsTable");
+                stockItemsTable.innerHTML = data.stock_items.map(item => {
+                    let bgColor = '#ffffff';
+                    let statusText = '✓ OK';
+                    if (parseFloat(item.current_quantity) < 0) {
+                        bgColor = '#fee2e2';
+                        statusText = '⚠️ NEGATIVE';
+                    } else if (parseFloat(item.current_quantity) <= 0) {
+                        bgColor = '#fef3c7';
+                        statusText = '⚡ LOW';
+                    }
+                    return `
+                        <tr style="background: ${bgColor};">
+                            <td><strong>${item.name}</strong></td>
+                            <td>${item.group__name}</td>
+                            <td style="font-weight: 600;">${item.current_quantity}</td>
+                            <td>${item.unit}</td>
+                            <td>₹ ${parseFloat(item.rate).toFixed(2)}</td>
+                            <td>${statusText}</td>
+                        </tr>
+                    `;
+                }).join("");
+
+                // Production Cards Table
+                const productionCardsTable = document.getElementById("productionCardsTable");
+                productionCardsTable.innerHTML = data.production_cards.map(card => `
+                    <tr>
+                        <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px;">${card.production_code}</code></td>
+                        <td>${card.production_date}</td>
+                        <td>${card.total_output_quantity}</td>
+                        <td>${card.unit}</td>
+                        <td><span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 3px; font-weight: 600;">${card.batch_count}</span></td>
+                        <td>
+                            ${card.accounted 
+                                ? '<span style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">✓ YES</span>'
+                                : '<span style="background: #fecaca; color: #7f1d1d; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">✗ NO</span>'
+                            }
+                        </td>
+                    </tr>
+                `).join("");
+
+                // Stock Groups Table
+                const stockGroupsTable = document.getElementById("stockGroupsTable");
+                stockGroupsTable.innerHTML = data.stock_groups.map(group => `
+                    <tr>
+                        <td><strong>${group.name}</strong></td>
+                    </tr>
+                `).join("");
+            }
+        }
+
+        loadProductionDashboard();
+    </script>
+
+</body>
+
+</html>

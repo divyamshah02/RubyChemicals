@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Accounts Dashboard - Ruby Chemicals</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    {% include 'header.html' %}
+
+    <div class="container mt-4">
+        <h3><i class="fas fa-balance-scale" style="color: #8b5cf6;"></i> Accounts Dashboard</h3>
+        <hr style="border-color: #e2e8f0;">
+
+        <!-- Stats Row -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card" style="border-left: 4px solid #ef4444;">
+                    <div class="card-body">
+                        <h6 class="text-muted">Negative Stock Items</h6>
+                        <h3 id="negativeStockCount" style="color: #ef4444;">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card" style="border-left: 4px solid #8b5cf6;">
+                    <div class="card-body">
+                        <h6 class="text-muted">Pending Production Cards</h6>
+                        <h3 id="pendingCardsCount" style="color: #8b5cf6;">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card" style="border-left: 4px solid #10b981;">
+                    <div class="card-body">
+                        <h6 class="text-muted">Low Stock Items</h6>
+                        <h3 id="lowStockCount" style="color: #10b981;">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Section -->
+        <h5 style="color: #1e40af; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">
+            <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Critical Stock Items
+        </h5>
+        <div style="max-height: 350px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <table class="table table-sm mb-0">
+                <thead style="background: #f0f9ff; position: sticky; top: 0;">
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Group</th>
+                        <th>Current Qty</th>
+                        <th>Unit</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="lowStockTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Unaccounted Production Cards Section -->
+        <h5 style="color: #1e40af; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">
+            <i class="fas fa-clipboard-list"></i> Production Cards Awaiting Accounting
+        </h5>
+        <div style="max-height: 450px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <table class="table table-sm mb-0">
+                <thead style="background: #f0f9ff; position: sticky; top: 0;">
+                    <tr>
+                        <th>Code</th>
+                        <th>Date</th>
+                        <th>Output</th>
+                        <th>Batches</th>
+                        <th>Materials</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="unaccountedCardsTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/api_caller.js"></script>
+    <script>
+        const ACCOUNTS_DASHBOARD_API = "/operation-api/accounts-dashboard-api/";
+
+        async function loadAccountsDashboard() {
+            const [ok, res] = await callApi("GET", ACCOUNTS_DASHBOARD_API);
+            if (ok && res.data) {
+                const data = res.data;
+
+                document.getElementById("negativeStockCount").textContent = data.negative_stock_count;
+                document.getElementById("pendingCardsCount").textContent = data.pending_cards;
+                document.getElementById("lowStockCount").textContent = data.low_stock_items.length;
+
+                // Low Stock Table
+                const lowStockTable = document.getElementById("lowStockTable");
+                lowStockTable.innerHTML = data.low_stock_items.map(item => `
+                    <tr style="background: ${item.current_quantity < 0 ? '#fee2e2' : '#fef3c7'};">
+                        <td><strong>${item.name}</strong></td>
+                        <td>${item.group__name}</td>
+                        <td style="color: ${item.current_quantity < 0 ? '#dc2626' : '#f97316'}; font-weight: 600;">
+                            ${item.current_quantity}
+                        </td>
+                        <td>${item.unit}</td>
+                        <td>
+                            ${item.current_quantity < 0 
+                                ? '<span style="background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">⚠️ NEGATIVE</span>'
+                                : '<span style="background: #fef3c7; color: #b45309; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">⚡ LOW</span>'
+                            }
+                        </td>
+                    </tr>
+                `).join("");
+
+                // Unaccounted Cards Table
+                const unaccountedCardsTable = document.getElementById("unaccountedCardsTable");
+                unaccountedCardsTable.innerHTML = data.unaccounted_cards.map(card => `
+                    <tr>
+                        <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px;">${card.production_code}</code></td>
+                        <td>${card.production_date}</td>
+                        <td>${card.total_output_quantity} ${card.unit}</td>
+                        <td><span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 3px; font-weight: 600;">${card.batch_count}</span></td>
+                        <td><span style="background: #e9d5ff; color: #6b21a8; padding: 2px 6px; border-radius: 3px;">${card.material_count}</span></td>
+                        <td><span style="background: #fecaca; color: #7f1d1d; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">Pending</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="markAccounted(${card.id})">
+                                <i class="fas fa-check"></i> Mark Accounted
+                            </button>
+                        </td>
+                    </tr>
+                `).join("");
+            }
+        }
+
+        async function markAccounted(cardId) {
+            const [ok, res] = await callApi("POST", ACCOUNTS_DASHBOARD_API + "mark_accounted/", { card_id: cardId }, "{{csrf_token}}");
+            if (ok && res.success) {
+                alert("Production card marked as accounted!");
+                loadAccountsDashboard();
+            } else {
+                alert("Error: " + (res.error || "Failed to update"));
+            }
+        }
+
+        loadAccountsDashboard();
+    </script>
+
+</body>
+
+</html>

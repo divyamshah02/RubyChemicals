@@ -63,9 +63,9 @@ class ProductionConsumptionInline(admin.TabularInline):
 
 @admin.register(Dispatch)
 class DispatchAdmin(admin.ModelAdmin):
-    list_display = ("dispatch_date", "customer_name", "stock_item", "quantity", "created_by")
+    list_display = ("dispatch_date", "client__company_name", "stock_item", "quantity", "created_by")
     list_filter = ("dispatch_date", "stock_item")
-    search_fields = ("customer_name", "stock_item__name")
+    search_fields = ("client__company_name", "stock_item__name")
     ordering = ("-dispatch_date",)
 
 

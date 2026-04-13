@@ -110,6 +110,8 @@ class ProductionCard(models.Model):
         ('pcs', 'Pieces'),
     ])
     
+    accounted = models.BooleanField(default=False)
+    
     notes = models.TextField(blank=True)
     
     created_by = models.ForeignKey(
@@ -183,27 +185,6 @@ class ProductionConsumption(models.Model):
         return f"{self.stock_item.name}"
         return f"{self.stock_item.name} - {self.production_card.production_code}"
 
-class Dispatch(models.Model):
-    dispatch_date = models.DateField()
-    customer_name = models.CharField(max_length=255)
-    stock_item = models.ForeignKey(
-        StockItem,
-        on_delete=models.PROTECT,
-        related_name='dispatches'
-    )
-    quantity = models.DecimalField(max_digits=12, decimal_places=3)
-    notes = models.TextField(blank=True)
-
-    created_by = models.ForeignKey(
-        'UserDetail.User',
-        on_delete=models.SET_NULL,
-        null=True
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Dispatch - {self.stock_item.name}"
-
 class ExpenseHead(models.Model):
     name = models.CharField(max_length=100, unique=True)
     is_active = models.BooleanField(default=True)
@@ -229,3 +210,86 @@ class PettyCash(models.Model):
 
     def __str__(self):
         return f"{self.expense_head.name} - {self.amount}"
+
+
+class ClientProfile(models.Model):
+    company_name = models.CharField(max_length=200, unique=True)
+    contact_person = models.CharField(max_length=100)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20)
+    gst_no = models.CharField(max_length=20, blank=True)
+    notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.company_name
+
+
+class ClientAddress(models.Model):
+    client = models.ForeignKey(
+        ClientProfile,
+        on_delete=models.CASCADE,
+        related_name='addresses'
+    )
+    address_type = models.CharField(
+        max_length=20,
+        choices=[('billing', 'Billing'), ('shipping', 'Shipping'), ('other', 'Other')],
+        default='shipping'
+    )
+    street = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    postal_code = models.CharField(max_length=20)
+    country = models.CharField(max_length=100, default='India')
+    
+    is_default = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.client.company_name} - {self.address_type}"
+
+class Dispatch(models.Model):
+    dispatch_code = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    dispatch_date = models.DateField()
+    
+    stock_item = models.ForeignKey(
+        StockItem,
+        on_delete=models.PROTECT
+    )
+    client = models.ForeignKey(
+        ClientProfile,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
+    
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    unit = models.CharField(max_length=10, default='kg', choices=[
+        ('kg', 'Kilogram'),
+        ('g', 'Gram'),
+        ('pcs', 'Pieces'),
+    ])
+    
+    shipping_address = models.ForeignKey(
+        ClientAddress,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    
+    notes = models.TextField(blank=True)
+    
+    created_by = models.ForeignKey(
+        'UserDetail.User',
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Dispatch - {self.stock_item.name}"

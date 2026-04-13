@@ -54,6 +54,27 @@ def check_authentication(required_role=None):
     return decorator
 
 
+class AdminDashboardViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    def list(self, request):
+        return render(request, 'admin_dashboard.html')
+
+
+class AccountsDashboardViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    def list(self, request):
+        return render(request, 'accounts_dashboard.html')
+
+
+class ProductionDashboardViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    def list(self, request):
+        return render(request, 'production_dashboard.html')
+
+
 class StockGroupViewSet(viewsets.ViewSet):
 
     @handle_exceptions
@@ -64,6 +85,7 @@ class StockItemViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     def list(self, request):
+        return render(request, 'stock_item.html')
         return render(request, 'stock_items.html')
     
 class ProductionViewSet(viewsets.ViewSet):
@@ -77,9 +99,16 @@ class DispatchViewSet(viewsets.ViewSet):
     @handle_exceptions
     def list(self, request):
         return render(request, 'dispatch.html')
+    
+class ClientManagementViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    def list(self, request):
+        return render(request, 'client_management.html')
 
 class PettyCashViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     def list(self, request):
         return render(request, 'petty_cash.html')
+    

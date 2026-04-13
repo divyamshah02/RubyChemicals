@@ -1,0 +1,142 @@
+const ADMIN_DASHBOARD_API = "/operation-api/admin-dashboard-api/";
+const ADMIN_MARK_ACCOUNTED_API = "/operation-api/admin-mark-accounted-api/";
+const STOCK_ITEM_API = "/operation-api/stock-item-api/";
+const STOCK_GROUP_API = "/operation-api/stock-group-api/";
+let csrf_token = ""
+let stockGroups = [];
+
+async function loadAdminDashboard(csrf_token_param) {
+    csrf_token = csrf_token_param
+    const [ok, res] = await callApi("GET", ADMIN_DASHBOARD_API);
+    if (ok && res.data) {
+        const data = res.data;
+        
+        document.getElementById("negativeStockCount").textContent = data.negative_stock_count;
+        document.getElementById("lowStockCount").textContent = data.low_stock_items.length;
+        document.getElementById("totalItemsCount").textContent = data.total_items;
+        document.getElementById("totalGroupsCount").textContent = data.total_groups;
+        document.getElementById("unaccountedCount").textContent = data.unaccounted_count;
+        document.getElementById("recentBatchesCount").textContent = data.recent_batches.length;
+
+        // Low/Negative Stock Table
+        const lowStockTable = document.getElementById("lowStockTable");
+        if (data.low_stock_items.length === 0) {
+            lowStockTable.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">All items in good stock</td></tr>';
+        } else {
+            lowStockTable.innerHTML = data.low_stock_items.map(item => {
+                let badgeClass = 'badge-warning';
+                let statusText = 'Low Stock';
+                if (item.current_quantity < 0) {
+                    badgeClass = 'badge-critical';
+                    statusText = 'CRITICAL - Negative';
+                }
+                return `
+                    <tr style="background: ${item.current_quantity < 0 ? '#fef2f2' : '#fffbeb'};">
+                        <td><strong>${item.name}</strong></td>
+                        <td><span style="background: #e0e7ff; color: #3730a3; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.85rem;">${item.group__name}</span></td>
+                        <td style="font-weight: 600; color: ${item.current_quantity < 0 ? '#dc2626' : '#f97316'};"><strong>${item.current_quantity.toFixed(2)}</strong></td>
+                        <td>${item.unit}</td>
+                        <td><span class="badge ${badgeClass}" style="font-size: 0.8rem;">${statusText}</span></td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        // Unaccounted Cards Table
+        const unaccountedCardsTable = document.getElementById("unaccountedCardsTable");
+        if (data.unaccounted_cards.length === 0) {
+            unaccountedCardsTable.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">All cards accounted</td></tr>';
+        } else {
+            unaccountedCardsTable.innerHTML = data.unaccounted_cards.map(card => `
+                <tr>
+                    <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-weight: 600;">${card.production_code}</code></td>
+                    <td>${card.production_date}</td>
+                    <td><strong>${card.total_output_quantity}</strong></td>
+                    <td>${card.unit}</td>
+                    <td><span style="background: #f3e8ff; color: #6b21a8; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${card.batch_count || 0} batches</span></td>
+                    <td><span style="background: #e0f2fe; color: #0c4a6e; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${card.consumption_count || 0} items</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-success" onclick="markAccounted(${card.id})" title="Mark as accounted">
+                            <i class="fas fa-check"></i> Mark Accounted
+                        </button>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        // Recent Batches Table
+        const recentBatchesTable = document.getElementById("recentBatchesTable");
+        if (data.recent_batches.length === 0) {
+            recentBatchesTable.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No recent batches</td></tr>';
+        } else {
+            recentBatchesTable.innerHTML = data.recent_batches.map(batch => `
+                <tr>
+                    <td><code style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 3px; font-weight: 600;">${batch.batch_code}</code></td>
+                    <td><strong>${batch.production_card__production_code}</strong></td>
+                    <td>${batch.product__name}</td>
+                    <td><span style="background: #dcfce7; padding: 4px 8px; border-radius: 4px; color: #15803d; font-weight: 600;">${batch.output_quantity}</span></td>
+                    <td><span style="background: #fee2e2; padding: 4px 8px; border-radius: 4px; color: #991b1b;">${batch.loss_quantity}</span></td>
+                    <td style="color: #64748b; font-size: 0.875rem;">${batch.created_at ? new Date(batch.created_at).toLocaleDateString() : 'N/A'}</td>
+                </tr>
+            `).join("");
+        }
+    }
+}
+
+async function loadStockGroups() {
+    const [ok, res] = await callApi("GET", STOCK_GROUP_API);
+    if (ok && res.data) {
+        stockGroups = res.data;
+        const groupSelect = document.getElementById("quickAddGroup");
+        groupSelect.innerHTML = '<option value="">Select a group</option>' + stockGroups.map(g => 
+            `<option value="${g.id}">${g.name}</option>`
+        ).join("");
+    }
+}
+
+async function quickAddStockItem() {
+    const name = document.getElementById("quickAddName").value;
+    const groupId = document.getElementById("quickAddGroup").value;
+    const unit = document.getElementById("quickAddUnit").value;
+    const qty = document.getElementById("quickAddQty").value;
+
+    if (!name || !groupId || !unit || !qty) {
+        alert("Please fill all required fields");
+        return;
+    }
+
+    const payload = {
+        name: name,
+        group: groupId,
+        unit: unit,
+        current_quantity: qty
+    };
+
+    const [ok, res] = await callApi("POST", STOCK_ITEM_API, payload, csrf_token);
+    if (ok && res.success) {
+        alert("Stock item added successfully!");
+        document.getElementById("quickAddName").value = "";
+        document.getElementById("quickAddGroup").value = "";
+        document.getElementById("quickAddUnit").value = "";
+        document.getElementById("quickAddQty").value = "";
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById("quickAddStockModal"));
+        if (modal) modal.hide();
+        
+        loadAdminDashboard();
+    } else {
+        alert("Error: " + (res.error || "Failed to add stock item"));
+    }
+}
+
+async function markAccounted(cardId) {
+    if (confirm("Mark this production card as accounted?")) {
+        const [ok, res] = await callApi("POST", ADMIN_MARK_ACCOUNTED_API, { card_id: cardId }, csrf_token);
+        if (ok && res.success) {
+            alert("Production card marked as accounted!");
+            loadAdminDashboard();
+        } else {
+            alert("Error: " + (res.error || "Failed to update"));
+        }
+    }
+}

@@ -133,22 +133,19 @@ async function loadBatches(){
     const rows = res.data.map(b => `
       <tr>
         <td><span class="production-code">${b.batch_code}</span></td>
-        <td>${b.production_code || 'N/A'}</td>
         <td>${b.production_date || 'N/A'}</td>
-        <td>${b.product_name}</td>
-        <td><strong>${b.output_quantity}</strong> ${b.product_unit}</td>        
-        <td><strong>${b.loss_quantity}</strong> ${b.product_unit}</td>              
+        <td><strong>${b.output_quantity}</strong> ${b.product_unit}</td>
+        <td><span style="background: #dcfce7; color: #15803d; padding: 0.375rem 0.75rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600;">Active</span></td>
+        <td>${b.created_by || 'System'}</td>
         <td>
           <div class="action-buttons">
-            <button class="btn btn-info" onclick="viewProductionCard(${b.production_card_id})"><i class="fas fa-eye"></i> View</button>            
-            
+            <button class="btn btn-info" onclick="viewProductionCard(${b.production_card_id})"><i class="fas fa-eye"></i> View</button>
+            <button class="btn btn-warning" onclick="editBatch(${b.id})"><i class="fas fa-edit"></i> Edit</button>
+            <button class="btn btn-danger" onclick="deleteBatch(${b.id})"><i class="fas fa-trash"></i> Delete</button>
           </div>
         </td>
       </tr>
     `).join("")
-
-    // <button class="btn btn-warning" onclick="editBatch(${b.id})"><i class="fas fa-edit"></i> Edit</button>
-    // <button class="btn btn-danger" onclick="deleteBatch(${b.id})"><i class="fas fa-trash"></i> Delete</button>
     
     const tbody = table.querySelector("tbody")
     tbody.innerHTML = rows || '<tr><td colspan="6" class="text-center text-muted py-4">No production batches found</td></tr>'

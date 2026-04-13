@@ -252,13 +252,12 @@
             <table class="table table-hover" id="batchTable">
                 <thead>
                     <tr>
-                        <th><i class="fas fa-barcode"></i> Batch</th>
-                        <th><i class="fas fa-industry"></i> Production Card</th>
-                        <th><i class="fas fa-calendar"></i> Production Date</th>
-                        <th><i class="fas fa-cube"></i> Product</th>
-                        <th><i class="fas fa-arrow-up"></i> Output</th>
-                        <th><i class="fas fa-exclamation"></i> Loss</th>
-                        <th style="width: 150px;"><i class="fas fa-cogs"></i> Action</th></tr></thead>
+                        <th>Production Code</th>
+                        <th>Date</th>
+                        <th>Total Output</th>
+                        <th>Status</th>
+                        <th>Created By</th>
+                        <th style="width: 150px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -370,7 +369,7 @@
                 if (dateCell.includes(today)) {
                     todayCount++;
                 }
-                const outputCell = row.cells[3]?.textContent || '';
+                const outputCell = row.cells[2]?.textContent || '';
                 const output = parseFloat(outputCell.split(' ')[0]) || 0;
                 totalOutput += output;
                 batchCount++;

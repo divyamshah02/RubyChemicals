@@ -1,51 +1,316 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Dispatch - Ruby Chemicals</title>
+    <title>Dispatch Management - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body { background: #f8fafc; }
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        .btn-primary-custom {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn-primary-custom:hover { background: #2563eb; transform: translateY(-2px); }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            transition: all 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        .stat-icon { font-size: 2.5rem; opacity: 0.7; }
+        .stat-content h3 { margin: 0; font-size: 1.75rem; font-weight: 700; }
+        .stat-content p { margin: 0.25rem 0 0; color: #64748b; font-size: 0.875rem; }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2rem 0 1.5rem 0;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-input, .filter-select {
+            padding: 0.625rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        .filter-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .dispatch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .dispatch-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .dispatch-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15);
+            transform: translateY(-4px);
+        }
+        .dispatch-code {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.875rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        .dispatch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        .dispatch-date {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        .dispatch-info {
+            margin-bottom: 1rem;
+        }
+        .dispatch-label {
+            color: #64748b;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .dispatch-value {
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .dispatch-item {
+            margin: 0.75rem 0;
+        }
+        .dispatch-address {
+            background: #f1f5f9;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border-left: 3px solid #3b82f6;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+            color: #475569;
+        }
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .action-buttons { display: flex; gap: 0.5rem; }
+        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.75rem; }
+        
+        .dispatch-table {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .dispatch-table table { margin-bottom: 0; }
+        .dispatch-table thead {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: #475569;
+        }
+        .dispatch-table tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.2s;
+        }
+        .dispatch-table tbody tr:hover { background: #f8fafc; }
+    </style>
 </head>
-
 <body>
-
     {% include 'header.html' %}
 
-    <div class="container">
-        <h4><i class="fas fa-shipping-fast" style="color: #3b82f6;"></i> Dispatch Management</h4>
+    <div class="container-fluid mt-4" style="max-width: 1400px;">
+        <div class="page-header">
+            <h1 class="page-title"><i class="fas fa-truck" style="color: #3b82f6; margin-right: 0.75rem;"></i>Dispatch Management</h1>
+            <button class="btn-primary-custom" onclick="openAddDispatchModal()">
+                <i class="fas fa-plus" style="margin-right: 0.5rem;"></i> Add Dispatch
+            </button>
+        </div>
 
-        <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#dispatchModal">
-            <i class="fas fa-plus"></i> Create Dispatch
-        </button>
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card" style="border-left: 4px solid #3b82f6;">
+                <div class="stat-icon" style="color: #3b82f6;"><i class="fas fa-boxes"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalDispatchesCount">0</h3>
+                    <p>Total Dispatches</p>
+                </div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #8b5cf6;">
+                <div class="stat-icon" style="color: #8b5cf6;"><i class="fas fa-calendar-today"></i></div>
+                <div class="stat-content">
+                    <h3 id="todayDispatchesCount">0</h3>
+                    <p>Today's Dispatches</p>
+                </div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #10b981;">
+                <div class="stat-icon" style="color: #10b981;"><i class="fas fa-weight"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalQuantity">0</h3>
+                    <p>Total Quantity</p>
+                </div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+                <div class="stat-icon" style="color: #f59e0b;"><i class="fas fa-users"></i></div>
+                <div class="stat-content">
+                    <h3 id="uniqueClientsCount">0</h3>
+                    <p>Unique Clients</p>
+                </div>
+            </div>
+        </div>
 
-        <table class="table" id="dispatchTable"></table>
+        <!-- Section Header -->
+        <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-list" style="color: #3b82f6; margin-right: 0.5rem;"></i>Dispatch List</h2>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-controls">
+            <input type="text" id="searchInput" class="filter-input" placeholder="Search by code, item, or client..." style="flex: 1; min-width: 250px;">
+            <select id="clientFilter" class="filter-select">
+                <option value="">All Clients</option>
+            </select>
+            <select id="sortSelect" class="filter-select">
+                <option value="latest">Latest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="code-asc">Code (A-Z)</option>
+                <option value="code-desc">Code (Z-A)</option>
+            </select>
+        </div>
+
+        <!-- Dispatch Cards Grid -->
+        <div class="dispatch-grid" id="dispatchCardsContainer">
+            <p class="text-muted">Loading dispatches...</p>
+        </div>
     </div>
 
-    <!-- Dispatch Modal -->
-    <div class="modal fade" id="dispatchModal">
-        <div class="modal-dialog">
+    <!-- Add/Edit Dispatch Modal -->
+    <div class="modal fade" id="dispatchModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-shipping-fast" style="color: #3b82f6;"></i> Create Dispatch</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header" style="border-bottom: 1px solid #e2e8f0;">
+                    <h5 class="modal-title" id="dispatchModalTitle">Add New Dispatch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <label for="dispatchItem">Product</label>
-                    <select id="dispatchItem" class="form-control mb-3"></select>
-
-                    <label for="dispatchQty">Quantity</label>
-                    <input id="dispatchQty" class="form-control mb-3" placeholder="0" autocomplete="off">
-                    
-                    <label for="dispatchCustomer">Customer Name</label>
-                    <input id="dispatchCustomer" class="form-control mb-3" placeholder="Enter customer name" autocomplete="off">
-                    
-                    <label for="dispatchDate">Dispatch Date</label>
-                    <input id="dispatchDate" type="date" class="form-control">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Dispatch Code</strong> <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="dispatchCode" class="form-control" placeholder="e.g., DISP-001">
+                        <small id="codeError" style="color: #ef4444; display: none;">Dispatch code already exists</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><strong>Dispatch Date</strong> <span style="color: #ef4444;">*</span></label>
+                            <input type="date" id="dispatchDate" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><strong>Stock Item</strong> <span style="color: #ef4444;">*</span></label>
+                            <select id="dispatchItem" class="form-control">
+                                <option value="">Select item</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><strong>Client</strong></label>
+                            <select id="dispatchClient" class="form-control">
+                                <option value="">Select client</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label"><strong>Shipping Address</strong></label>
+                            <select id="shippingAddress" class="form-control">
+                                <option value="">Select address</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label"><strong>Quantity</strong> <span style="color: #ef4444;">*</span></label>
+                            <input type="number" id="dispatchQuantity" class="form-control" placeholder="0" step="0.01">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label"><strong>Unit</strong></label>
+                            <select id="dispatchUnit" class="form-control">
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                                <option value="pcs">pcs</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Notes</strong></label>
+                        <textarea id="dispatchNotes" class="form-control" rows="3" placeholder="Optional notes"></textarea>
+                    </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-success" onclick="createDispatch()"><i class="fas fa-save"></i> Save Dispatch</button>
+                    <button type="button" class="btn btn-primary" onclick="saveDispatch()">Save Dispatch</button>
                 </div>
             </div>
         </div>
@@ -53,17 +318,255 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/api_caller.js"></script>
-    <script src="/static/js/dispatch.js"></script>
     <script>
-        init("{{csrf_token}}", {
-            dispatch: "/operation-api/dispatch-api/",
-            stock: "/operation-api/stock-item-api/"
-        })
+        const DISPATCH_API = "/operation-api/dispatch-api/";
+        const ITEM_API = "/operation-api/stock-item-api/";
+        const CLIENT_API = "/operation-api/client-api/";
+        
+        let allDispatch = [];
+        let allClients = [];
+        let currentDispatchId = null;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            loadData();
+            document.getElementById("searchInput").addEventListener("input", renderDispatchCards);
+            document.getElementById("clientFilter").addEventListener("change", renderDispatchCards);
+            document.getElementById("sortSelect").addEventListener("change", renderDispatchCards);
+            document.getElementById("dispatchCode").addEventListener("blur", checkDispatchCodeUniqueness);
+        });
+
+        async function loadData() {
+            // Load items
+            const [okItems, resItems] = await callApi("GET", ITEM_API);
+            if (okItems && resItems.data) {
+                const itemSelect = document.getElementById("dispatchItem");
+                itemSelect.innerHTML = '<option value="">Select item</option>' +
+                    resItems.data.map(item => `<option value="${item.id}">${item.name}</option>`).join("");
+            }
+
+            // Load clients
+            const [okClients, resClients] = await callApi("GET", CLIENT_API);
+            if (okClients && resClients.data) {
+                allClients = resClients.data;
+                const clientSelect = document.getElementById("dispatchClient");
+                const clientFilter = document.getElementById("clientFilter");
+                clientSelect.innerHTML = '<option value="">Select client</option>' +
+                    allClients.map(c => `<option value="${c.id}">${c.company_name}</option>`).join("");
+                clientFilter.innerHTML = '<option value="">All Clients</option>' +
+                    allClients.map(c => `<option value="${c.id}">${c.company_name}</option>`).join("");
+                
+                // Update addresses when client changes
+                document.getElementById("dispatchClient").addEventListener("change", function() {
+                    const selectedId = this.value;
+                    const client = allClients.find(c => c.id == selectedId);
+                    const addrSelect = document.getElementById("shippingAddress");
+                    if (client && client.addresses && client.addresses.length > 0) {
+                        addrSelect.innerHTML = client.addresses.map(addr => 
+                            `<option value="${addr.id}">${addr.address_type} - ${addr.street}</option>`
+                        ).join("");
+                    } else {
+                        addrSelect.innerHTML = '<option value="">No addresses available</option>';
+                    }
+                });
+            }
+
+            // Load dispatches
+            const [okDispatch, resDispatch] = await callApi("GET", DISPATCH_API);
+            if (okDispatch && resDispatch.data) {
+                allDispatch = resDispatch.data;
+                updateKPIs();
+                renderDispatchCards();
+            }
+        }
+
+        function updateKPIs() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayDispatches = allDispatch.filter(d => d.dispatch_date === today);
+            const totalQuantity = allDispatch.reduce((sum, d) => sum + (parseFloat(d.quantity) || 0), 0);
+            const uniqueClients = new Set(allDispatch.map(d => d.client).filter(c => c)).size;
+
+            document.getElementById("totalDispatchesCount").textContent = allDispatch.length;
+            document.getElementById("todayDispatchesCount").textContent = todayDispatches.length;
+            document.getElementById("totalQuantity").textContent = totalQuantity.toFixed(2);
+            document.getElementById("uniqueClientsCount").textContent = uniqueClients;
+        }
+
+        function renderDispatchCards() {
+            let filtered = allDispatch;
+            const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+            const clientFilter = document.getElementById("clientFilter").value;
+            const sortBy = document.getElementById("sortSelect").value;
+
+            // Filter
+            if (searchTerm) {
+                filtered = filtered.filter(d => 
+                    (d.dispatch_code && d.dispatch_code.toLowerCase().includes(searchTerm)) ||
+                    (d.stock_item_name && d.stock_item_name.toLowerCase().includes(searchTerm)) ||
+                    (d.client_name && d.client_name.toLowerCase().includes(searchTerm))
+                );
+            }
+            if (clientFilter) {
+                filtered = filtered.filter(d => d.client == clientFilter);
+            }
+
+            // Sort
+            switch(sortBy) {
+                case 'oldest':
+                    filtered.sort((a, b) => new Date(a.dispatch_date) - new Date(b.dispatch_date));
+                    break;
+                case 'code-asc':
+                    filtered.sort((a, b) => a.dispatch_code.localeCompare(b.dispatch_code));
+                    break;
+                case 'code-desc':
+                    filtered.sort((a, b) => b.dispatch_code.localeCompare(a.dispatch_code));
+                    break;
+                default: // latest
+                    filtered.sort((a, b) => new Date(b.dispatch_date) - new Date(a.dispatch_date));
+            }
+
+            const container = document.getElementById("dispatchCardsContainer");
+            if (filtered.length === 0) {
+                container.innerHTML = '<p class="text-muted">No dispatches found</p>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(dispatch => `
+                <div class="dispatch-card">
+                    <div class="dispatch-header">
+                        <span class="dispatch-code">${dispatch.dispatch_code}</span>
+                        <span class="dispatch-date">${dispatch.dispatch_date}</span>
+                    </div>
+                    
+                    <div class="dispatch-item">
+                        <div class="dispatch-label">Stock Item</div>
+                        <div class="dispatch-value">${dispatch.stock_item_name || 'N/A'}</div>
+                    </div>
+                    
+                    <div class="dispatch-item">
+                        <div class="dispatch-label">Client</div>
+                        <div class="dispatch-value">${dispatch.client_name || 'N/A'}</div>
+                        ${dispatch.client_phone ? `<div style="font-size: 0.875rem; color: #64748b;">${dispatch.client_phone}</div>` : ''}
+                    </div>
+                    
+                    <div class="dispatch-item">
+                        <div class="dispatch-label">Quantity</div>
+                        <div class="dispatch-value">${dispatch.quantity} ${dispatch.unit}</div>
+                    </div>
+                    
+                    ${dispatch.shipping_address_full ? `
+                        <div class="dispatch-address">
+                            <strong>📍 Shipping Address:</strong><br>
+                            ${dispatch.shipping_address_full}
+                        </div>
+                    ` : ''}
+                    
+                    ${dispatch.notes ? `
+                        <div class="dispatch-item">
+                            <div class="dispatch-label">Notes</div>
+                            <div style="color: #475569; font-size: 0.875rem;">${dispatch.notes}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-warning" onclick="editDispatch(${dispatch.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteDispatch(${dispatch.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function openAddDispatchModal() {
+            currentDispatchId = null;
+            document.getElementById("dispatchModalTitle").textContent = "Add New Dispatch";
+            document.getElementById("dispatchCode").value = "";
+            document.getElementById("dispatchDate").value = "";
+            document.getElementById("dispatchItem").value = "";
+            document.getElementById("dispatchClient").value = "";
+            document.getElementById("shippingAddress").value = "";
+            document.getElementById("dispatchQuantity").value = "";
+            document.getElementById("dispatchUnit").value = "kg";
+            document.getElementById("dispatchNotes").value = "";
+            document.getElementById("codeError").style.display = "none";
+            const modal = new bootstrap.Modal(document.getElementById("dispatchModal"));
+            modal.show();
+        }
+
+        async function editDispatch(dispatchId) {
+            const [ok, res] = await callApi("GET", DISPATCH_API + dispatchId + "/");
+            if (ok && res.data) {
+                const dispatch = res.data;
+                currentDispatchId = dispatchId;
+                document.getElementById("dispatchModalTitle").textContent = "Edit Dispatch";
+                document.getElementById("dispatchCode").value = dispatch.dispatch_code;
+                document.getElementById("dispatchDate").value = dispatch.dispatch_date;
+                document.getElementById("dispatchItem").value = dispatch.stock_item;
+                document.getElementById("dispatchClient").value = dispatch.client;
+                document.getElementById("dispatchQuantity").value = dispatch.quantity;
+                document.getElementById("dispatchUnit").value = dispatch.unit;
+                document.getElementById("dispatchNotes").value = dispatch.notes || "";
+                document.getElementById("codeError").style.display = "none";
+                
+                const modal = new bootstrap.Modal(document.getElementById("dispatchModal"));
+                modal.show();
+            }
+        }
+
+        async function checkDispatchCodeUniqueness() {
+            const code = document.getElementById("dispatchCode").value;
+            if (!code || currentDispatchId) return; // Skip if editing
+            
+            const exists = allDispatch.some(d => d.dispatch_code === code);
+            const errorEl = document.getElementById("codeError");
+            errorEl.style.display = exists ? "block" : "none";
+        }
+
+        async function saveDispatch() {
+            const payload = {
+                dispatch_code: document.getElementById("dispatchCode").value,
+                dispatch_date: document.getElementById("dispatchDate").value,
+                stock_item: document.getElementById("dispatchItem").value,
+                client: document.getElementById("dispatchClient").value || null,
+                shipping_address: document.getElementById("shippingAddress").value || null,
+                quantity: document.getElementById("dispatchQuantity").value,
+                unit: document.getElementById("dispatchUnit").value,
+                notes: document.getElementById("dispatchNotes").value
+            };
+
+            if (!payload.dispatch_code || !payload.dispatch_date || !payload.stock_item || !payload.quantity) {
+                alert("Please fill all required fields");
+                return;
+            }
+
+            const method = currentDispatchId ? "PATCH" : "POST";
+            const url = currentDispatchId ? DISPATCH_API + currentDispatchId + "/" : DISPATCH_API;
+            const [ok, res] = await callApi(method, url, payload, "{{csrf_token}}");
+
+            if (ok && res.success) {
+                alert("Dispatch saved successfully!");
+                const modal = bootstrap.Modal.getInstance(document.getElementById("dispatchModal"));
+                if (modal) modal.hide();
+                currentDispatchId = null;
+                loadData();
+            } else {
+                alert("Error: " + (res.error || "Failed to save dispatch"));
+            }
+        }
+
+        async function deleteDispatch(dispatchId) {
+            if (!confirm("Are you sure you want to delete this dispatch?")) return;
+            
+            const [ok, res] = await callApi("DELETE", DISPATCH_API + dispatchId + "/", null, "{{csrf_token}}");
+            if (ok && res.success) {
+                alert("Dispatch deleted!");
+                loadData();
+            } else {
+                alert("Error deleting dispatch");
+            }
+        }
     </script>
-
-  </div>
-</nav>
-
 </body>
-
 </html>
