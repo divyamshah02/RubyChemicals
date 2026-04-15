@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+
 
 # Create your models here.
 class StockGroup(models.Model):
@@ -254,13 +256,9 @@ class ClientAddress(models.Model):
         return f"{self.client.company_name} - {self.address_type}"
 
 class Dispatch(models.Model):
-    dispatch_code = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    dispatch_code = models.CharField(max_length=20, unique=True, editable=False)
     dispatch_date = models.DateField()
     
-    stock_item = models.ForeignKey(
-        StockItem,
-        on_delete=models.PROTECT
-    )
     client = models.ForeignKey(
         ClientProfile,
         on_delete=models.PROTECT,
@@ -268,19 +266,17 @@ class Dispatch(models.Model):
         blank=True
     )
     
-    quantity = models.DecimalField(max_digits=12, decimal_places=3)
-    unit = models.CharField(max_length=10, default='kg', choices=[
-        ('kg', 'Kilogram'),
-        ('g', 'Gram'),
-        ('pcs', 'Pieces'),
-    ])
-    
     shipping_address = models.ForeignKey(
         ClientAddress,
         on_delete=models.SET_NULL,
         null=True,
         blank=True
     )
+    
+    # Vehicle & Freight Details
+    vehicle_type = models.CharField(max_length=100, blank=True, help_text="e.g., Truck, Van, Bike")
+    vehicle_number = models.CharField(max_length=50, blank=True)
+    freight_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     notes = models.TextField(blank=True)
     
@@ -291,5 +287,44 @@ class Dispatch(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        if not self.dispatch_code:
+            # Generate auto dispatch code
+            from django.db.models import F
+            last_dispatch = Dispatch.objects.filter(
+                created_at__year=timezone.now().year
+            ).order_by('-id').first()
+            
+            year = timezone.now().year % 100
+            month = timezone.now().month
+            sequence = 1 if not last_dispatch else int(last_dispatch.dispatch_code.split('-')[-1]) + 1
+            self.dispatch_code = f"DISP-{year}{month:02d}-{sequence:05d}"
+        
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Dispatch - {self.stock_item.name}"
+        return f"Dispatch - {self.dispatch_code}"
+
+
+class DispatchItem(models.Model):
+    dispatch = models.ForeignKey(
+        Dispatch,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    stock_item = models.ForeignKey(
+        StockItem,
+        on_delete=models.PROTECT
+    )
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    unit = models.CharField(max_length=10, default='kg', choices=[
+        ('kg', 'Kilogram'),
+        ('g', 'Gram'),
+        ('pcs', 'Pieces'),
+    ])
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.stock_item.name} - {self.quantity} {self.unit}"
+

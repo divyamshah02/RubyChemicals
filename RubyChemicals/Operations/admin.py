@@ -61,12 +61,28 @@ class ProductionConsumptionInline(admin.TabularInline):
     extra = 0
 
 
+class DispatchItemInline(admin.TabularInline):
+    model = DispatchItem
+    extra = 0
+    fields = ('stock_item', 'quantity', 'unit')
+
+
 @admin.register(Dispatch)
 class DispatchAdmin(admin.ModelAdmin):
-    list_display = ("dispatch_date", "client__company_name", "stock_item", "quantity", "created_by")
-    list_filter = ("dispatch_date", "stock_item")
-    search_fields = ("client__company_name", "stock_item__name")
+    list_display = ("dispatch_code", "dispatch_date", "client", "vehicle_number", "created_by")
+    list_filter = ("dispatch_date", "vehicle_type")
+    search_fields = ("dispatch_code", "client__company_name", "vehicle_number")
     ordering = ("-dispatch_date",)
+    readonly_fields = ("dispatch_code",)
+    inlines = [DispatchItemInline]
+
+
+@admin.register(DispatchItem)
+class DispatchItemAdmin(admin.ModelAdmin):
+    list_display = ("dispatch", "stock_item", "quantity", "unit")
+    list_filter = ("dispatch__dispatch_date", "stock_item")
+    search_fields = ("dispatch__dispatch_code", "stock_item__name")
+    ordering = ("-dispatch__dispatch_date",)
 
 
 @admin.register(ExpenseHead)

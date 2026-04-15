@@ -290,7 +290,7 @@
                         <input type="date" class="form-control" id="createDispatchDate" style="border-radius: 8px;">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Client <span style="color: #ef4444;">*</span></label>
+                        <label class="form-label">Client</label>
                         <select class="form-control" id="createDispatchClient" style="border-radius: 8px;"></select>
                     </div>
                 </div>
@@ -312,7 +312,7 @@
                         <input type="number" class="form-control" id="createFreight" placeholder="0" step="0.01" style="border-radius: 8px;">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Shipping Address <span style="color: #ef4444;">*</span></label>
+                        <label class="form-label">Shipping Address</label>
                         <select class="form-control" id="createShippingAddress" style="border-radius: 8px;"></select>
                     </div>
                 </div>
@@ -522,10 +522,7 @@
             addresses.map(a => `<option value="${a.id}">${a.street}, ${a.city}</option>`).join("");
     }
 
-    let editingItemIndex = null;
-
     function openAddItemModal() {
-        editingItemIndex = null;
         const select = document.getElementById("addItemStockItem");
         select.innerHTML = '<option value="">Select Stock Item</option>' + 
             stockItems.map(s => `<option value="${s.id}">${s.name} (${s.unit})</option>`).join("");
@@ -534,53 +531,7 @@
         document.getElementById("addItemUnit").value = "";
         document.getElementById("addItemUnit").disabled = true;
         
-        const btn = document.getElementById("addItemModal").querySelector(".modal-footer .btn-success");
-        btn.innerHTML = '<i class="fas fa-plus"></i> Add Item';
-        btn.onclick = addDispatchItem;
-        
         new bootstrap.Modal(document.getElementById("addItemModal")).show();
-    }
-
-    function editDispatchItem(idx) {
-        editingItemIndex = idx;
-        const item = dispatchItems[idx];
-        const select = document.getElementById("addItemStockItem");
-        select.innerHTML = '<option value="">Select Stock Item</option>' + 
-            stockItems.map(s => `<option value="${s.id}" ${s.id === item.stock_item_id ? 'selected' : ''}>${s.name} (${s.unit})</option>`).join("");
-        
-        document.getElementById("addItemQuantity").value = item.quantity;
-        document.getElementById("addItemUnit").value = item.unit;
-        document.getElementById("addItemUnit").disabled = true;
-        
-        const btn = document.getElementById("addItemModal").querySelector(".modal-footer .btn-success");
-        btn.innerHTML = '<i class="fas fa-save"></i> Update Item';
-        btn.onclick = updateDispatchItem;
-        
-        new bootstrap.Modal(document.getElementById("addItemModal")).show();
-    }
-
-    function updateDispatchItem() {
-        const stockItemId = document.getElementById("addItemStockItem").value;
-        const quantity = document.getElementById("addItemQuantity").value;
-        const unit = document.getElementById("addItemUnit").value;
-
-        if (!stockItemId || !quantity) {
-            alert("Please select item and enter quantity");
-            return;
-        }
-
-        const item = stockItems.find(s => s.id == stockItemId);
-        dispatchItems[editingItemIndex] = {
-            stock_item_id: parseInt(stockItemId),
-            stock_item_name: item.name,
-            quantity: quantity,
-            unit: unit
-        };
-
-        renderDispatchItemsList();
-        editingItemIndex = null;
-        const modal = bootstrap.Modal.getInstance(document.getElementById("addItemModal"));
-        if (modal) modal.hide();
     }
 
     function handleStockitemSelection() {
@@ -635,14 +586,9 @@
                     <div class="item-name">${item.stock_item_name}</div>
                     <div class="item-qty">${item.quantity} ${item.unit}</div>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" class="btn btn-sm btn-warning" onclick="editDispatchItem(${idx})" style="background: #f59e0b; border: none; color: white;" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="removeDispatchItem(${idx})" style="background: #ef4444; border: none; color: white;" title="Remove">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeDispatchItem(${idx})" style="background: #ef4444; border: none; color: white;">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         `).join("");
     }
@@ -661,15 +607,8 @@
         const addressId = document.getElementById("createShippingAddress").value;
         const notes = document.getElementById("createDispatchNotes").value;
 
-        // Validation
-        const errors = [];
-        if (!date) errors.push("Dispatch date is required");
-        if (!clientId) errors.push("Client is required");
-        if (!addressId) errors.push("Shipping address is required");
-        if (dispatchItems.length === 0) errors.push("Minimum 1 item must be added");
-
-        if (errors.length > 0) {
-            alert("Validation Errors:\n\n" + errors.join("\n"));
+        if (!date || dispatchItems.length === 0) {
+            alert("Please fill in required fields and add at least one item");
             return;
         }
 
@@ -678,24 +617,20 @@
             vehicle_type: vehicleType,
             vehicle_number: vehicleNumber,
             freight_amount: freight,
-            client: parseInt(clientId),
-            shipping_address: parseInt(addressId),
+            client: clientId ? parseInt(clientId) : null,
+            shipping_address: addressId ? parseInt(addressId) : null,
             notes: notes,
             items: dispatchItems
         };
 
-        const editId = document.getElementById("editDispatchId").value;
-        const method = editId ? "PUT" : "POST";
-        const url = editId ? `${DISPATCH_API}${editId}/` : DISPATCH_API;
-
-        const [ok, res] = await callApi(method, url, payload, csrfToken);
+        const [ok, res] = await callApi("POST", DISPATCH_API, payload, csrfToken);
         if (ok && res.success) {
-            alert(editId ? "Dispatch updated successfully!" : "Dispatch created successfully!");
+            alert("Dispatch created successfully!");
             const modal = bootstrap.Modal.getInstance(document.getElementById("createDispatchModal"));
             if (modal) modal.hide();
             loadData();
         } else {
-            alert("Error: " + (res.error || "Failed to save dispatch"));
+            alert("Error: " + (res.error || "Failed to create dispatch"));
         }
     }
 
@@ -713,36 +648,7 @@
     }
 
     function editDispatchModal(id) {
-        const dispatch = dispatches.find(d => d.id === id);
-        if (!dispatch) return;
-
-        currentDispatchId = id;
-        dispatchItems = dispatch.items.map(item => ({
-            stock_item_id: item.stock_item_id,
-            stock_item_name: item.stock_item_name,
-            quantity: item.quantity,
-            unit: item.unit
-        }));
-
-        document.getElementById("editDispatchId").value = id;
-        document.getElementById("createDispatchDate").value = dispatch.dispatch_date;
-        document.getElementById("createVehicleType").value = dispatch.vehicle_type || "";
-        document.getElementById("createVehicleNumber").value = dispatch.vehicle_number || "";
-        document.getElementById("createFreight").value = dispatch.freight_amount;
-        document.getElementById("createDispatchClient").value = dispatch.client || "";
-        document.getElementById("createDispatchNotes").value = dispatch.notes;
-        
-        renderDispatchItemsList();
-        
-        const modal = document.getElementById("create-dispatch-modal-title");
-        modal.innerHTML = '<i class="fas fa-edit-circle" style="color: #f59e0b; margin-right: 0.5rem;"></i>Edit Dispatch';
-        
-        // Load addresses for selected client
-        loadAddresses().then(() => {
-            document.getElementById("createShippingAddress").value = dispatch.shipping_address_id || "";
-        });
-        
-        new bootstrap.Modal(document.getElementById("createDispatchModal")).show();
+        alert("Edit functionality coming soon");
     }
 
     function editDispatch() {

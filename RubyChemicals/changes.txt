@@ -1,0 +1,19 @@
+product name in meta info
+meta level info add total loss manually
+remarks in produciton card 
+
+
+
+
+dispatch - multiple stock items - qty unit===
+mark accounted also for dispatch
+
+
+stock item 
+
+
+reconcilation
+
+dispatch through
+vehivle nu,mber
+freight

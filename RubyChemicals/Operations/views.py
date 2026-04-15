@@ -767,21 +767,34 @@ class DispatchViewSet(viewsets.ViewSet):
     @check_authentication()
     def list(self, request):
         """List all dispatches with related data"""
-        dispatches = Dispatch.objects.select_related('stock_item', 'client', 'shipping_address').order_by('-dispatch_date')
+        dispatches = Dispatch.objects.select_related('client', 'shipping_address').prefetch_related('items').order_by('-dispatch_date')
         
         data = []
         for dispatch in dispatches:
+            items = []
+            total_quantity = 0
+            for item in dispatch.items.all():
+                items.append({
+                    "id": item.id,
+                    "stock_item_id": item.stock_item.id,
+                    "stock_item_name": item.stock_item.name,
+                    "quantity": str(item.quantity),
+                    "unit": item.unit
+                })
+                total_quantity += float(item.quantity)
+            
             data.append({
                 "id": dispatch.id,
                 "dispatch_code": dispatch.dispatch_code,
                 "dispatch_date": dispatch.dispatch_date,
-                "stock_item_name": dispatch.stock_item.name if dispatch.stock_item else None,
-                "stock_item": dispatch.stock_item.id if dispatch.stock_item else None,
                 "client_name": dispatch.client.company_name if dispatch.client else None,
                 "client": dispatch.client.id if dispatch.client else None,
                 "client_phone": dispatch.client.phone if dispatch.client else None,
-                "quantity": dispatch.quantity,
-                "unit": dispatch.unit,
+                "vehicle_type": dispatch.vehicle_type,
+                "vehicle_number": dispatch.vehicle_number,
+                "freight_amount": str(dispatch.freight_amount),
+                "total_quantity": total_quantity,
+                "items": items,
                 "shipping_address": dispatch.shipping_address.street if dispatch.shipping_address else None,
                 "shipping_address_full": f"{dispatch.shipping_address.street}, {dispatch.shipping_address.city}, {dispatch.shipping_address.state}" if dispatch.shipping_address else None,
                 "shipping_address_id": dispatch.shipping_address.id if dispatch.shipping_address else None,
@@ -800,9 +813,9 @@ class DispatchViewSet(viewsets.ViewSet):
     @handle_exceptions
     @check_authentication()
     def retrieve(self, request, pk=None):
-        """Get single dispatch"""
+        """Get single dispatch with all its items"""
         try:
-            dispatch = Dispatch.objects.select_related('stock_item', 'client', 'shipping_address').get(pk=pk)
+            dispatch = Dispatch.objects.select_related('client', 'shipping_address').prefetch_related('items').get(pk=pk)
         except Dispatch.DoesNotExist:
             return Response({
                 "success": False,
@@ -812,17 +825,27 @@ class DispatchViewSet(viewsets.ViewSet):
                 "error": "Dispatch not found"
             }, status=404)
 
+        items = []
+        for item in dispatch.items.all():
+            items.append({
+                "id": item.id,
+                "stock_item_id": item.stock_item.id,
+                "stock_item_name": item.stock_item.name,
+                "quantity": str(item.quantity),
+                "unit": item.unit
+            })
+
         data = {
             "id": dispatch.id,
             "dispatch_code": dispatch.dispatch_code,
             "dispatch_date": dispatch.dispatch_date,
-            "stock_item_id": dispatch.stock_item.id,
-            "stock_item_name": dispatch.stock_item.name,
             "client_id": dispatch.client.id if dispatch.client else None,
             "client_name": dispatch.client.company_name if dispatch.client else None,
-            "quantity": dispatch.quantity,
-            "unit": dispatch.unit,
+            "vehicle_type": dispatch.vehicle_type,
+            "vehicle_number": dispatch.vehicle_number,
+            "freight_amount": str(dispatch.freight_amount),
             "shipping_address_id": dispatch.shipping_address.id if dispatch.shipping_address else None,
+            "items": items,
             "notes": dispatch.notes
         }
 
@@ -836,82 +859,75 @@ class DispatchViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
+    @transaction.atomic
     def create(self, request):
-        """Create new dispatch"""
-        dispatch_code = request.data.get("dispatch_code")
+        """Create new dispatch with multiple items"""
         dispatch_date = request.data.get("dispatch_date")
-        stock_item_id = request.data.get("stock_item")
-        quantity = request.data.get("quantity")
-        unit = request.data.get("unit", "kg")
+        vehicle_type = request.data.get("vehicle_type", "")
+        vehicle_number = request.data.get("vehicle_number", "")
+        freight_amount = request.data.get("freight_amount", 0)
         client_id = request.data.get("client")
         shipping_address_id = request.data.get("shipping_address")
         notes = request.data.get("notes", "")
+        dispatch_items = request.data.get("items", [])  # List of items
 
-        if not all([dispatch_code, dispatch_date, stock_item_id, quantity]):
+        if not all([dispatch_date, dispatch_items]):
             return Response({
                 "success": False,
                 "user_not_logged_in": False,
                 "user_unauthorized": False,
                 "data": None,
-                "error": "Missing required fields"
+                "error": "Missing required fields (dispatch_date, items)"
             }, status=400)
 
-        # Check for unique dispatch code
-        if Dispatch.objects.filter(dispatch_code=dispatch_code).exists():
+        if not isinstance(dispatch_items, list) or len(dispatch_items) == 0:
             return Response({
                 "success": False,
                 "user_not_logged_in": False,
                 "user_unauthorized": False,
                 "data": None,
-                "error": "Dispatch code already exists"
-            }, status=400)
-
-        try:
-            quantity = float(quantity)
-            if quantity <= 0:
-                raise ValueError
-        except:
-            return Response({
-                "success": False,
-                "user_not_logged_in": False,
-                "user_unauthorized": False,
-                "data": None,
-                "error": "Invalid quantity"
-            }, status=400)
-
-        # Check for unique dispatch code
-        if Dispatch.objects.filter(dispatch_code=dispatch_code).exists():
-            return Response({
-                "success": False,
-                "user_not_logged_in": False,
-                "user_unauthorized": False,
-                "data": None,
-                "error": "Dispatch code already exists"
+                "error": "Items must be a non-empty list"
             }, status=400)
 
         try:
-            stock_item = StockItem.objects.get(id=stock_item_id)
-            client = ClientProfile.objects.get(id=client_id) if client_id else None
-            shipping_address = ClientAddress.objects.get(id=shipping_address_id) if shipping_address_id else None
-
+            # Create dispatch (code auto-generated)
             dispatch = Dispatch.objects.create(
-                dispatch_code=dispatch_code,
                 dispatch_date=dispatch_date,
-                stock_item=stock_item,
-                client=client,
-                quantity=quantity,
-                unit=unit,
-                shipping_address=shipping_address,
+                vehicle_type=vehicle_type,
+                vehicle_number=vehicle_number,
+                freight_amount=freight_amount,
+                client_id=client_id if client_id else None,
+                shipping_address_id=shipping_address_id if shipping_address_id else None,
                 notes=notes,
                 created_by=request.user
             )
 
+            # Create dispatch items
+            for item in dispatch_items:
+                stock_item_id = item.get("stock_item_id")
+                quantity = item.get("quantity")
+                unit = item.get("unit", "kg")
+
+                if not all([stock_item_id, quantity]):
+                    return Response({
+                        "success": False,
+                        "user_not_logged_in": False,
+                        "user_unauthorized": False,
+                        "data": None,
+                        "error": "Each item must have stock_item_id and quantity"
+                    }, status=400)
+
+                DispatchItem.objects.create(
+                    dispatch=dispatch,
+                    stock_item_id=stock_item_id,
+                    quantity=quantity,
+                    unit=unit
+                )
+
+            # Log activity
             ActivityLog.objects.create(
                 user=request.user,
-                action="CREATE",
-                model_name="Dispatch",
-                record_id=dispatch_code,
-                description=f"Created dispatch {dispatch_code}"
+                action=f"Created Dispatch {dispatch.dispatch_code}"
             )
 
             return Response({
@@ -921,14 +937,95 @@ class DispatchViewSet(viewsets.ViewSet):
                 "data": {"id": dispatch.id, "dispatch_code": dispatch.dispatch_code},
                 "error": None
             }, status=201)
-        except StockItem.DoesNotExist:
+
+        except Exception as e:
             return Response({
                 "success": False,
                 "user_not_logged_in": False,
                 "user_unauthorized": False,
                 "data": None,
-                "error": "Stock item not found"
+                "error": str(e)
+            }, status=400)
+
+    @handle_exceptions
+    @check_authentication()
+    @transaction.atomic
+    def update(self, request, pk=None):
+        """Update dispatch"""
+        try:
+            dispatch = Dispatch.objects.get(pk=pk)
+        except Dispatch.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Dispatch not found"
             }, status=404)
+
+        # Update basic fields
+        dispatch.dispatch_date = request.data.get("dispatch_date", dispatch.dispatch_date)
+        dispatch.vehicle_type = request.data.get("vehicle_type", dispatch.vehicle_type)
+        dispatch.vehicle_number = request.data.get("vehicle_number", dispatch.vehicle_number)
+        dispatch.freight_amount = request.data.get("freight_amount", dispatch.freight_amount)
+        dispatch.notes = request.data.get("notes", dispatch.notes)
+
+        if "client" in request.data:
+            dispatch.client_id = request.data.get("client")
+        if "shipping_address" in request.data:
+            dispatch.shipping_address_id = request.data.get("shipping_address")
+
+        dispatch.save()
+
+        # Update items if provided
+        if "items" in request.data:
+            dispatch.items.all().delete()
+            for item in request.data.get("items", []):
+                DispatchItem.objects.create(
+                    dispatch=dispatch,
+                    stock_item_id=item.get("stock_item_id"),
+                    quantity=item.get("quantity"),
+                    unit=item.get("unit", "kg")
+                )
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": {"id": dispatch.id, "dispatch_code": dispatch.dispatch_code},
+            "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
+    def destroy(self, request, pk=None):
+        """Delete dispatch"""
+        try:
+            dispatch = Dispatch.objects.get(pk=pk)
+            dispatch_code = dispatch.dispatch_code
+            dispatch.delete()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action=f"Deleted Dispatch {dispatch_code}"
+            )
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": None
+            }, status=200)
+        except Dispatch.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Dispatch not found"
+            }, status=404)
+
 
     @handle_exceptions
     @check_authentication()
@@ -962,7 +1059,7 @@ class DispatchViewSet(viewsets.ViewSet):
         if request.data.get("stock_item"):
             dispatch.stock_item_id = request.data.get("stock_item")
         dispatch.client_id = request.data.get("client", dispatch.client_id)
-        dispatch.quantity = request.data.get("quantity", dispatch.quantity)
+        dispatch.dispatch_quantity = request.data.get("dispatch_quantity", dispatch.dispatch_quantity)
         dispatch.unit = request.data.get("unit", dispatch.unit)
         dispatch.shipping_address_id = request.data.get("shipping_address", dispatch.shipping_address_id)
         dispatch.notes = request.data.get("notes", dispatch.notes)
@@ -1016,7 +1113,7 @@ class DispatchViewSet(viewsets.ViewSet):
         if request.data.get("stock_item"):
             dispatch.stock_item_id = request.data.get("stock_item")
         dispatch.client_id = request.data.get("client", dispatch.client_id)
-        dispatch.quantity = request.data.get("quantity", dispatch.quantity)
+        dispatch.dispatch_quantity = request.data.get("dispatch_quantity", dispatch.dispatch_quantity)
         dispatch.unit = request.data.get("unit", dispatch.unit)
         dispatch.shipping_address_id = request.data.get("shipping_address", dispatch.shipping_address_id)
         dispatch.notes = request.data.get("notes", dispatch.notes)

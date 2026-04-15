@@ -230,7 +230,7 @@
 
     {% include 'header.html' %}
 
-    <div class="container">
+    <div class="container-fluid">
         <div class="page-header">
             <h1 class="page-title"><i class="fas fa-industry" style="margin-right: 0.75rem;"></i>Production Management</h1>
             <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#productionCardModal">
@@ -306,13 +306,13 @@
                     </div>
 
                     <!-- Raw Materials Section -->
-                    <hr style="border-color: #e2e8f0; margin: 2rem 0;">
+                    <hr style="margin: 1rem 0;">
                     <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-flask" style="margin-right: 0.5rem;"></i>Raw Materials</h6>
                     <div id="rawList" style="background: #fafafa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #e2e8f0;"></div>
                     <button class="btn btn-secondary btn-sm mb-3" onclick="addRawMaterialRow()" style="border-radius: 8px;"><i class="fas fa-plus" style="margin-right: 0.5rem;"></i>Add Material</button>
 
                     <!-- Batches Section -->
-                    <hr style="border-color: #e2e8f0; margin: 2rem 0;">
+                    <hr style="margin: 1rem 0;">
                     <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-cubes" style="margin-right: 0.5rem;"></i>Production Batches</h6>
                     <div id="batchesList" style="background: #fafafa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #e2e8f0;"></div>
                     <button class="btn btn-primary btn-sm" onclick="addBatchRow()" style="border-radius: 8px; background: #3b82f6; border: none;"><i class="fas fa-plus" style="margin-right: 0.5rem;"></i>Add Batch</button>
