@@ -87,12 +87,32 @@ class DispatchItemAdmin(admin.ModelAdmin):
 
 @admin.register(ExpenseHead)
 class ExpenseHeadAdmin(admin.ModelAdmin):
-    list_display = ("name", "is_active")
+    list_display = ("name", "is_active", "created_at")
     search_fields = ("name",)
+    list_filter = ("is_active",)
+
+
+@admin.register(PettyCashAccount)
+class PettyCashAccountAdmin(admin.ModelAdmin):
+    list_display = ("get_cash_type_display", "current_balance", "credit_balance", "updated_at")
+    readonly_fields = ("current_balance", "credit_balance", "created_at", "updated_at")
+    fields = ("cash_type", "current_balance", "credit_balance", "created_at", "updated_at")
+    
+    def get_cash_type_display(self, obj):
+        return obj.get_cash_type_display()
+    get_cash_type_display.short_description = "Cash Type"
 
 
 @admin.register(PettyCash)
 class PettyCashAdmin(admin.ModelAdmin):
-    list_display = ("expense_date", "expense_head", "amount", "created_by")
-    list_filter = ("expense_date", "expense_head")
+    list_display = ("cash_account", "expense_date", "expense_head", "transaction_type", "amount", "created_by")
+    list_filter = ("expense_date", "cash_account__cash_type", "transaction_type", "expense_head")
+    search_fields = ("expense_head__name",)
+    readonly_fields = ("created_at", "created_by")
     ordering = ("-expense_date",)
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+

@@ -100,8 +100,15 @@ class StockAdjustment(models.Model):
 class ProductionCard(models.Model):
     production_code = models.CharField(max_length=20, unique=True)
     production_date = models.DateField()
+    product_name = models.CharField(max_length=255, blank=True)
     
     total_output_quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+        default=0
+    )
+    
+    total_loss = models.DecimalField(
         max_digits=12,
         decimal_places=3,
         default=0
@@ -115,6 +122,7 @@ class ProductionCard(models.Model):
     
     accounted = models.BooleanField(default=False)
     
+    remarks = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     
     created_by = models.ForeignKey(
@@ -123,6 +131,7 @@ class ProductionCard(models.Model):
         null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     
     def __str__(self):
@@ -191,32 +200,61 @@ class ProductionConsumption(models.Model):
         return f"{self.stock_item.name}"
         return f"{self.stock_item.name} - {self.production_card.production_code}"
 
+
+# Petty Cash Models
+class PettyCashAccount(models.Model):
+    CASH_TYPE_CHOICES = [
+        ('office', 'Office'),
+        ('factory', 'Factory'),
+    ]
+    
+    cash_type = models.CharField(max_length=20, choices=CASH_TYPE_CHOICES, unique=True)
+    current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    credit_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Petty Cash - {self.get_cash_type_display()}"
+
 class ExpenseHead(models.Model):
     name = models.CharField(max_length=100, unique=True)
     is_active = models.BooleanField(default=True)
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    
     def __str__(self):
         return self.name
 
 class PettyCash(models.Model):
-    expense_date = models.DateField()
+    cash_account = models.ForeignKey(
+        PettyCashAccount,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='transactions'
+    )
     expense_head = models.ForeignKey(
         ExpenseHead,
-        on_delete=models.PROTECT
+        on_delete=models.PROTECT,
+        related_name='expenses',
+        null=True,
+        blank=True
     )
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    expense_date = models.DateField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    transaction_type = models.CharField(max_length=20, choices=[('credit', 'Credit'), ('debit', 'Debit')])
     notes = models.TextField(blank=True)
-
+    
     created_by = models.ForeignKey(
         'UserDetail.User',
         on_delete=models.SET_NULL,
-        null=True
+        null=True,
+        blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
-
+    
     def __str__(self):
-        return f"{self.expense_head.name} - {self.amount}"
+        return f"{self.cash_account.get_cash_type_display()} - {self.expense_head.name} - {self.amount}"
 
 
 class ClientProfile(models.Model):
