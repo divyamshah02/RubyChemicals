@@ -766,8 +766,8 @@ class DispatchViewSet(viewsets.ViewSet):
     @handle_exceptions
     @check_authentication()
     def list(self, request):
-        """List all dispatches with related data"""
-        dispatches = Dispatch.objects.select_related('client', 'shipping_address').prefetch_related('items').order_by('-dispatch_date')
+        """List all dispatches with related data"""        
+        dispatches = Dispatch.objects.filter(is_active=True).select_related('client', 'shipping_address').prefetch_related('items').order_by('-dispatch_date') 
         
         data = []
         for dispatch in dispatches:
@@ -786,6 +786,7 @@ class DispatchViewSet(viewsets.ViewSet):
             data.append({
                 "id": dispatch.id,
                 "dispatch_code": dispatch.dispatch_code,
+                "accounted": dispatch.accounted,
                 "dispatch_date": dispatch.dispatch_date,
                 "client_name": dispatch.client.company_name if dispatch.client else None,
                 "client": dispatch.client.id if dispatch.client else None,
@@ -1029,8 +1030,40 @@ class DispatchViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
-        """Update dispatch (PUT)"""
+    def destroy(self, request, pk=None):
+        """Delete dispatch"""
+        try:
+            dispatch = Dispatch.objects.get(pk=pk)
+            dispatch_code = dispatch.dispatch_code
+            dispatch.delete()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action=f"Deleted Dispatch {dispatch_code}"
+            )
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": None
+            }, status=200)
+        except Dispatch.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Dispatch not found"
+            }, status=404)
+
+
+    @handle_exceptions
+    @check_authentication()
+    @transaction.atomic
+    def partial_update(self, request, pk=None):
+        """Partial update dispatch (PATCH) - supports updating individual fields and items"""
         try:
             dispatch = Dispatch.objects.get(pk=pk)
         except Dispatch.DoesNotExist:
@@ -1042,53 +1075,54 @@ class DispatchViewSet(viewsets.ViewSet):
                 "error": "Dispatch not found"
             }, status=404)
 
-        dispatch_code = request.data.get("dispatch_code", dispatch.dispatch_code)
-        
-        # Check if dispatch code is being changed to an existing code
-        if dispatch_code != dispatch.dispatch_code and Dispatch.objects.filter(dispatch_code=dispatch_code).exists():
-            return Response({
-                "success": False,
-                "user_not_logged_in": False,
-                "user_unauthorized": False,
-                "data": None,
-                "error": "Dispatch code already exists"
-            }, status=400)
+        # Update individual fields if provided
+        if "dispatch_date" in request.data:
+            dispatch.dispatch_date = request.data.get("dispatch_date")
+        if "vehicle_type" in request.data:
+            dispatch.vehicle_type = request.data.get("vehicle_type")
+        if "vehicle_number" in request.data:
+            dispatch.vehicle_number = request.data.get("vehicle_number")
+        if "freight_amount" in request.data:
+            dispatch.freight_amount = request.data.get("freight_amount")
+        if "accounted" in request.data:
+            dispatch.accounted = request.data.get("accounted")
+        if "client" in request.data:
+            dispatch.client_id = request.data.get("client")
+        if "shipping_address" in request.data:
+            dispatch.shipping_address_id = request.data.get("shipping_address")
+        if "notes" in request.data:
+            dispatch.notes = request.data.get("notes")
 
-        dispatch.dispatch_code = dispatch_code
-        dispatch.dispatch_date = request.data.get("dispatch_date", dispatch.dispatch_date)
-        if request.data.get("stock_item"):
-            dispatch.stock_item_id = request.data.get("stock_item")
-        dispatch.client_id = request.data.get("client", dispatch.client_id)
-        dispatch.dispatch_quantity = request.data.get("dispatch_quantity", dispatch.dispatch_quantity)
-        dispatch.unit = request.data.get("unit", dispatch.unit)
-        dispatch.shipping_address_id = request.data.get("shipping_address", dispatch.shipping_address_id)
-        dispatch.notes = request.data.get("notes", dispatch.notes)
         dispatch.save()
+
+        # Update items if provided (add/update items)
+        if "items" in request.data:
+            dispatch.items.all().delete()
+            for item in request.data.get("items", []):
+                DispatchItem.objects.create(
+                    dispatch=dispatch,
+                    stock_item_id=item.get("stock_item_id"),
+                    quantity=item.get("quantity"),
+                    unit=item.get("unit", "kg")
+                )
 
         ActivityLog.objects.create(
             user=request.user,
             action="UPDATE",
             model_name="Dispatch",
-            record_id=dispatch_code,
-            description=f"Updated dispatch {dispatch_code}"
+            record_id=dispatch.dispatch_code,
+            description=f"Updated dispatch {dispatch.dispatch_code}"
         )
 
         return Response({
             "success": True,
             "user_not_logged_in": False,
             "user_unauthorized": False,
-            "data": {"id": dispatch.id},
+            "data": {"id": dispatch.id, "dispatch_code": dispatch.dispatch_code},
             "error": None
         }, status=200)
 
-    @handle_exceptions
-    @check_authentication()
-    def partial_update(self, request, pk=None):
-        """Update dispatch (PATCH)"""
-        try:
-            dispatch = Dispatch.objects.get(pk=pk)
-        except Dispatch.DoesNotExist:
-            return Response({
+        return Response({
                 "success": False,
                 "user_not_logged_in": False,
                 "user_unauthorized": False,
@@ -1141,7 +1175,8 @@ class DispatchViewSet(viewsets.ViewSet):
         """Delete dispatch"""
         try:
             dispatch = Dispatch.objects.get(pk=pk)
-            dispatch.delete()
+            dispatch.is_active = False
+            dispatch.save()
             return Response({
                 "success": True,
                 "user_not_logged_in": False,

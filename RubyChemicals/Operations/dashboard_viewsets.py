@@ -11,27 +11,43 @@ class AdminDashboardViewSet(viewsets.ViewSet):
     @handle_exceptions
     @check_authentication()
     def list(self, request):
-        """Admin dashboard - shows all data with accounting status"""
+        """Admin dashboard - shows all data with accounting status and latest dispatches"""
         
         # Stock items with low/negative quantities only
         low_stock_items = StockItem.objects.filter(
-            current_quantity__lte=0
+            current_quantity__lte=0, is_active=True
         ).values('id', 'name', 'group__name', 'current_quantity', 'unit').order_by('current_quantity')
         
         # Total stock items
-        total_items = StockItem.objects.count()
+        total_items = StockItem.objects.filter(is_active=True).count()
         
         # Total stock groups
-        total_groups = StockGroup.objects.count()
+        total_groups = StockGroup.objects.filter(is_active=True).count()
         
-        # Production cards - unaccounted with batch and consumption counts
+        # Production cards - unaccounted with batch and consumption counts (latest 5)
         unaccounted_cards_list = []
-        for card in ProductionCard.objects.filter(accounted=False).values('id', 'production_code', 'production_date', 'total_output_quantity', 'unit', 'accounted'):
+        for card in ProductionCard.objects.filter(accounted=False, is_active=True).select_related('product').order_by('-production_date')[:5].values('id', 'production_code', 'production_date', 'total_output_quantity', 'unit', 'accounted'):
             batch_count = ProductionBatch.objects.filter(production_card_id=card['id']).count()
             consumption_count = ProductionConsumption.objects.filter(production_card_id=card['id']).count()
             card['batch_count'] = batch_count
             card['consumption_count'] = consumption_count
             unaccounted_cards_list.append(card)
+        
+        # Latest dispatches (pending accounting, latest 5)
+        pending_dispatches = []
+        for dispatch in Dispatch.objects.filter(accounted=False, is_active=True).select_related('client').prefetch_related('items').order_by('-dispatch_date')[:5]:
+            item_count = dispatch.items.count()
+            total_qty = sum(float(item.quantity) for item in dispatch.items.all())
+            pending_dispatches.append({
+                'id': dispatch.id,
+                'dispatch_code': dispatch.dispatch_code,
+                'dispatch_date': str(dispatch.dispatch_date),
+                'client_name': dispatch.client.company_name if dispatch.client else 'N/A',
+                'vehicle_number': dispatch.vehicle_number,
+                'freight_amount': str(dispatch.freight_amount),
+                'item_count': item_count,
+                'total_quantity': total_qty,
+            })
         
         # Recent batches
         recent_batches = ProductionBatch.objects.select_related(
@@ -49,6 +65,7 @@ class AdminDashboardViewSet(viewsets.ViewSet):
             "total_items": total_items,
             "total_groups": total_groups,
             "unaccounted_cards": unaccounted_cards_list,
+            "pending_dispatches": pending_dispatches,
             "recent_batches": list(recent_batches),
             "stock_groups": list(stock_groups),
             "negative_stock_count": StockItem.objects.filter(current_quantity__lt=0).count(),
@@ -116,7 +133,7 @@ class AccountsDashboardViewSet(viewsets.ViewSet):
     @handle_exceptions
     @check_authentication()
     def list(self, request):
-        """Accounts dashboard - shows critical stock and pending accounting"""
+        """Accounts dashboard - shows critical stock, pending accounting, and latest dispatches"""
         
         # Critical stock items (negative or zero quantity only)
         critical_stock = StockItem.objects.filter(
@@ -129,14 +146,32 @@ class AccountsDashboardViewSet(viewsets.ViewSet):
             batch_count = ProductionBatch.objects.filter(production_card_id=card['id']).count()
             consumption_count = ProductionConsumption.objects.filter(production_card_id=card['id']).count()
             card['batch_count'] = batch_count
-            card['consumption_count'] = consumption_count
+            card['material_count'] = consumption_count
             pending_cards.append(card)
+        
+        # Pending dispatch accounting (latest 5)
+        pending_dispatches = []
+        for dispatch in Dispatch.objects.filter(accounted=False).select_related('client').prefetch_related('items').order_by('-dispatch_date')[:5]:
+            item_count = dispatch.items.count()
+            total_qty = sum(float(item.quantity) for item in dispatch.items.all())
+            pending_dispatches.append({
+                'id': dispatch.id,
+                'dispatch_code': dispatch.dispatch_code,
+                'dispatch_date': str(dispatch.dispatch_date),
+                'client_name': dispatch.client.company_name if dispatch.client else 'N/A',
+                'vehicle_number': dispatch.vehicle_number,
+                'freight_amount': str(dispatch.freight_amount),
+                'item_count': item_count,
+                'total_quantity': total_qty,
+            })
         
         data = {
             "critical_stock_count": critical_stock.count(),
             "critical_stock_items": list(critical_stock),
             "pending_accounting_cards": pending_cards,
+            "pending_dispatches": pending_dispatches,
             "accounted_count": ProductionCard.objects.filter(accounted=True).count(),
+            "unaccounted_count": ProductionCard.objects.filter(accounted=False).count(),
         }
         
         return Response({
@@ -146,6 +181,101 @@ class AccountsDashboardViewSet(viewsets.ViewSet):
             "data": data,
             "error": None
         }, status=200)
+
+
+class AccountsMarkDispatchAccountedViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def create(self, request):
+        """Mark dispatch as accounted"""
+        dispatch_id = request.data.get("dispatch_id")
+        
+        if not dispatch_id:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Dispatch ID required"
+            }, status=400)
+        
+        try:
+            dispatch = Dispatch.objects.get(id=dispatch_id)
+            dispatch.accounted = True
+            dispatch.save()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action="DISPATCH_ACCOUNTED",
+                model_name="Dispatch",
+                record_id=dispatch.dispatch_code,
+                description=f"Dispatch {dispatch.dispatch_code} marked as accounted"
+            )
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": {"dispatch_id": dispatch.id, "accounted": dispatch.accounted},
+                "error": None
+            }, status=200)
+        except Dispatch.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Dispatch not found"
+            }, status=404)
+
+
+class AdminMarkDispatchAccountedViewSet(viewsets.ViewSet):
+    
+    @handle_exceptions
+    @check_authentication()
+    def create(self, request):
+        """Mark dispatch as accounted"""
+        dispatch_id = request.data.get("dispatch_id")
+        
+        if not dispatch_id:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Dispatch ID required"
+            }, status=400)
+        
+        try:
+            dispatch = Dispatch.objects.get(id=dispatch_id)
+            dispatch.accounted = True
+            dispatch.save()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action="DISPATCH_ACCOUNTED",
+                model_name="Dispatch",
+                record_id=dispatch.dispatch_code,
+                description=f"Dispatch {dispatch.dispatch_code} marked as accounted"
+            )
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": {"dispatch_id": dispatch.id, "accounted": dispatch.accounted},
+                "error": None
+            }, status=200)
+        except Dispatch.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Dispatch not found"
+            }, status=404)
+
 
 
 class AccountsMarkAccountedViewSet(viewsets.ViewSet):

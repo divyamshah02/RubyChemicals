@@ -66,6 +66,7 @@ class StockInward(models.Model):
         null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"Inward - {self.stock_item.name}"
@@ -122,6 +123,7 @@ class ProductionCard(models.Model):
         null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
     
     def __str__(self):
         return self.production_code
@@ -161,6 +163,7 @@ class ProductionBatch(models.Model):
         null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
     
     def __str__(self):
         return self.batch_code
@@ -182,6 +185,7 @@ class ProductionConsumption(models.Model):
         max_digits=12,
         decimal_places=3
     )
+    is_active = models.BooleanField(default=True)
     
     def __str__(self):
         return f"{self.stock_item.name}"
@@ -209,6 +213,7 @@ class PettyCash(models.Model):
         null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.expense_head.name} - {self.amount}"
@@ -278,6 +283,9 @@ class Dispatch(models.Model):
     vehicle_number = models.CharField(max_length=50, blank=True)
     freight_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
+    # Accounting Flag
+    accounted = models.BooleanField(default=False, help_text="Mark as accounted in books")
+    
     notes = models.TextField(blank=True)
     
     created_by = models.ForeignKey(
@@ -286,6 +294,7 @@ class Dispatch(models.Model):
         null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         if not self.dispatch_code:
@@ -323,6 +332,7 @@ class DispatchItem(models.Model):
         ('pcs', 'Pieces'),
     ])
     
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

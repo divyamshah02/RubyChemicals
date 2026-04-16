@@ -21,7 +21,11 @@ router.register(r'expense-head-api', ExpenseHeadViewSet, basename='expense-head-
 router.register(r'petty-cash-api', PettyCashViewSet, basename='petty-cash-api')
 
 router.register(r'admin-dashboard-api', AdminDashboardViewSet, basename='admin-dashboard-api')
+router.register(r'admin-dashboard-api/mark_accounted', AdminMarkAccountedViewSet, basename='admin-mark-accounted-api')
+router.register(r'admin-dashboard-api/mark_dispatch_accounted', AdminMarkDispatchAccountedViewSet, basename='admin-mark-dispatch-accounted-api')
 router.register(r'accounts-dashboard-api', AccountsDashboardViewSet, basename='accounts-dashboard-api')
+router.register(r'accounts-dashboard-api/mark_accounted', AccountsMarkAccountedViewSet, basename='accounts-mark-accounted-api')
+router.register(r'accounts-dashboard-api/mark_dispatch_accounted', AccountsMarkDispatchAccountedViewSet, basename='accounts-mark-dispatch-accounted-api')
 router.register(r'production-dashboard-api', ProductionDashboardViewSet, basename='production-dashboard-api')
 
 router.register(r'client-api', ClientProfileViewSet, basename='client-api')

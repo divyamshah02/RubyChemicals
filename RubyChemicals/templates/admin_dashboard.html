@@ -227,7 +227,7 @@
         <!-- Unaccounted Cards Section -->
         <div class="section-header">
             <div class="section-title"><i class="fas fa-clipboard-list"
-                    style="color: #06b6d4; margin-right: 0.5rem;"></i>Pending Accounting</div>
+                    style="color: #06b6d4; margin-right: 0.5rem;"></i>Latest Unaccounted Production Cards (Top 5)</div>
         </div>
         <div class="data-table" style="margin-bottom: 2rem; max-height: 500px; overflow-y: auto;">
             <table class="table">
@@ -239,10 +239,36 @@
                         <th>Unit</th>
                         <th>Batches</th>
                         <th>Materials</th>
-                        <th>Action</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="unaccountedCardsTable">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pending Dispatches Section -->
+        <div class="section-header">
+            <div class="section-title"><i class="fas fa-truck"
+                    style="color: #8b5cf6; margin-right: 0.5rem;"></i>Latest Pending Dispatches (Top 5)</div>
+        </div>
+        <div class="data-table" style="margin-bottom: 2rem; max-height: 500px; overflow-y: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Dispatch Code</th>
+                        <th>Date</th>
+                        <th>Client</th>
+                        <th>Vehicle</th>
+                        <th>Items</th>
+                        <th>Freight</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pendingDispatchesTable">
                     <tr>
                         <td colspan="7" class="text-center text-muted py-4">Loading...</td>
                     </tr>
@@ -273,6 +299,90 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- View Production Card Modal -->
+    <div class="modal fade" id="viewProductionCardModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-eye"></i> Production Card Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Production Code</label>
+                            <div id="viewCardCode" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Date</label>
+                            <div id="viewCardDate" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Output Quantity</label>
+                            <div id="viewCardOutput" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Batches</label>
+                            <div id="viewCardBatches" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="markCardAccountedFromModal()" id="markCardAccountedBtn">
+                        <i class="fas fa-check"></i> Mark Accounted
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Dispatch Modal -->
+    <div class="modal fade" id="viewDispatchModalAdmin">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-eye"></i> Dispatch Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Dispatch Code</label>
+                            <div id="viewDispatchCode" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Date</label>
+                            <div id="viewDispatchDate" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Client</label>
+                            <div id="viewDispatchClient" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Vehicle Number</label>
+                            <div id="viewDispatchVehicle" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Items Count</label>
+                            <div id="viewDispatchItems" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Freight Amount</label>
+                            <div id="viewDispatchFreight" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="markDispatchAccountedFromModal()" id="markDispatchAccountedBtn">
+                        <i class="fas fa-check"></i> Mark Accounted
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

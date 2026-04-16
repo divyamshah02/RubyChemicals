@@ -1,15 +1,22 @@
 const ADMIN_DASHBOARD_API = "/operation-api/admin-dashboard-api/";
-const ADMIN_MARK_ACCOUNTED_API = "/operation-api/admin-mark-accounted-api/";
+const ADMIN_MARK_ACCOUNTED_API = "/operation-api/admin-dashboard-api/mark_accounted/";
+const ADMIN_MARK_DISPATCH_ACCOUNTED_API = "/operation-api/admin-dashboard-api/mark_dispatch_accounted/";
 const STOCK_ITEM_API = "/operation-api/stock-item-api/";
 const STOCK_GROUP_API = "/operation-api/stock-group-api/";
 let csrf_token = ""
 let stockGroups = [];
+let currentCardId = null;
+let currentDispatchId = null;
+let unaccountedCards = [];
+let pendingDispatches = [];
 
 async function loadAdminDashboard(csrf_token_param) {
     csrf_token = csrf_token_param
     const [ok, res] = await callApi("GET", ADMIN_DASHBOARD_API);
     if (ok && res.data) {
         const data = res.data;
+        unaccountedCards = data.unaccounted_cards;
+        pendingDispatches = data.pending_dispatches || [];
         
         document.getElementById("negativeStockCount").textContent = data.negative_stock_count;
         document.getElementById("lowStockCount").textContent = data.low_stock_items.length;
@@ -56,8 +63,30 @@ async function loadAdminDashboard(csrf_token_param) {
                     <td><span style="background: #f3e8ff; color: #6b21a8; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${card.batch_count || 0} batches</span></td>
                     <td><span style="background: #e0f2fe; color: #0c4a6e; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${card.consumption_count || 0} items</span></td>
                     <td>
-                        <button class="btn btn-sm btn-success" onclick="markAccounted(${card.id})" title="Mark as accounted">
-                            <i class="fas fa-check"></i> Mark Accounted
+                        <button class="btn btn-sm btn-primary" onclick="viewProductionCard(${card.id})" title="View details">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        // Pending Dispatches Table
+        const pendingDispatchesTable = document.getElementById("pendingDispatchesTable");
+        if (!data.pending_dispatches || data.pending_dispatches.length === 0) {
+            pendingDispatchesTable.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">All dispatches accounted</td></tr>';
+        } else {
+            pendingDispatchesTable.innerHTML = data.pending_dispatches.map(dispatch => `
+                <tr>
+                    <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-weight: 600;">${dispatch.dispatch_code}</code></td>
+                    <td>${dispatch.dispatch_date}</td>
+                    <td>${dispatch.client_name}</td>
+                    <td>${dispatch.vehicle_number || 'N/A'}</td>
+                    <td><span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-weight: 600;">${dispatch.item_count}</span></td>
+                    <td>₹${dispatch.freight_amount}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="viewDispatch(${dispatch.id})" title="View details">
+                            <i class="fas fa-eye"></i> View
                         </button>
                     </td>
                 </tr>
@@ -140,3 +169,68 @@ async function markAccounted(cardId) {
         }
     }
 }
+
+function viewProductionCard(cardId) {
+    const card = findCardById(cardId);
+    if (!card) return;
+    
+    currentCardId = cardId;
+    document.getElementById("viewCardCode").textContent = card.production_code;
+    document.getElementById("viewCardDate").textContent = card.production_date;
+    document.getElementById("viewCardOutput").textContent = card.total_output_quantity + " " + card.unit;
+    document.getElementById("viewCardBatches").textContent = card.batch_count + " batches, " + card.consumption_count + " materials";
+    
+    new bootstrap.Modal(document.getElementById("viewProductionCardModal")).show();
+}
+
+function viewDispatch(dispatchId) {
+    const dispatch = findDispatchById(dispatchId);
+    if (!dispatch) return;
+    
+    currentDispatchId = dispatchId;
+    document.getElementById("viewDispatchCode").textContent = dispatch.dispatch_code;
+    document.getElementById("viewDispatchDate").textContent = dispatch.dispatch_date;
+    document.getElementById("viewDispatchClient").textContent = dispatch.client_name;
+    document.getElementById("viewDispatchVehicle").textContent = dispatch.vehicle_number || "N/A";
+    document.getElementById("viewDispatchItems").textContent = dispatch.item_count + " items";
+    document.getElementById("viewDispatchFreight").textContent = "₹" + dispatch.freight_amount;
+    
+    new bootstrap.Modal(document.getElementById("viewDispatchModalAdmin")).show();
+}
+
+function findCardById(cardId) {
+    return unaccountedCards.find(card => card.id === cardId);
+}
+
+function findDispatchById(dispatchId) {
+    return pendingDispatches.find(dispatch => dispatch.id === dispatchId);
+}
+
+async function markCardAccountedFromModal() {
+    if (confirm("Mark this production card as accounted?")) {
+        const [ok, res] = await callApi("POST", ADMIN_MARK_ACCOUNTED_API, { card_id: currentCardId }, csrf_token);
+        if (ok && res.success) {
+            alert("Production card marked as accounted!");
+            const modal = bootstrap.Modal.getInstance(document.getElementById("viewProductionCardModal"));
+            if (modal) modal.hide();
+            loadAdminDashboard();
+        } else {
+            alert("Error: " + (res.error || "Failed to update"));
+        }
+    }
+}
+
+async function markDispatchAccountedFromModal() {
+    if (confirm("Mark this dispatch as accounted?")) {
+        const [ok, res] = await callApi("POST", ADMIN_MARK_DISPATCH_ACCOUNTED_API, { dispatch_id: currentDispatchId }, csrf_token);
+        if (ok && res.success) {
+            alert("Dispatch marked as accounted!");
+            const modal = bootstrap.Modal.getInstance(document.getElementById("viewDispatchModalAdmin"));
+            if (modal) modal.hide();
+            loadAdminDashboard();
+        } else {
+            alert("Error: " + (res.error || "Failed to update"));
+        }
+    }
+}
+

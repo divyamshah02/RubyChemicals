@@ -9,8 +9,16 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
-        body { background: #f8fafc; }
-        .container-lg { max-width: 1400px; margin: 0 auto; padding: 2rem 1rem; }
+        body {
+            background: #f8fafc;
+        }
+
+        .container-lg {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
         .page-header {
             display: flex;
             align-items: center;
@@ -19,7 +27,14 @@
             padding-bottom: 1.5rem;
             border-bottom: 2px solid #e2e8f0;
         }
-        .page-title { font-size: 1.75rem; font-weight: 700; color: #1e293b; margin: 0; }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
         .btn-primary-custom {
             background: #3b82f6;
             color: white;
@@ -30,14 +45,19 @@
             font-weight: 500;
             transition: all 0.3s;
         }
-        .btn-primary-custom:hover { background: #2563eb; transform: translateY(-2px); }
-        
+
+        .btn-primary-custom:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1rem;
             margin-bottom: 2rem;
         }
+
         .stat-card {
             background: white;
             border-radius: 12px;
@@ -48,17 +68,36 @@
             gap: 1.5rem;
             transition: all 0.3s;
         }
-        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
-        .stat-icon { font-size: 2.5rem; opacity: 0.7; }
-        .stat-content h3 { margin: 0; font-size: 1.75rem; font-weight: 700; }
-        .stat-content p { margin: 0.25rem 0 0; color: #64748b; font-size: 0.875rem; }
-        
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            opacity: 0.7;
+        }
+
+        .stat-content h3 {
+            margin: 0;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .stat-content p {
+            margin: 0.25rem 0 0;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
         .table-container {
             background: white;
             border-radius: 12px;
             border: 1px solid #e2e8f0;
             overflow: hidden;
         }
+
         .table-header {
             padding: 1.5rem;
             border-bottom: 1px solid #e2e8f0;
@@ -67,27 +106,50 @@
             justify-content: space-between;
             background: #f8fafc;
         }
-        .table-title { font-weight: 700; font-size: 1rem; color: #1e293b; }
-        
-        table { margin: 0; }
-        thead { background: #f8fafc; }
-        thead th { 
+
+        .table-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e293b;
+        }
+
+        table {
+            margin: 0;
+        }
+
+        thead {
+            background: #f8fafc;
+        }
+
+        thead th {
             border-bottom: 2px solid #e2e8f0;
             padding: 1rem;
             font-weight: 700;
             color: #1e293b;
             font-size: 0.875rem;
         }
-        tbody tr { border-bottom: 1px solid #e2e8f0; transition: background 0.2s; }
-        tbody tr:hover { background: #fafafa; }
-        tbody td { padding: 1rem; vertical-align: middle; }
-        
-        .dispatch-code { 
-            font-weight: 700; 
+
+        tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: #fafafa;
+        }
+
+        tbody td {
+            padding: 1rem;
+            vertical-align: middle;
+        }
+
+        .dispatch-code {
+            font-weight: 700;
             color: #3b82f6;
             font-family: 'Courier New', monospace;
             font-size: 0.875rem;
         }
+
         .vehicle-badge {
             background: #dbeafe;
             color: #1e40af;
@@ -97,6 +159,7 @@
             font-weight: 600;
             display: inline-block;
         }
+
         .item-count-badge {
             background: #fce7f3;
             color: #be185d;
@@ -105,26 +168,69 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
-        
-        .action-buttons { display: flex; gap: 0.5rem; }
-        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.75rem; border-radius: 6px; border: none; cursor: pointer; }
-        .btn-info { background: #06b6d4; color: white; }
-        .btn-info:hover { background: #0891b2; }
-        .btn-warning { background: #f59e0b; color: white; }
-        .btn-warning:hover { background: #d97706; }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-danger:hover { background: #dc2626; }
-        
-        .modal-content { border-radius: 12px; border: 1px solid #e2e8f0; }
-        .modal-header { border-bottom: 1px solid #e2e8f0; background: #f1f5f9; }
-        .modal-title { font-weight: 700; color: #1e293b; }
-        
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-info {
+            background: #06b6d4;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #0891b2;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .modal-content {
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #e2e8f0;
+            background: #f1f5f9;
+        }
+
+        .modal-title {
+            font-weight: 700;
+            color: #1e293b;
+        }
+
         .items-list {
             background: #f8fafc;
             border-radius: 8px;
             padding: 1rem;
             margin: 1rem 0;
         }
+
         .item-row {
             display: flex;
             align-items: center;
@@ -135,315 +241,376 @@
             border-radius: 6px;
             margin-bottom: 0.5rem;
         }
-        .item-row:last-child { border-bottom: none; margin-bottom: 0; }
-        .item-info { flex: 1; }
-        .item-name { font-weight: 600; color: #1e293b; }
-        .item-qty { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
+
+        .item-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .item-qty {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 
 <body>
 
-{% include 'header.html' %}
+    {% include 'header.html' %}
 
-<div class="container-fluid">
-    <div class="page-header">
-        <h1 class="page-title"><i class="fas fa-truck" style="color: #3b82f6; margin-right: 0.75rem;"></i>Dispatch Management</h1>
-        <button class="btn-primary-custom" onclick="openCreateDispatchModal()">
-            <i class="fas fa-plus" style="margin-right: 0.5rem;"></i> New Dispatch
-        </button>
-    </div>
-
-    <!-- KPI Stats -->
-    <div class="stats-grid">
-        <div class="stat-card" style="border-left: 4px solid #3b82f6;">
-            <div class="stat-icon" style="color: #3b82f6;"><i class="fas fa-truck"></i></div>
-            <div class="stat-content">
-                <h3 id="totalDispatchCount">0</h3>
-                <p>Total Dispatches</p>
-            </div>
+    <div class="container-fluid">
+        <div class="page-header">
+            <h1 class="page-title"><i class="fas fa-truck" style="color: #3b82f6; margin-right: 0.75rem;"></i>Dispatch
+                Management</h1>
+            <button class="btn-primary-custom" onclick="openCreateDispatchModal()">
+                <i class="fas fa-plus" style="margin-right: 0.5rem;"></i> New Dispatch
+            </button>
         </div>
-        <div class="stat-card" style="border-left: 4px solid #8b5cf6;">
-            <div class="stat-icon" style="color: #8b5cf6;"><i class="fas fa-calendar-day"></i></div>
-            <div class="stat-content">
-                <h3 id="todayDispatchCount">0</h3>
-                <p>Today's Dispatches</p>
-            </div>
-        </div>
-        <div class="stat-card" style="border-left: 4px solid #10b981;">
-            <div class="stat-icon" style="color: #10b981;"><i class="fas fa-weight"></i></div>
-            <div class="stat-content">
-                <h3 id="totalQuantity">0</h3>
-                <p>Total Quantity</p>
-            </div>
-        </div>
-        <div class="stat-card" style="border-left: 4px solid #f59e0b;">
-            <div class="stat-icon" style="color: #f59e0b;"><i class="fas fa-user-tie"></i></div>
-            <div class="stat-content">
-                <h3 id="uniqueClientsCount">0</h3>
-                <p>Unique Clients</p>
-            </div>
-        </div>
-    </div>
 
-    <!-- Dispatches Table -->
-    <div class="table-container">
-        <div class="table-header">
-            <div class="table-title">All Dispatches</div>
-            <input type="text" class="form-control" style="width: 250px; border-radius: 8px;" id="searchDispatch" placeholder="Search dispatch code...">
-        </div>
-        <table class="table" id="dispatchTable">
-            <thead>
-                <tr>
-                    <th><i class="fas fa-barcode"></i> Code</th>
-                    <th><i class="fas fa-calendar"></i> Date</th>
-                    <th><i class="fas fa-user"></i> Client</th>
-                    <th><i class="fas fa-cube"></i> Items</th>
-                    <th><i class="fas fa-truck"></i> Vehicle</th>
-                    <th><i class="fas fa-money-bill"></i> Freight</th>
-                    <th><i class="fas fa-cogs"></i> Actions</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-</div>
-
-<!-- View Dispatch Modal -->
-<div class="modal fade" id="viewDispatchModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-truck" style="color: #3b82f6; margin-right: 0.5rem;"></i>Dispatch Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                    <div>
-                        <label style="font-weight: 600; color: #475569;">Dispatch Code</label>
-                        <div id="viewDispatchCode" style="font-size: 1.25rem; font-weight: 700; color: #3b82f6; margin-top: 0.5rem;"></div>
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; color: #475569;">Dispatch Date</label>
-                        <div id="viewDispatchDate" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; color: #475569;">Client</label>
-                        <div id="viewDispatchClient" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; color: #475569;">Vehicle Type</label>
-                        <div id="viewDispatchVehicleType" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; color: #475569;">Vehicle Number</label>
-                        <div id="viewDispatchVehicleNumber" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; color: #475569;">Freight Amount</label>
-                        <div id="viewDispatchFreight" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.75rem;">Shipping Address</label>
-                    <div id="viewDispatchAddress" style="padding: 1rem; background: #f8fafc; border-radius: 8px; color: #1e293b;"></div>
-                </div>
-
-                <div>
-                    <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.75rem;">Items</label>
-                    <div class="items-list" id="viewDispatchItems"></div>
-                </div>
-
-                <div style="margin-top: 1.5rem;">
-                    <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.5rem;">Notes</label>
-                    <textarea readonly class="form-control" id="viewDispatchNotes" style="border-radius: 8px;" rows="3"></textarea>
+        <!-- KPI Stats -->
+        <div class="stats-grid">
+            <div class="stat-card" style="border-left: 4px solid #3b82f6;">
+                <div class="stat-icon" style="color: #3b82f6;"><i class="fas fa-truck"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalDispatchCount">0</h3>
+                    <p>Total Dispatches</p>
                 </div>
             </div>
-            <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
-                <button class="btn btn-warning" onclick="editDispatch()" style="border-radius: 8px; background: #f59e0b; border: none; color: white;">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn btn-danger" onclick="deleteDispatch()" style="border-radius: 8px; background: #ef4444; border: none; color: white;">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
+            <div class="stat-card" style="border-left: 4px solid #8b5cf6;">
+                <div class="stat-icon" style="color: #8b5cf6;"><i class="fas fa-calendar-day"></i></div>
+                <div class="stat-content">
+                    <h3 id="todayDispatchCount">0</h3>
+                    <p>Today's Dispatches</p>
+                </div>
             </div>
+            <div class="stat-card" style="border-left: 4px solid #10b981;">
+                <div class="stat-icon" style="color: #10b981;"><i class="fas fa-weight"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalQuantity">0</h3>
+                    <p>Total Quantity</p>
+                </div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+                <div class="stat-icon" style="color: #f59e0b;"><i class="fas fa-user-tie"></i></div>
+                <div class="stat-content">
+                    <h3 id="uniqueClientsCount">0</h3>
+                    <p>Unique Clients</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dispatches Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-title">All Dispatches</div>
+                <input type="text" class="form-control" style="width: 250px; border-radius: 8px;" id="searchDispatch"
+                    placeholder="Search dispatch code...">
+            </div>
+            <table class="table" id="dispatchTable">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-barcode"></i> Code</th>
+                        <th><i class="fas fa-calendar"></i> Date</th>
+                        <th><i class="fas fa-user"></i> Client</th>
+                        <th><i class="fas fa-check-circle"></i> Accounted</th>
+                        <th><i class="fas fa-cube"></i> Items</th>
+                        <th><i class="fas fa-truck"></i> Vehicle</th>
+                        <th><i class="fas fa-money-bill"></i> Freight</th>
+                        <th><i class="fas fa-cogs"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
-</div>
 
-<!-- Create/Edit Dispatch Modal -->
-<div class="modal fade" id="createDispatchModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="create-dispatch-modal-title"><i class="fas fa-plus-circle" style="color: #3b82f6; margin-right: 0.5rem;"></i>Create New Dispatch</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="editDispatchId">
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Dispatch Date *</label>
-                        <input type="date" class="form-control" id="createDispatchDate" style="border-radius: 8px;">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Client <span style="color: #ef4444;">*</span></label>
-                        <select class="form-control" id="createDispatchClient" style="border-radius: 8px;"></select>
-                    </div>
+    <!-- View Dispatch Modal -->
+    <div class="modal fade" id="viewDispatchModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-truck"
+                            style="color: #3b82f6; margin-right: 0.5rem;"></i>Dispatch Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Vehicle Type</label>
-                        <input type="text" class="form-control" id="createVehicleType" placeholder="e.g., Truck, Van, Bike" style="border-radius: 8px;">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Vehicle Number</label>
-                        <input type="text" class="form-control" id="createVehicleNumber" placeholder="e.g., MH-01-AB-1234" style="border-radius: 8px;">
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Freight Amount (₹)</label>
-                        <input type="number" class="form-control" id="createFreight" placeholder="0" step="0.01" style="border-radius: 8px;">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Shipping Address <span style="color: #ef4444;">*</span></label>
-                        <select class="form-control" id="createShippingAddress" style="border-radius: 8px;"></select>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Stock Items *</label>
-                    <div class="items-list" id="createDispatchItems">
-                        <div class="text-center text-muted" style="padding: 1.5rem;">
-                            <p>No items added. Click "Add Item" to add stock items.</p>
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Dispatch Code</label>
+                            <div id="viewDispatchCode"
+                                style="font-size: 1.25rem; font-weight: 700; color: #3b82f6; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Dispatch Date</label>
+                            <div id="viewDispatchDate" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Client</label>
+                            <div id="viewDispatchClient" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Vehicle Type</label>
+                            <div id="viewDispatchVehicleType"
+                                style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Vehicle Number</label>
+                            <div id="viewDispatchVehicleNumber"
+                                style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Freight Amount</label>
+                            <div id="viewDispatchFreight" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Accounted</label>
+                            <div id="viewDispatchAccounted" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-success" onclick="openAddItemModal()" style="margin-top: 0.75rem; border-radius: 6px;">
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.75rem;">Shipping
+                            Address</label>
+                        <div id="viewDispatchAddress"
+                            style="padding: 1rem; background: #f8fafc; border-radius: 8px; color: #1e293b;"></div>
+                    </div>
+
+                    <div>
+                        <label
+                            style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.75rem;">Items</label>
+                        <div class="items-list" id="viewDispatchItems"></div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <label
+                            style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.5rem;">Notes</label>
+                        <textarea readonly class="form-control" id="viewDispatchNotes" style="border-radius: 8px;"
+                            rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        style="border-radius: 8px;">Close</button>
+                    <!-- <button class="btn btn-warning" onclick="editDispatch()"
+                        style="border-radius: 8px; background: #f59e0b; border: none; color: white;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteDispatch()"
+                        style="border-radius: 8px; background: #ef4444; border: none; color: white;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button> -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Dispatch Modal -->
+    <div class="modal fade" id="createDispatchModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="create-dispatch-modal-title"><i class="fas fa-plus-circle"
+                            style="color: #3b82f6; margin-right: 0.5rem;"></i>Create New Dispatch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editDispatchId">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Dispatch Date *</label>
+                            <input type="date" class="form-control" id="createDispatchDate" style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Client <span style="color: #ef4444;">*</span></label>
+                            <select class="form-control" id="createDispatchClient" style="border-radius: 8px;"></select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Vehicle Type</label>
+                            <input type="text" class="form-control" id="createVehicleType"
+                                placeholder="e.g., Truck, Van, Bike" style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Vehicle Number</label>
+                            <input type="text" class="form-control" id="createVehicleNumber"
+                                placeholder="e.g., MH-01-AB-1234" style="border-radius: 8px;">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Freight Amount (₹)</label>
+                            <input type="number" class="form-control" id="createFreight" placeholder="0" step="0.01"
+                                style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Shipping Address <span style="color: #ef4444;">*</span></label>
+                            <select class="form-control" id="createShippingAddress"
+                                style="border-radius: 8px;"></select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Stock Items *</label>
+                        <div class="items-list" id="createDispatchItems">
+                            <div class="text-center text-muted" style="padding: 1.5rem;">
+                                <p>No items added. Click "Add Item" to add stock items.</p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-success" onclick="openAddItemModal()"
+                            style="margin-top: 0.75rem; border-radius: 6px;">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="createDispatchAccounted" style="width: 1.25rem; height: 1.25rem; cursor: pointer; border-radius: 4px;">
+                        <label class="form-check-label" for="createDispatchAccounted" style="cursor: pointer; font-weight: 500; margin-left: 0.5rem;">
+                            Mark as Accounted
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="createDispatchNotes"
+                            placeholder="Add any additional notes..." style="border-radius: 8px;" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        style="border-radius: 8px;">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitDispatch()"
+                        style="border-radius: 8px; background: #3b82f6; border: none;">
+                        <i class="fas fa-save"></i> Save Dispatch
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div class="modal fade" id="addItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-cube" style="color: #3b82f6; margin-right: 0.5rem;"></i>Add
+                        Stock Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Stock Item *</label>
+                        <select class="form-control" id="addItemStockItem" style="border-radius: 8px;"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity *</label>
+                        <input type="number" class="form-control" id="addItemQuantity" placeholder="Enter quantity"
+                            step="0.01" style="border-radius: 8px;">
+                    </div>
+                    <div class="mb-3" style="display: none;">
+                        <label class="form-label">Unit</label>
+                        <input type="TEXT" class="form-control" id="addItemUnit" placeholder="Enter Unit"
+                            style="border-radius: 8px; display: none;">
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        style="border-radius: 8px;">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="addDispatchItem()"
+                        style="border-radius: 8px; background: #10b981; border: none; color: white;">
                         <i class="fas fa-plus"></i> Add Item
                     </button>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Notes</label>
-                    <textarea class="form-control" id="createDispatchNotes" placeholder="Add any additional notes..." style="border-radius: 8px;" rows="3"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitDispatch()" style="border-radius: 8px; background: #3b82f6; border: none;">
-                    <i class="fas fa-save"></i> Save Dispatch
-                </button>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Add Item Modal -->
-<div class="modal fade" id="addItemModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-cube" style="color: #3b82f6; margin-right: 0.5rem;"></i>Add Stock Item</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Stock Item *</label>
-                    <select class="form-control" id="addItemStockItem" style="border-radius: 8px;"></select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Quantity *</label>
-                    <input type="number" class="form-control" id="addItemQuantity" placeholder="Enter quantity" step="0.01" style="border-radius: 8px;">
-                </div>
-                <div class="mb-3" style="display: none;">
-                    <label class="form-label">Unit</label>
-                    <input type="TEXT" class="form-control" id="addItemUnit" placeholder="Enter Unit" style="border-radius: 8px; display: none;">
-                </div>
-            </div>
-            <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="addDispatchItem()" style="border-radius: 8px; background: #10b981; border: none; color: white;">
-                    <i class="fas fa-plus"></i> Add Item
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/api_caller.js"></script>
+    <script>
+        const DISPATCH_API = "/operation-api/dispatch-api/";
+        const STOCK_ITEMS_API = "/operation-api/stock-item-api/";
+        const CLIENTS_API = "/operation-api/client-api/";
+        const ADDRESSES_API = "/operation-api/client-address-api/";
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/api_caller.js"></script>
-<script>
-    const DISPATCH_API = "/operation-api/dispatch-api/";
-    const STOCK_ITEMS_API = "/operation-api/stock-item-api/";
-    const CLIENTS_API = "/operation-api/client-api/";
-    const ADDRESSES_API = "/operation-api/client-address-api/";
-    
-    let dispatches = [];
-    let stockItems = [];
-    let clients = [];
-    let addresses = [];
-    let currentDispatchId = null;
-    let dispatchItems = [];
-    let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || "{{csrf_token}}";
+        let dispatches = [];
+        let stockItems = [];
+        let clients = [];
+        let addresses = [];
+        let currentDispatchId = null;
+        let dispatchItems = [];
+        let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || "{{csrf_token}}";
 
-    async function loadData() {
-        await Promise.all([
-            loadDispatches(),
-            loadStockItems(),
-            loadClients(),
-            // loadAddresses()
-        ]);
-        renderKPIs();
-    }
-
-    async function loadDispatches() {
-        const [ok, res] = await callApi("GET", DISPATCH_API);
-        if (ok) {
-            dispatches = res.data;
-            renderDispatchesTable();
+        async function loadData() {
+            await Promise.all([
+                loadDispatches(),
+                loadStockItems(),
+                loadClients(),
+                // loadAddresses()
+            ]);
+            renderKPIs();
         }
-    }
 
-    async function loadStockItems() {
-        const [ok, res] = await callApi("GET", STOCK_ITEMS_API);
-        if (ok) stockItems = res.data;
-    }
-
-    async function loadClients() {
-        const [ok, res] = await callApi("GET", CLIENTS_API);
-        if (ok) {
-            clients = res.data;
-            populateClientsDropdown();
+        async function loadDispatches() {
+            const [ok, res] = await callApi("GET", DISPATCH_API);
+            if (ok) {
+                dispatches = res.data;
+                renderDispatchesTable();
+            }
         }
-    }
 
-    async function loadAddresses() {
-        const clientId = document.getElementById("createDispatchClient").value;
-        const Params = {
-            client_id: clientId,
-        };
-
-        const url = `${ADDRESSES_API}?` + toQueryString(Params);
-        const [ok, res] = await callApi("GET", url);
-        if (ok) {
-            addresses = res.data;
-            populateAddressesDropdown();
+        async function loadStockItems() {
+            const [ok, res] = await callApi("GET", STOCK_ITEMS_API);
+            if (ok) stockItems = res.data;
         }
-    }
 
-    function renderDispatchesTable() {
-        const tbody = document.querySelector("#dispatchTable tbody");
-        tbody.innerHTML = dispatches.map(d => `
+        async function loadClients() {
+            const [ok, res] = await callApi("GET", CLIENTS_API);
+            if (ok) {
+                clients = res.data;
+                populateClientsDropdown();
+            }
+        }
+
+        async function loadAddresses() {
+            const clientId = document.getElementById("createDispatchClient").value;
+            const Params = {
+                client_id: clientId,
+            };
+
+            const url = `${ADDRESSES_API}?` + toQueryString(Params);
+            const [ok, res] = await callApi("GET", url);
+            if (ok) {
+                addresses = res.data;
+                populateAddressesDropdown();
+            }
+        }
+
+        function renderDispatchesTable() {
+            const tbody = document.querySelector("#dispatchTable tbody");
+            tbody.innerHTML = dispatches.map(d => `
             <tr>
                 <td><span class="dispatch-code">${d.dispatch_code}</span></td>
                 <td>${d.dispatch_date}</td>
                 <td>${d.client_name || 'N/A'}</td>
+                <td>${d.accounted ? 'Yes' : 'No'}</td>
                 <td><span class="item-count-badge">${d.items.length} Items</span></td>
                 <td><span class="vehicle-badge">${d.vehicle_type || 'N/A'}</span></td>
                 <td>₹${d.freight_amount}</td>
@@ -462,23 +629,26 @@
                 </td>
             </tr>
         `).join("");
-    }
+        }
 
-    function viewDispatch(id) {
-        const dispatch = dispatches.find(d => d.id === id);
-        if (!dispatch) return;
+        function viewDispatch(id) {
+            const dispatch = dispatches.find(d => d.id === id);
+            if (!dispatch) return;
 
-        currentDispatchId = id;
-        document.getElementById("viewDispatchCode").textContent = dispatch.dispatch_code;
-        document.getElementById("viewDispatchDate").textContent = dispatch.dispatch_date;
-        document.getElementById("viewDispatchClient").textContent = dispatch.client_name || 'N/A';
-        document.getElementById("viewDispatchVehicleType").textContent = dispatch.vehicle_type || 'N/A';
-        document.getElementById("viewDispatchVehicleNumber").textContent = dispatch.vehicle_number || 'N/A';
-        document.getElementById("viewDispatchFreight").textContent = '₹' + dispatch.freight_amount;
-        document.getElementById("viewDispatchAddress").textContent = dispatch.shipping_address_full || 'N/A';
-        document.getElementById("viewDispatchNotes").value = dispatch.notes;
+            currentDispatchId = id;
+            document.getElementById("viewDispatchCode").textContent = dispatch.dispatch_code;
+            document.getElementById("viewDispatchDate").textContent = dispatch.dispatch_date;
+            document.getElementById("viewDispatchClient").textContent = dispatch.client_name || 'N/A';
+            document.getElementById("viewDispatchVehicleType").textContent = dispatch.vehicle_type || 'N/A';
+            document.getElementById("viewDispatchVehicleNumber").textContent = dispatch.vehicle_number || 'N/A';
+            document.getElementById("viewDispatchFreight").textContent = '₹' + dispatch.freight_amount;
+            document.getElementById("viewDispatchAccounted").innerHTML = dispatch.accounted ? 
+                '<span style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.875rem; font-weight: 600;">✓ Accounted</span>' : 
+                '<span style="background: #fee2e2; color: #dc2626; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.875rem; font-weight: 600;">Pending</span>';
+            document.getElementById("viewDispatchAddress").textContent = dispatch.shipping_address_full || 'N/A';
+            document.getElementById("viewDispatchNotes").value = dispatch.notes;
 
-        const itemsHtml = dispatch.items.map(item => `
+            const itemsHtml = dispatch.items.map(item => `
             <div class="item-row">
                 <div class="item-info">
                     <div class="item-name">${item.stock_item_name}</div>
@@ -486,150 +656,151 @@
                 </div>
             </div>
         `).join("");
-        document.getElementById("viewDispatchItems").innerHTML = itemsHtml;
+            document.getElementById("viewDispatchItems").innerHTML = itemsHtml;
 
-        new bootstrap.Modal(document.getElementById("viewDispatchModal")).show();
-    }
-
-    function openCreateDispatchModal() {
-        currentDispatchId = null;
-        dispatchItems = [];
-        document.getElementById("editDispatchId").value = "";
-        document.getElementById("createDispatchDate").value = new Date().toISOString().split('T')[0];
-        document.getElementById("createVehicleType").value = "";
-        document.getElementById("createVehicleNumber").value = "";
-        document.getElementById("createFreight").value = "0";
-        document.getElementById("createDispatchClient").value = "";
-        document.getElementById("createShippingAddress").value = "";
-        document.getElementById("createDispatchNotes").value = "";
-        renderDispatchItemsList();
-        
-        const modal = document.getElementById("create-dispatch-modal-title");
-        modal.innerHTML = '<i class="fas fa-plus-circle" style="color: #3b82f6; margin-right: 0.5rem;"></i>Create New Dispatch';
-        
-        new bootstrap.Modal(document.getElementById("createDispatchModal")).show();
-    }
-
-    function populateClientsDropdown() {
-        const select = document.getElementById("createDispatchClient");
-        select.innerHTML = '<option value="">Select Client</option>' + 
-            clients.map(c => `<option value="${c.id}">${c.company_name}</option>`).join("");
-    }
-
-    function populateAddressesDropdown() {
-        const select = document.getElementById("createShippingAddress");
-        select.innerHTML = '<option value="">Select Address</option>' + 
-            addresses.map(a => `<option value="${a.id}">${a.street}, ${a.city}</option>`).join("");
-    }
-
-    let editingItemIndex = null;
-
-    function openAddItemModal() {
-        editingItemIndex = null;
-        const select = document.getElementById("addItemStockItem");
-        select.innerHTML = '<option value="">Select Stock Item</option>' + 
-            stockItems.map(s => `<option value="${s.id}">${s.name} (${s.unit})</option>`).join("");
-        
-        document.getElementById("addItemQuantity").value = "";
-        document.getElementById("addItemUnit").value = "";
-        document.getElementById("addItemUnit").disabled = true;
-        
-        const btn = document.getElementById("addItemModal").querySelector(".modal-footer .btn-success");
-        btn.innerHTML = '<i class="fas fa-plus"></i> Add Item';
-        btn.onclick = addDispatchItem;
-        
-        new bootstrap.Modal(document.getElementById("addItemModal")).show();
-    }
-
-    function editDispatchItem(idx) {
-        editingItemIndex = idx;
-        const item = dispatchItems[idx];
-        const select = document.getElementById("addItemStockItem");
-        select.innerHTML = '<option value="">Select Stock Item</option>' + 
-            stockItems.map(s => `<option value="${s.id}" ${s.id === item.stock_item_id ? 'selected' : ''}>${s.name} (${s.unit})</option>`).join("");
-        
-        document.getElementById("addItemQuantity").value = item.quantity;
-        document.getElementById("addItemUnit").value = item.unit;
-        document.getElementById("addItemUnit").disabled = true;
-        
-        const btn = document.getElementById("addItemModal").querySelector(".modal-footer .btn-success");
-        btn.innerHTML = '<i class="fas fa-save"></i> Update Item';
-        btn.onclick = updateDispatchItem;
-        
-        new bootstrap.Modal(document.getElementById("addItemModal")).show();
-    }
-
-    function updateDispatchItem() {
-        const stockItemId = document.getElementById("addItemStockItem").value;
-        const quantity = document.getElementById("addItemQuantity").value;
-        const unit = document.getElementById("addItemUnit").value;
-
-        if (!stockItemId || !quantity) {
-            alert("Please select item and enter quantity");
-            return;
+            new bootstrap.Modal(document.getElementById("viewDispatchModal")).show();
         }
 
-        const item = stockItems.find(s => s.id == stockItemId);
-        dispatchItems[editingItemIndex] = {
-            stock_item_id: parseInt(stockItemId),
-            stock_item_name: item.name,
-            quantity: quantity,
-            unit: unit
-        };
+        function openCreateDispatchModal() {
+            currentDispatchId = null;
+            dispatchItems = [];
+            document.getElementById("editDispatchId").value = "";
+            document.getElementById("createDispatchDate").value = new Date().toISOString().split('T')[0];
+            document.getElementById("createVehicleType").value = "";
+            document.getElementById("createVehicleNumber").value = "";
+            document.getElementById("createFreight").value = "0";
+            document.getElementById("createDispatchAccounted").checked = false;
+            document.getElementById("createDispatchClient").value = "";
+            document.getElementById("createShippingAddress").value = "";
+            document.getElementById("createDispatchNotes").value = "";
+            renderDispatchItemsList();
 
-        renderDispatchItemsList();
-        editingItemIndex = null;
-        const modal = bootstrap.Modal.getInstance(document.getElementById("addItemModal"));
-        if (modal) modal.hide();
-    }
+            const modal = document.getElementById("create-dispatch-modal-title");
+            modal.innerHTML = '<i class="fas fa-plus-circle" style="color: #3b82f6; margin-right: 0.5rem;"></i>Create New Dispatch';
 
-    function handleStockitemSelection() {
-        const stockItemId = document.getElementById("addItemStockItem").value;
-        const item = stockItems.find(s => s.id == stockItemId);
-        if (item) {
+            new bootstrap.Modal(document.getElementById("createDispatchModal")).show();
+        }
+
+        function populateClientsDropdown() {
+            const select = document.getElementById("createDispatchClient");
+            select.innerHTML = '<option value="">Select Client</option>' +
+                clients.map(c => `<option value="${c.id}">${c.company_name}</option>`).join("");
+        }
+
+        function populateAddressesDropdown() {
+            const select = document.getElementById("createShippingAddress");
+            select.innerHTML = '<option value="">Select Address</option>' +
+                addresses.map(a => `<option value="${a.id}">${a.street}, ${a.city}</option>`).join("");
+        }
+
+        let editingItemIndex = null;
+
+        function openAddItemModal() {
+            editingItemIndex = null;
+            const select = document.getElementById("addItemStockItem");
+            select.innerHTML = '<option value="">Select Stock Item</option>' +
+                stockItems.map(s => `<option value="${s.id}">${s.name} (${s.unit})</option>`).join("");
+
+            document.getElementById("addItemQuantity").value = "";
+            document.getElementById("addItemUnit").value = "";
+            document.getElementById("addItemUnit").disabled = true;
+
+            const btn = document.getElementById("addItemModal").querySelector(".modal-footer .btn-success");
+            btn.innerHTML = '<i class="fas fa-plus"></i> Add Item';
+            btn.onclick = addDispatchItem;
+
+            new bootstrap.Modal(document.getElementById("addItemModal")).show();
+        }
+
+        function editDispatchItem(idx) {
+            editingItemIndex = idx;
+            const item = dispatchItems[idx];
+            const select = document.getElementById("addItemStockItem");
+            select.innerHTML = '<option value="">Select Stock Item</option>' +
+                stockItems.map(s => `<option value="${s.id}" ${s.id === item.stock_item_id ? 'selected' : ''}>${s.name} (${s.unit})</option>`).join("");
+
+            document.getElementById("addItemQuantity").value = item.quantity;
             document.getElementById("addItemUnit").value = item.unit;
-        }
-    }
-    
-    document.getElementById('addItemStockItem').addEventListener('change', async function (event) {
-        toggle_loader()
-        await handleStockitemSelection(); 
-        toggle_loader()
+            document.getElementById("addItemUnit").disabled = true;
 
-    });
+            const btn = document.getElementById("addItemModal").querySelector(".modal-footer .btn-success");
+            btn.innerHTML = '<i class="fas fa-save"></i> Update Item';
+            btn.onclick = updateDispatchItem;
 
-
-    function addDispatchItem() {
-        const stockItemId = document.getElementById("addItemStockItem").value;
-        const quantity = document.getElementById("addItemQuantity").value;
-        const unit = document.getElementById("addItemUnit").value;
-
-        if (!stockItemId || !quantity) {
-            alert("Please select item and enter quantity");
-            return;
+            new bootstrap.Modal(document.getElementById("addItemModal")).show();
         }
 
-        const item = stockItems.find(s => s.id == stockItemId);
-        dispatchItems.push({
-            stock_item_id: parseInt(stockItemId),
-            stock_item_name: item.name,
-            quantity: quantity,
-            unit: unit
+        function updateDispatchItem() {
+            const stockItemId = document.getElementById("addItemStockItem").value;
+            const quantity = document.getElementById("addItemQuantity").value;
+            const unit = document.getElementById("addItemUnit").value;
+
+            if (!stockItemId || !quantity) {
+                alert("Please select item and enter quantity");
+                return;
+            }
+
+            const item = stockItems.find(s => s.id == stockItemId);
+            dispatchItems[editingItemIndex] = {
+                stock_item_id: parseInt(stockItemId),
+                stock_item_name: item.name,
+                quantity: quantity,
+                unit: unit
+            };
+
+            renderDispatchItemsList();
+            editingItemIndex = null;
+            const modal = bootstrap.Modal.getInstance(document.getElementById("addItemModal"));
+            if (modal) modal.hide();
+        }
+
+        function handleStockitemSelection() {
+            const stockItemId = document.getElementById("addItemStockItem").value;
+            const item = stockItems.find(s => s.id == stockItemId);
+            if (item) {
+                document.getElementById("addItemUnit").value = item.unit;
+            }
+        }
+
+        document.getElementById('addItemStockItem').addEventListener('change', async function (event) {
+            toggle_loader()
+            await handleStockitemSelection();
+            toggle_loader()
+
         });
 
-        renderDispatchItemsList();
-        const modal = bootstrap.Modal.getInstance(document.getElementById("addItemModal"));
-        if (modal) modal.hide();
-    }
 
-    function renderDispatchItemsList() {
-        const container = document.getElementById("createDispatchItems");
-        if (dispatchItems.length === 0) {
-            container.innerHTML = '<div class="text-center text-muted" style="padding: 1.5rem;"><p>No items added. Click "Add Item" to add stock items.</p></div>';
-            return;
+        function addDispatchItem() {
+            const stockItemId = document.getElementById("addItemStockItem").value;
+            const quantity = document.getElementById("addItemQuantity").value;
+            const unit = document.getElementById("addItemUnit").value;
+
+            if (!stockItemId || !quantity) {
+                alert("Please select item and enter quantity");
+                return;
+            }
+
+            const item = stockItems.find(s => s.id == stockItemId);
+            dispatchItems.push({
+                stock_item_id: parseInt(stockItemId),
+                stock_item_name: item.name,
+                quantity: quantity,
+                unit: unit
+            });
+
+            renderDispatchItemsList();
+            const modal = bootstrap.Modal.getInstance(document.getElementById("addItemModal"));
+            if (modal) modal.hide();
         }
 
-        container.innerHTML = dispatchItems.map((item, idx) => `
+        function renderDispatchItemsList() {
+            const container = document.getElementById("createDispatchItems");
+            if (dispatchItems.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted" style="padding: 1.5rem;"><p>No items added. Click "Add Item" to add stock items.</p></div>';
+                return;
+            }
+
+            container.innerHTML = dispatchItems.map((item, idx) => `
             <div class="item-row">
                 <div class="item-info">
                     <div class="item-name">${item.stock_item_name}</div>
@@ -645,18 +816,19 @@
                 </div>
             </div>
         `).join("");
-    }
+        }
 
-    function removeDispatchItem(idx) {
-        dispatchItems.splice(idx, 1);
-        renderDispatchItemsList();
-    }
+        function removeDispatchItem(idx) {
+            dispatchItems.splice(idx, 1);
+            renderDispatchItemsList();
+        }
 
     async function submitDispatch() {
         const date = document.getElementById("createDispatchDate").value;
         const vehicleType = document.getElementById("createVehicleType").value;
         const vehicleNumber = document.getElementById("createVehicleNumber").value;
         const freight = document.getElementById("createFreight").value;
+        const accounted = document.getElementById("createDispatchAccounted").checked;
         const clientId = document.getElementById("createDispatchClient").value;
         const addressId = document.getElementById("createShippingAddress").value;
         const notes = document.getElementById("createDispatchNotes").value;
@@ -678,6 +850,7 @@
             vehicle_type: vehicleType,
             vehicle_number: vehicleNumber,
             freight_amount: freight,
+            accounted: accounted,
             client: parseInt(clientId),
             shipping_address: parseInt(addressId),
             notes: notes,
@@ -699,98 +872,100 @@
         }
     }
 
-    function renderKPIs() {
-        const today = new Date().toISOString().split('T')[0];
-        const totalDispatches = dispatches.length;
-        const todayDispatches = dispatches.filter(d => d.dispatch_date === today).length;
-        const totalQty = dispatches.reduce((sum, d) => sum + d.total_quantity, 0);
-        const uniqueClients = new Set(dispatches.map(d => d.client_id)).size;
+        function renderKPIs() {
+            const today = new Date().toISOString().split('T')[0];
+            const totalDispatches = dispatches.length;
+            const todayDispatches = dispatches.filter(d => d.dispatch_date === today).length;
+            const totalQty = dispatches.reduce((sum, d) => sum + d.total_quantity, 0);
+            const uniqueClients = new Set(dispatches.map(d => d.client_id)).size;
 
-        document.getElementById("totalDispatchCount").textContent = totalDispatches;
-        document.getElementById("todayDispatchCount").textContent = todayDispatches;
-        document.getElementById("totalQuantity").textContent = totalQty.toFixed(2);
-        document.getElementById("uniqueClientsCount").textContent = uniqueClients;
-    }
+            document.getElementById("totalDispatchCount").textContent = totalDispatches;
+            document.getElementById("todayDispatchCount").textContent = todayDispatches;
+            document.getElementById("totalQuantity").textContent = totalQty.toFixed(2);
+            document.getElementById("uniqueClientsCount").textContent = uniqueClients;
+        }
 
-    function editDispatchModal(id) {
-        const dispatch = dispatches.find(d => d.id === id);
-        if (!dispatch) return;
+        function editDispatchModal(id) {
+            const dispatch = dispatches.find(d => d.id === id);
+            if (!dispatch) return;
 
-        currentDispatchId = id;
-        dispatchItems = dispatch.items.map(item => ({
-            stock_item_id: item.stock_item_id,
-            stock_item_name: item.stock_item_name,
-            quantity: item.quantity,
-            unit: item.unit
-        }));
+            currentDispatchId = id;
+            dispatchItems = dispatch.items.map(item => ({
+                stock_item_id: item.stock_item_id,
+                stock_item_name: item.stock_item_name,
+                quantity: item.quantity,
+                unit: item.unit
+            }));
 
-        document.getElementById("editDispatchId").value = id;
+            document.getElementById("editDispatchId").value = id;
         document.getElementById("createDispatchDate").value = dispatch.dispatch_date;
         document.getElementById("createVehicleType").value = dispatch.vehicle_type || "";
         document.getElementById("createVehicleNumber").value = dispatch.vehicle_number || "";
         document.getElementById("createFreight").value = dispatch.freight_amount;
+        document.getElementById("createDispatchAccounted").checked = dispatch.accounted || false;
         document.getElementById("createDispatchClient").value = dispatch.client || "";
         document.getElementById("createDispatchNotes").value = dispatch.notes;
-        
-        renderDispatchItemsList();
-        
-        const modal = document.getElementById("create-dispatch-modal-title");
-        modal.innerHTML = '<i class="fas fa-edit-circle" style="color: #f59e0b; margin-right: 0.5rem;"></i>Edit Dispatch';
-        
-        // Load addresses for selected client
-        loadAddresses().then(() => {
-            document.getElementById("createShippingAddress").value = dispatch.shipping_address_id || "";
-        });
-        
-        new bootstrap.Modal(document.getElementById("createDispatchModal")).show();
-    }
 
-    function editDispatch() {
-        alert("Edit functionality coming soon");
-    }
+            renderDispatchItemsList();
 
-    function deleteDispatchConfirm(id) {
-        if (confirm("Are you sure you want to delete this dispatch?")) {
-            deleteDispatchAPI(id);
+            const modal = document.getElementById("create-dispatch-modal-title");
+            modal.innerHTML = '<i class="fas fa-edit-circle" style="color: #f59e0b; margin-right: 0.5rem;"></i>Edit Dispatch';
+
+            // Load addresses for selected client
+            loadAddresses().then(() => {
+                document.getElementById("createShippingAddress").value = dispatch.shipping_address_id || "";
+            });
+
+            new bootstrap.Modal(document.getElementById("createDispatchModal")).show();
         }
-    }
 
-    async function deleteDispatchAPI(id) {
-        const [ok, res] = await callApi("DELETE", `${DISPATCH_API}${id}/`, {}, csrfToken);
-        if (ok && res.success) {
-            alert("Dispatch deleted successfully!");
-            loadData();
-        } else {
-            alert("Error: " + (res.error || "Failed to delete"));
+        function editDispatch() {
+            alert("Edit functionality coming soon");
         }
-    }
 
-    function deleteDispatch() {
-        deleteDispatchConfirm(currentDispatchId);
-        const modal = bootstrap.Modal.getInstance(document.getElementById("viewDispatchModal"));
-        if (modal) modal.hide();
-    }
+        function deleteDispatchConfirm(id) {
+            if (confirm("Are you sure you want to delete this dispatch?")) {
+                deleteDispatchAPI(id);
+            }
+        }
 
-    // Search functionality
-    document.getElementById("searchDispatch")?.addEventListener("keyup", function() {
-        const query = this.value.toLowerCase();
-        const rows = document.querySelectorAll("#dispatchTable tbody tr");
-        rows.forEach(row => {
-            const code = row.querySelector(".dispatch-code").textContent.toLowerCase();
-            row.style.display = code.includes(query) ? "" : "none";
+        async function deleteDispatchAPI(id) {
+            const [ok, res] = await callApi("DELETE", `${DISPATCH_API}${id}/`, {}, csrfToken);
+            if (ok && res.success) {
+                alert("Dispatch deleted successfully!");
+                loadData();
+            } else {
+                alert("Error: " + (res.error || "Failed to delete"));
+            }
+        }
+
+        function deleteDispatch() {
+            deleteDispatchConfirm(currentDispatchId);
+            const modal = bootstrap.Modal.getInstance(document.getElementById("viewDispatchModal"));
+            if (modal) modal.hide();
+        }
+
+        // Search functionality
+        document.getElementById("searchDispatch")?.addEventListener("keyup", function () {
+            const query = this.value.toLowerCase();
+            const rows = document.querySelectorAll("#dispatchTable tbody tr");
+            rows.forEach(row => {
+                const code = row.querySelector(".dispatch-code").textContent.toLowerCase();
+                row.style.display = code.includes(query) ? "" : "none";
+            });
         });
-    });
 
-    document.getElementById('createDispatchClient').addEventListener('change', async function (event) {
-        toggle_loader()
-        await loadAddresses(); 
-        toggle_loader()
+        document.getElementById('createDispatchClient').addEventListener('change', async function (event) {
+            toggle_loader()
+            await loadAddresses();
+            toggle_loader()
 
-    });
+        });
 
 
-    loadData();
-</script>
+        loadData();
+    </script>
 
 </body>
+
 </html>
