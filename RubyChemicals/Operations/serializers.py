@@ -35,8 +35,9 @@ class ProductionCardSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductionCard
         fields = [
-            "id", "production_code", "production_date", "total_output_quantity",
-            "unit", "accounted", "notes", "created_by"
+            "id", "production_code", "production_date", "product_name", 
+            "total_output_quantity", "total_loss", "unit", "accounted", 
+            "remarks", "notes", "created_by"
         ]
 
 
@@ -67,8 +68,9 @@ class ProductionCardDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductionCard
         fields = [
-            "id", "production_code", "production_date", "total_output_quantity",
-            "unit", "accounted", "notes", "batches", "consumptions", "created_by"
+            "id", "production_code", "production_date", "product_name",
+            "total_output_quantity", "total_loss", "unit", "accounted", 
+            "remarks", "notes", "batches", "consumptions", "created_by"
         ]
 
 class DispatchSerializer(serializers.ModelSerializer):

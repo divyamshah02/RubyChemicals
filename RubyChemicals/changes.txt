@@ -17,3 +17,8 @@ reconcilation
 dispatch through
 vehivle nu,mber
 freight
+
+
+
+
+add client as per the vendor management system
