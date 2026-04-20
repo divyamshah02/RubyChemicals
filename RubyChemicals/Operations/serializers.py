@@ -124,3 +124,60 @@ class ClientProfileListSerializer(serializers.ModelSerializer):
         fields = [
             "id", "company_name", "contact_person", "email", "phone", "is_active"
         ]
+
+
+
+class VendorAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VendorAddress
+        fields = [
+            "id", "vendor", "address_type", "street", "city", "state",
+            "postal_code", "country", "is_default"
+        ]
+
+
+class VendorProfileSerializer(serializers.ModelSerializer):
+    addresses = VendorAddressSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = VendorProfile
+        fields = [
+            "id", "company_name", "contact_person", "email", "phone",
+            "gst_no", "notes", "is_active", "addresses"
+        ]
+
+
+class VendorProfileListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VendorProfile
+        fields = [
+            "id", "company_name", "contact_person", "email", "phone", "is_active"
+        ]
+
+
+class VendorInwardItemSerializer(serializers.ModelSerializer):
+    stock_item_name = serializers.CharField(source="stock_item.name", read_only=True)
+
+    class Meta:
+        model = StockInward
+        fields = [
+            "id", "stock_item", "stock_item_name",
+            "quantity", "notes", "date"
+        ]
+
+
+class VendorInwardSerializer(serializers.ModelSerializer):
+    vendor_name = serializers.CharField(source="vendor.company_name", read_only=True)
+    items = VendorInwardItemSerializer(many=True, read_only=True)
+    item_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VendorInward
+        fields = [
+            "id", "inward_code", "inward_date", "vendor", "vendor_name",
+            "accounted", "notes", "items", "item_count"
+        ]
+
+    def get_item_count(self, obj):
+        return obj.items.filter(is_active=True).count()
+

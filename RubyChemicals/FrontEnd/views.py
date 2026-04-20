@@ -54,9 +54,17 @@ def check_authentication(required_role=None):
     return decorator
 
 
+class LoginViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    def list(self, request):
+        return render(request, 'login.html')
+
+
 class AdminDashboardViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
     def list(self, request):
         return render(request, 'admin_dashboard.html')
 
@@ -64,6 +72,7 @@ class AdminDashboardViewSet(viewsets.ViewSet):
 class AccountsDashboardViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
     def list(self, request):
         return render(request, 'accounts_dashboard.html')
 
@@ -71,6 +80,7 @@ class AccountsDashboardViewSet(viewsets.ViewSet):
 class ProductionDashboardViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
     def list(self, request):
         return render(request, 'production_dashboard.html')
 
@@ -78,12 +88,14 @@ class ProductionDashboardViewSet(viewsets.ViewSet):
 class StockGroupViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
     def list(self, request):
         return render(request, 'stock_groups.html')
 
 class StockItemViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
     def list(self, request):
         return render(request, 'stock_item.html')
         return render(request, 'stock_items.html')
@@ -91,24 +103,35 @@ class StockItemViewSet(viewsets.ViewSet):
 class ProductionViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
     def list(self, request):
         return render(request, 'production.html')
 
 class DispatchViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
     def list(self, request):
         return render(request, 'dispatch.html')
     
 class ClientManagementViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
     def list(self, request):
         return render(request, 'client_management.html')
 
 class PettyCashViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
     def list(self, request):
         return render(request, 'petty_cash.html')
     
+
+class VendorManagementViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        return render(request, 'vendor_management.html')

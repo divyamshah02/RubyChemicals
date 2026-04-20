@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - RubyChemicals</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6c757d;
+            --accent-primary: #3b82f6;
+            --border-color: #e5e7eb;
+            --shadow: rgba(0, 0, 0, 0.05);
+            --input-bg: #ffffff;
+            --input-border: #d1d5db;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --border-color: #2a2a2a;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --input-bg: #0f0f0f;
+            --input-border: #3a3a3a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .admin-login-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 2rem;
+        }
+
+        .admin-login-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 4px 20px var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .admin-login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .admin-logo {
+            /* width: 80px; */
+            height: 45px;
+            margin: 0 auto 1rem;
+            display: block;
+        }
+
+        .admin-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .input-group-text {
+            background: var(--bg-secondary);
+            border: 1px solid var(--input-border);
+            color: var(--text-secondary);
+            border-right: none;
+        }
+
+        .input-group .form-control {
+            border-left: none;
+        }
+
+        .btn-admin-login {
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1.5rem;
+        }
+
+        .btn-admin-login:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-admin-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .admin-footer {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .admin-footer p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+
+        .password-toggle:hover {
+            color: var(--accent-primary);
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="bi bi-moon-fill"></i>
+    </button> -->
+
+    <div class="admin-login-container">
+        <div class="admin-login-card">
+            <div class="admin-login-header">
+                <img src="/static/ruby_logo.png" alt="RubyChemicals Logo" class="admin-logo" id="rubychemicals-logo">
+                <h1 class="admin-title">Admin Portal</h1>
+            </div>
+
+            <div id="alertContainer" class="mb-3"></div>
+
+            <form id="adminLoginForm">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-person-fill"></i>
+                        </span>
+                        <input 
+                            type="email" 
+                            class="form-control" 
+                            id="username" 
+                            placeholder="Enter admin email"
+                            required
+                            autocomplete="username">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group position-relative">
+                        <span class="input-group-text">
+                            <i class="bi bi-lock-fill"></i>
+                        </span>
+                        <input 
+                            type="password" 
+                            class="form-control" 
+                            id="password" 
+                            placeholder="Enter password"
+                            required
+                            autocomplete="current-password">
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="bi bi-eye-fill" id="passwordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-admin-login" id="loginBtn">
+                    <span class="btn-text">Login to Admin Portal</span>
+                    <span class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+                </button>
+            </form>
+
+            <div class="admin-footer">
+                <p>
+                    <i class="bi bi-shield-lock-fill"></i> Secure Admin Access
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/api_caller.js"></script>
+    <script src="/static/js/login.js"></script>
+    
+    <script>
+        window.onload = async function () {
+            await initAdminLogin("{% url 'login-api-list' %}", "{{csrf_token}}")
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            
+            const icon = document.querySelector('.theme-toggle i');
+            if (newTheme === 'dark') {
+                icon.className = 'bi bi-moon-fill';
+                document.getElementById('mewa-logo').src = '/static/brand-logo-new.png';
+            } else {
+                icon.className = 'bi bi-sun-fill';
+                document.getElementById('mewa-logo').src = '/static/LogoBlack.png';
+            }
+        }
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const passwordIcon = document.getElementById('passwordIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                passwordIcon.className = 'bi bi-eye-slash-fill';
+            } else {
+                passwordInput.type = 'password';
+                passwordIcon.className = 'bi bi-eye-fill';
+            }
+        }
+    </script>
+</body>
+</html>

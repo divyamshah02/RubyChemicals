@@ -3,6 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import *
 from .dashboard_viewsets import *
 from .client_viewsets import ClientProfileViewSet, ClientAddressViewSet
+from .vendor_viewsets import VendorProfileViewSet, VendorAddressViewSet
+from .vendor_inward_viewsets import VendorInwardViewSet
 
 router = DefaultRouter()
 
@@ -31,6 +33,10 @@ router.register(r'production-dashboard-api', ProductionDashboardViewSet, basenam
 
 router.register(r'client-api', ClientProfileViewSet, basename='client-api')
 router.register(r'client-address-api', ClientAddressViewSet, basename='client-address-api')
+
+router.register(r'vendor-api', VendorProfileViewSet, basename='vendor-api')
+router.register(r'vendor-address-api', VendorAddressViewSet, basename='vendor-address-api')
+router.register(r'vendor-inward-api', VendorInwardViewSet, basename='vendor-inward-api')
 
 urlpatterns = [
     path('', include(router.urls)),

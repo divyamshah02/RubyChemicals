@@ -4,6 +4,8 @@ from .views import *
 
 router = DefaultRouter()
 
+router.register(r'login', LoginViewSet, basename='login')
+router.register(r'', AdminDashboardViewSet, basename='home')
 router.register(r'admin-dashboard', AdminDashboardViewSet, basename='admin-dashboard')
 router.register(r'accounts-dashboard', AccountsDashboardViewSet, basename='accounts-dashboard')
 router.register(r'production-dashboard', ProductionDashboardViewSet, basename='production-dashboard')
@@ -13,6 +15,7 @@ router.register(r'stock-items', StockItemViewSet, basename='stock-items')
 router.register(r'production', ProductionViewSet, basename='production')
 router.register(r'dispatch', DispatchViewSet, basename='dispatch')
 router.register(r'client-management', ClientManagementViewSet, basename='client-management')
+router.register(r'vendor-management', VendorManagementViewSet, basename='vendor-management')
 router.register(r'petty-cash', PettyCashViewSet, basename='petty-cash')
 
 

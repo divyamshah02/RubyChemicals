@@ -30,7 +30,7 @@ class StockItem(models.Model):
 
     current_quantity = models.DecimalField(
         max_digits=12,
-        decimal_places=3,
+        decimal_places=2,
         default=0
     )
 
@@ -50,7 +50,98 @@ class StockItem(models.Model):
     def __str__(self):
         return f"{self.name} ({self.group.name})"
 
+class VendorProfile(models.Model):
+    company_name = models.CharField(max_length=200, unique=True)
+    contact_person = models.CharField(max_length=100)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20)
+    gst_no = models.CharField(max_length=20, blank=True)
+    notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.company_name
+
+
+class VendorAddress(models.Model):
+    vendor = models.ForeignKey(
+        VendorProfile,
+        on_delete=models.CASCADE,
+        related_name='addresses'
+    )
+    address_type = models.CharField(
+        max_length=20,
+        choices=[('billing', 'Billing'), ('shipping', 'Shipping'), ('other', 'Other')],
+        default='shipping'
+    )
+    street = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    postal_code = models.CharField(max_length=20)
+    country = models.CharField(max_length=100, default='India')
+    
+    is_default = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.vendor.company_name} - {self.address_type}"
+
+
+class VendorInward(models.Model):
+    inward_code = models.CharField(max_length=20, unique=True, editable=False)
+    inward_date = models.DateField()
+    
+    vendor = models.ForeignKey(
+        VendorProfile,
+        on_delete=models.PROTECT
+    )
+    
+    # Accounting Flag
+    accounted = models.BooleanField(default=False, help_text="Mark as accounted in books")
+    
+    notes = models.TextField(blank=True)
+    
+    created_by = models.ForeignKey(
+        'UserDetail.User',
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        if not self.inward_code:
+            # Generate auto inward code
+            from django.db.models import F
+            last_inward = VendorInward.objects.filter(
+                created_at__year=timezone.now().year
+            ).order_by('-id').first()
+            
+            year = timezone.now().year % 100
+            month = timezone.now().month
+            sequence = 1 if not last_inward else int(last_inward.inward_code.split('-')[-1]) + 1
+            self.inward_code = f"INWD-{year}{month:02d}-{sequence:05d}"
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Inward - {self.inward_code}"
+
+
 class StockInward(models.Model):
+    inward_entry = models.ForeignKey(
+        VendorInward,
+        on_delete=models.CASCADE,
+        related_name='items',
+        null=True,
+        blank=True
+    )
+    
     date = models.DateField()
     stock_item = models.ForeignKey(
         StockItem,

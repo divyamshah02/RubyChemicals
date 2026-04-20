@@ -226,7 +226,7 @@
             display: flex;
             gap: 0.5rem;
             justify-content: flex-end;
-        }
+        }        
     </style>
 </head>
 <body>
@@ -284,6 +284,11 @@
                     <i class="fas fa-object-group" style="margin-right: 0.5rem;"></i>Stock Groups
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#inwards" style="color: #475569; font-weight: 600;">
+                    <i class="fas fa-arrow-down" style="margin-right: 0.5rem;"></i>Vendor Inwards
+                </a>
+            </li>
         </ul>
 
         <!-- Tab Content -->
@@ -327,6 +332,35 @@
                 
                 <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
                     <div id="stockGroupsAccordion"></div>
+                </div>
+            </div>
+
+            <!-- Vendor Inwards Tab -->
+            <div id="inwards" class="tab-pane fade">
+                <div class="section-header">
+                    <div class="section-title">Vendor Inward Entries</div>
+                    <button class="btn-primary-custom" onclick="openCreateInwardModal()">
+                        <i class="fas fa-plus" style="margin-right: 0.5rem;"></i> New Inward
+                    </button>
+                </div>
+
+                <div class="data-table">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-barcode"></i> Code</th>
+                                <th><i class="fas fa-calendar"></i> Date</th>
+                                <th><i class="fas fa-dolly"></i> Vendor</th>
+                                <th><i class="fas fa-cube"></i> Items</th>
+                                <th><i class="fas fa-check-circle"></i> Accounted</th>
+                                <th>Notes</th>
+                                <th><i class="fas fa-cogs"></i> Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vendorInwardsTable">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -402,38 +436,143 @@
         </div>
     </div>
 
-    <!-- Stock Inward Modal -->
-    <div class="modal fade" id="inwardModal" tabindex="-1">
-        <div class="modal-dialog">
+    <!-- Create Vendor Inward Modal -->
+    <div class="modal fade" id="createInwardModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-arrow-down" style="color: #10b981; margin-right: 0.5rem;"></i>Add Stock Inward</h5>
+                    <h5 class="modal-title"><i class="fas fa-arrow-down" style="color: #10b981; margin-right: 0.5rem;"></i>Create Vendor Inward</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" id="inwardItemId">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Vendor *</label>
+                            <select class="form-control" id="createInwardVendor" style="border-radius: 8px;"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Inward Date *</label>
+                            <input type="date" class="form-control" id="createInwardDate" style="border-radius: 8px;">
+                        </div>
+                    </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Item Name</label>
-                        <div id="inwardItemName" style="font-weight: 600; color: #1e293b; padding: 0.75rem; background: #f1f5f9; border-radius: 6px;"></div>
+                        <label class="form-label">Stock Items *</label>
+                        <div class="items-list" id="createInwardItems">
+                            <div class="text-center text-muted" style="padding: 1.5rem;">
+                                <p>No items added. Click "Add Item" to add stock items.</p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-success" onclick="openAddInwardItemModal()"
+                            style="margin-top: 0.75rem; border-radius: 6px;">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="createInwardAccounted" style="width: 1.25rem; height: 1.25rem; cursor: pointer; border-radius: 4px;">
+                        <label class="form-check-label" for="createInwardAccounted" style="cursor: pointer; font-weight: 500; margin-left: 0.5rem;">
+                            Mark as Accounted
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="createInwardNotes"
+                            placeholder="Add any additional notes..." style="border-radius: 8px;" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        style="border-radius: 8px;">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitInward()"
+                        style="border-radius: 8px; background: #3b82f6; border: none;">
+                        <i class="fas fa-save"></i> Save Inward
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Inward Item Modal -->
+    <div class="modal fade" id="addInwardItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-cube" style="color: #3b82f6; margin-right: 0.5rem;"></i>Add Stock Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Stock Item *</label>
+                        <select class="form-control" id="addInwardItemStockItem" style="border-radius: 8px;"></select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Quantity *</label>
-                        <input type="number" class="form-control" id="inwardQty" placeholder="Enter quantity" step="0.01">
+                        <input type="number" class="form-control" id="addInwardItemQty" placeholder="Enter quantity" step="0.01" style="border-radius: 8px;">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Inward Date *</label>
-                        <input type="date" class="form-control" id="inwardDate">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Remarks</label>
-                        <textarea class="form-control" id="inwardRemarks" rows="3" placeholder="Add remarks (optional)"></textarea>
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="addInwardItemNotes" rows="2" placeholder="Optional remarks" style="border-radius: 8px;"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success" onclick="submitInward()">
-                        <i class="fas fa-check" style="margin-right: 0.5rem;"></i>Submit Inward
+                    <button type="button" class="btn btn-success" onclick="addInwardItem()">
+                        <i class="fas fa-check"></i> Add Item
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Inward Modal -->
+    <div class="modal fade" id="viewInwardModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-arrow-down" style="color: #10b981; margin-right: 0.5rem;"></i>Inward Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Inward Code</label>
+                            <div id="viewInwardCode"
+                                style="font-size: 1.25rem; font-weight: 700; color: #3b82f6; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Inward Date</label>
+                            <div id="viewInwardDate" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Vendor</label>
+                            <div id="viewInwardVendor" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Accounted</label>
+                            <div id="viewInwardAccounted" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label
+                            style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.75rem;">Items</label>
+                        <div class="items-list" id="viewInwardItems"></div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <label
+                            style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.5rem;">Notes</label>
+                        <textarea readonly class="form-control" id="viewInwardNotes" style="border-radius: 8px;"
+                            rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        style="border-radius: 8px;">Close</button>
                 </div>
             </div>
         </div>
@@ -441,14 +580,22 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/api_caller.js"></script>
+    <script src="/static/js/stock_inward.js"></script>
     <script>
         const ITEM_API = "/operation-api/stock-item-api/";
         const GROUP_API = "/operation-api/stock-group-api/";
-        const INWARD_API = "/operation-api/stock-inward-api/";
-        let stockItems = [];
+        // let stockItems = [];
         let stockGroups = [];
         let currentItemId = null;
         let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || "{{csrf_token}}";
+
+        // Initialize inward system
+        const endpoints_html = {
+            stockItems: ITEM_API,
+            vendors: "/operation-api/vendor-api/",
+            vendorInwards: "/operation-api/vendor-inward-api/"
+        };
+        init(csrfToken, endpoints_html);
 
         async function loadData() {
             const [okItems, resItems] = await callApi("GET", ITEM_API);
@@ -498,7 +645,7 @@
                 const value = qty * rate;
                 let statusBadge = qty >= 0 ? '<span style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">✓ OK</span>' 
                     : '<span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">⚠ NEGATIVE</span>';
-
+                
                 return `
                     <tr style="background: ${qty < 0 ? '#fef2f2' : '#ffffff'};">
                         <td><strong>${item.name}</strong></td>
@@ -571,9 +718,9 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                ${groupItems.map(item => `
-                                    <tr>
+                                    <tbody>
+                                        ${groupItems.map(item => `
+                                            <tr>
                                         <td class="item-col-name">${item.name}</td>
                                         <td class="item-col-qty"><strong>${item.current_quantity}</strong></td>
                                         <td class="item-col-unit">${item.unit}</td>                                        
@@ -588,10 +735,12 @@
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
-                                    </tr>
+                                            </tr>
                                 `).join('')}
-                            </tbody>
-                        </table>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 `;
             }).join("");
@@ -620,18 +769,6 @@
             document.getElementById("itemQty").value = "";
             document.getElementById("itemRate").value = "";
             
-            const modal = new bootstrap.Modal(document.getElementById("itemModal"));
-            modal.show();
-        }
-
-        function openAddItemModal() {
-            currentItemId = null;
-            document.getElementById("itemModalTitle").textContent = "Add New Stock Item";
-            document.getElementById("itemName").value = "";
-            document.getElementById("itemGroup").value = "";
-            document.getElementById("itemUnit").value = "";
-            document.getElementById("itemQty").value = "";
-            document.getElementById("itemRate").value = "";
             const modal = new bootstrap.Modal(document.getElementById("itemModal"));
             modal.show();
         }
@@ -670,7 +807,7 @@
             const method = currentItemId ? "PATCH" : "POST";
             const url = currentItemId ? ITEM_API + currentItemId + "/" : ITEM_API;
             const [ok, res] = await callApi(method, url, payload, "{{csrf_token}}");
-
+            
             if (ok && (res.success || res.data)) {
                 alert("Stock item saved!");
                 const modal = bootstrap.Modal.getInstance(document.getElementById("itemModal"));
@@ -727,8 +864,8 @@
             }
         }
 
-        // Search
-        document.getElementById("searchInput").addEventListener("input", (e) => {
+        // Search functionality
+        document.getElementById("searchInput").addEventListener("keyup", (e) => {
             const query = e.target.value.toLowerCase();
             const filtered = stockItems.filter(item => 
                 item.name.toLowerCase().includes(query) || 
@@ -737,46 +874,7 @@
             renderStockItems(filtered);
         });
 
-        function openInward(itemId, itemName) {
-            document.getElementById("inwardItemId").value = itemId;
-            document.getElementById("inwardItemName").textContent = itemName;
-            document.getElementById("inwardQty").value = "";
-            document.getElementById("inwardDate").value = new Date().toISOString().split('T')[0];
-            document.getElementById("inwardRemarks").value = "";
-            
-            const modal = new bootstrap.Modal(document.getElementById("inwardModal"));
-            modal.show();
-        }
-
-        async function submitInward() {
-            const itemId = document.getElementById("inwardItemId").value;
-            const qty = document.getElementById("inwardQty").value;
-            const date = document.getElementById("inwardDate").value;
-            const remarks = document.getElementById("inwardRemarks").value;
-
-            if (!qty || !date) {
-                alert("Please fill in all required fields (Quantity and Date)");
-                return;
-            }
-
-            const payload = {
-                stock_item_id: itemId,
-                quantity: qty,
-                date: date,
-                notes: remarks
-            };
-
-            const [ok, res] = await callApi("POST", INWARD_API, payload, csrfToken);
-            if (ok && res.success) {
-                alert("Stock inward recorded successfully!");
-                const modal = bootstrap.Modal.getInstance(document.getElementById("inwardModal"));
-                if (modal) modal.hide();
-                loadData();
-            } else {
-                alert("Error: " + (res.error || "Failed to record inward"));
-            }
-        }
-
+        // Load data on page load
         loadData();
     </script>
 </body>

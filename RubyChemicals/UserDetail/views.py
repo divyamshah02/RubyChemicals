@@ -1,5 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from django.contrib.auth import authenticate, login, logout
 from .models import User, ActivityLog
 from .serializers import UserSerializer, CreateUserSerializer
@@ -51,6 +52,40 @@ class LoginViewSet(viewsets.ViewSet):
             "data": UserSerializer(user).data,
             "error": None
         }, status=200)
+
+    @handle_exceptions
+    @check_authentication(required_role="admin")
+    def list(self, request):
+        """Check admin login status"""
+        user = request.user
+        
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": {
+                "user_id": user.user_id,
+                "name": user.name,
+                "role": user.role,
+                "email": user.email,
+                "logged_in": True
+            },
+            "error": None
+        }, status=status.HTTP_200_OK)
+    
+    @handle_exceptions
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+        """Admin logout"""
+        logout(request)
+        
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": {"message": "Logged out successfully"},
+            "error": None
+        }, status=status.HTTP_200_OK)
 
 
 class LogoutViewSet(viewsets.ViewSet):
