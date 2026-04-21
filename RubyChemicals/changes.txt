@@ -1,24 +1,17 @@
-product name in meta info
-meta level info add total loss manually
-remarks in produciton card 
+XX product name in meta info
+XX meta level info add total loss manually
+XX remarks in produciton card 
 
+XX dispatch - multiple stock items - qty unit===
+XX mark accounted also for dispatch
 
-
-
-dispatch - multiple stock items - qty unit===
-mark accounted also for dispatch
-
-
-stock item 
-
-
+XX stock item - hsncode - gst rate - 5,12,18,28
 reconcilation
 
-dispatch through
-vehivle nu,mber
-freight
+XX dispatch through
+XX vehivle nu,mber
+XX freight
+XX add client as per the vendor management system
 
 
-
-
-add client as per the vendor management system
+XX add address contact number name and gst

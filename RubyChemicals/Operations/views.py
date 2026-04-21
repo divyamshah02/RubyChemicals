@@ -180,8 +180,8 @@ class StockItemViewSet(viewsets.ViewSet):
     @handle_exceptions
     @check_authentication()
     def list(self, request):
-        items = StockItem.objects.filter(is_active=True).select_related("group")
-        data = StockItemSerializer(items, many=True).data
+        items = StockItem.objects.filter(is_active=True).select_related("group")        
+        data = StockItemSerializer(items, many=True).data[::-1]
 
         return Response({
             "success": True,
@@ -207,19 +207,19 @@ class StockItemViewSet(viewsets.ViewSet):
 
         inwards = item.inwards.all().values("date", "quantity", "notes")
         adjustments = item.adjustments.all().values("date", "adjustment_type", "quantity", "reason")
-        consumptions = item.productionconsumption_set.all().values(
-            "batch__batch_code", "quantity_used"
-        )
-        productions = item.production_batches.all().values(
-            "batch_code", "output_quantity", "loss_quantity"
-        )
+        # consumptions = item.productionconsumption_set.all().values(
+        #     "batch__batch_code", "quantity_used"
+        # )
+        # productions = item.production_batches.all().values(
+        #     "batch_code", "output_quantity", "loss_quantity"
+        # )
 
         data = {
             "item": StockItemSerializer(item).data,
             "inwards": list(inwards),
             "adjustments": list(adjustments),
-            "consumed_in_production": list(consumptions),
-            "produced_batches": list(productions)
+            # "consumed_in_production": list(consumptions),
+            # "produced_batches": list(productions)
         }
 
         return Response({
@@ -227,6 +227,41 @@ class StockItemViewSet(viewsets.ViewSet):
             "user_not_logged_in": False,
             "user_unauthorized": False,
             "data": data,
+            "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
+    def destroy(self, request, pk=None):
+        try:
+            stock_item = StockItem.objects.get(id=pk, is_active=True)
+        except StockItem.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Production card not found"
+            }, status=404)
+
+        # Soft delete production card and all related data
+        with transaction.atomic():
+            stock_item.is_active = False
+            stock_item.save()            
+
+        ActivityLog.objects.create(
+            user=request.user,
+            action="STOCK_ITEM_DELETE",
+            model_name="StockItem",
+            record_id=stock_item.name,
+            description=f"Deleted stock item {stock_item.name} - {stock_item.group}"
+        )
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": {"stock_item": stock_item.name},
             "error": None
         }, status=200)
 

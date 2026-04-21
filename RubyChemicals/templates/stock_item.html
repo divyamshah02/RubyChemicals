@@ -308,8 +308,10 @@
                                 <th>Group</th>
                                 <th>Current Qty</th>
                                 <th>Unit</th>
+                                <th>HSN Code</th>
+                                <th>GST Rate (%)</th>
                                 <th>Rate (₹)</th>
-                                <th>Stock Value</th>
+                                <!-- <th>Stock Value</th> -->
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -400,6 +402,19 @@
                     <div class="mb-3">
                         <label class="form-label">Rate (₹)</label>
                         <input type="number" class="form-control" id="itemRate" placeholder="0" step="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">HSN Code</label>
+                        <input type="text" class="form-control" id="itemHsncode" placeholder="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">GST Rate (%)</label>                    
+                        <select class="form-select" id="itemGstrate">
+                            <option value="5">5%</option>
+                            <option value="12">12%</option>
+                            <option value="18">18%</option>
+                            <option value="28">28%</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -645,21 +660,19 @@
                 const value = qty * rate;
                 let statusBadge = qty >= 0 ? '<span style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">✓ OK</span>' 
                     : '<span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">⚠ NEGATIVE</span>';
-                
+                // <td style="font-weight: 600;">₹${value.toFixed(2)}</td>
                 return `
                     <tr style="background: ${qty < 0 ? '#fef2f2' : '#ffffff'};">
                         <td><strong>${item.name}</strong></td>
                         <td><span style="background: #e0e7ff; color: #3730a3; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.85rem;">${item.group_name}</span></td>
                         <td style="font-weight: 600; color: ${qty < 0 ? '#dc2626' : '#0369a1'};"><strong>${qty.toFixed(2)}</strong></td>
                         <td>${item.unit}</td>
-                        <td>₹${rate.toFixed(2)}</td>
-                        <td style="font-weight: 600;">₹${value.toFixed(2)}</td>
-                        <td>${statusBadge}</td>
+                        <td>${item.hsn_code ? `${item.hsn_code}`:`N/A`}</td>
+                        <td>${item.gst ? `${item.gst}%`:`N/A`}</td>
+                        <td>₹${rate.toFixed(2)}</td>                        
+                        <td>${statusBadge}</td>         
                         <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-sm btn-success" onclick="openInward(${item.id}, '${item.name}')" title="Add Inward">
-                                    <i class="fas fa-arrow-down"></i> Inward
-                                </button>
+                            <div class="action-buttons">                               
                                 <button class="btn btn-sm btn-warning" onclick="editItem(${item.id})" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </button>
@@ -667,7 +680,7 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
-                        </td>
+                        </td>               
                     </tr>
                 `;
             }).join("");
@@ -768,6 +781,8 @@
             document.getElementById("itemUnit").value = "kg";
             document.getElementById("itemQty").value = "";
             document.getElementById("itemRate").value = "";
+            document.getElementById("itemHsncode").value = "";
+            document.getElementById("itemGstrate").value = "";
             
             const modal = new bootstrap.Modal(document.getElementById("itemModal"));
             modal.show();
@@ -776,7 +791,7 @@
         async function editItem(itemId) {
             const [ok, res] = await callApi("GET", ITEM_API + itemId + "/");
             if (ok && res.data) {
-                const item = res.data;
+                const item = res.data.item;
                 currentItemId = itemId;
                 document.getElementById("itemModalTitle").textContent = "Edit Stock Item";
                 document.getElementById("itemName").value = item.name;
@@ -784,6 +799,8 @@
                 document.getElementById("itemUnit").value = item.unit;
                 document.getElementById("itemQty").value = item.current_quantity;
                 document.getElementById("itemRate").value = item.rate || "";
+                document.getElementById("itemHsncode").value = item.hsn_code || "";
+                document.getElementById("itemGstrate").value = item.gst || "";
                 
                 const modal = new bootstrap.Modal(document.getElementById("itemModal"));
                 modal.show();
@@ -796,7 +813,9 @@
                 group: document.getElementById("itemGroup").value,
                 unit: document.getElementById("itemUnit").value,
                 current_quantity: document.getElementById("itemQty").value || 0,
-                rate: document.getElementById("itemRate").value || 0
+                rate: document.getElementById("itemRate").value || 0,
+                hsn_code: document.getElementById("itemHsncode").value || 0,
+                gst: document.getElementById("itemGstrate").value || 0
             };
 
             if (!payload.name || !payload.group) {

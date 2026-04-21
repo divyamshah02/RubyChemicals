@@ -13,7 +13,7 @@ class StockItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = StockItem
         fields = [
-            "id", "name", "group", "group_name",
+            "id", "name", "group", "group_name", "hsn_code", "gst",
             "unit", "current_quantity", "rate", "is_active"
         ]
 
@@ -102,7 +102,7 @@ class ClientAddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClientAddress
         fields = [
-            "id", "client", "address_type", "street", "city", "state",
+            "id", "client", "address_type", "street", "city", "state", "contact_name", "contact_number", "gst_no", 
             "postal_code", "country", "is_default"
         ]
 

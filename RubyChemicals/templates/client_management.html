@@ -196,6 +196,18 @@
                         <input type="text" class="form-control" id="postalCode" placeholder="Enter postal code">
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Contact Person Name *</label>
+                        <input type="text" class="form-control" id="addressContactPersonName" placeholder="Enter Name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contact Person Number *</label>
+                        <input type="text" class="form-control" id="addressContactPersonNumber" placeholder="Enter Mobile Number">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">GST Number *</label>
+                        <input type="text" class="form-control" id="addressGstNumber" placeholder="Enter Mobile Number">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Country</label>
                         <input type="text" class="form-control" id="country" value="India">
                     </div>
@@ -362,8 +374,11 @@
                                 </div>
                                 <div style="color: #64748b; font-size: 0.875rem;">
                                     ${addr.street}<br>
-                                    ${addr.city}, ${addr.state} ${addr.postal_code}<br>
-                                    ${addr.country}
+                                    ${addr.city}, ${addr.postal_code}, ${addr.state}<br>
+                                    ${addr.country}<br>
+                                    GST Number - ${addr.gst_no ? `${addr.gst_no}`: `N/A`}<br>
+                                    Contact Name - ${addr.contact_name ? `${addr.contact_name}`: `N/A`}<br>
+                                    Contact Number - ${addr.contact_number ? `${addr.contact_number}`: `N/A`}
                                 </div>
                             </div>
                         `;
@@ -465,6 +480,9 @@
             document.getElementById("city").value = "";
             document.getElementById("state").value = "";
             document.getElementById("postalCode").value = "";
+            document.getElementById("addressContactPersonName").value = "";
+            document.getElementById("addressContactPersonNumber").value = "";
+            document.getElementById("addressGstNumber").value = "";
             document.getElementById("country").value = "India";
             document.getElementById("isDefault").checked = false;
             
@@ -480,6 +498,9 @@
                 city: document.getElementById("city").value,
                 state: document.getElementById("state").value,
                 postal_code: document.getElementById("postalCode").value,
+                contact_name: document.getElementById("addressContactPersonName").value,
+                contact_number: document.getElementById("addressContactPersonNumber").value,
+                gst_no: document.getElementById("addressGstNumber").value,
                 country: document.getElementById("country").value,
                 is_default: document.getElementById("isDefault").checked
             };

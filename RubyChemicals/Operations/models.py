@@ -27,6 +27,8 @@ class StockItem(models.Model):
         related_name='items'
     )
     unit = models.CharField(max_length=10, choices=UNIT_CHOICES)
+    hsn_code = models.CharField(max_length=10, null=True, blank=True)
+    gst = models.CharField(max_length=4, null=True, blank=True)
 
     current_quantity = models.DecimalField(
         max_digits=12,
@@ -380,7 +382,10 @@ class ClientAddress(models.Model):
     state = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=20)
     country = models.CharField(max_length=100, default='India')
-    
+    contact_name = models.CharField(max_length=255, null=True, blank=True)
+    contact_number = models.CharField(max_length=255, null=True, blank=True)
+    gst_no = models.CharField(max_length=255, null=True, blank=True)
+
     is_default = models.BooleanField(default=False)
     
     created_at = models.DateTimeField(auto_now_add=True)
