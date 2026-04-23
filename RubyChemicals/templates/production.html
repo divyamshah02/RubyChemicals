@@ -388,6 +388,9 @@
                     <div id="cardDetailsContent"></div>
                 </div>
                 <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-primary" onclick="generatePDF()" style="border-radius: 8px;">
+                        <i class="fas fa-arrow-down" style="margin-right: 0.5rem;"></i>Download
+                    </button>
                     <button type="button" class="btn btn-danger" onclick="deleteProductionCard()" style="border-radius: 8px;">
                         <i class="fas fa-trash" style="margin-right: 0.5rem;"></i>Delete
                     </button>
@@ -486,6 +489,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="/static/js/api_caller.js"></script>
     <script src="/static/js/production.js"></script>
     <script>
