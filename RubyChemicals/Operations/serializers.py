@@ -180,7 +180,7 @@ class VendorInwardSerializer(serializers.ModelSerializer):
         model = VendorInward
         fields = [
             "id", "inward_code", "inward_date", "vendor", "vendor_name",
-            "accounted", "notes", "items", "item_count"
+            "accounted", "invoice_number", "pdf", "notes", "items", "item_count"
         ]
 
     def get_item_count(self, obj):

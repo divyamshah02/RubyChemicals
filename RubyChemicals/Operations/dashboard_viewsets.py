@@ -47,6 +47,22 @@ class AdminDashboardViewSet(viewsets.ViewSet):
                 'freight_amount': str(dispatch.freight_amount),
                 'item_count': item_count,
                 'total_quantity': total_qty,
+                'invoice_number': dispatch.invoice_number or 'N/A',
+                'has_pdf': bool(dispatch.pdf),
+            })
+        
+        # Pending inwards (unaccounted stock inwards, latest 5)
+        pending_inwards = []
+        for inward in VendorInward.objects.filter(accounted=False, is_active=True).select_related('vendor').prefetch_related('items').order_by('-inward_date')[:5]:
+            item_count = inward.items.filter(is_active=True).count()
+            pending_inwards.append({
+                'id': inward.id,
+                'inward_code': inward.inward_code,
+                'inward_date': str(inward.inward_date),
+                'vendor_name': inward.vendor.company_name,
+                'item_count': item_count,
+                'invoice_number': inward.invoice_number or 'N/A',
+                'has_pdf': bool(inward.pdf),
             })
         
         # Recent batches
@@ -66,10 +82,12 @@ class AdminDashboardViewSet(viewsets.ViewSet):
             "total_groups": total_groups,
             "unaccounted_cards": unaccounted_cards_list,
             "pending_dispatches": pending_dispatches,
+            "pending_inwards": pending_inwards,
             "recent_batches": list(recent_batches),
             "stock_groups": list(stock_groups),
             "negative_stock_count": StockItem.objects.filter(current_quantity__lt=0).count(),
             "unaccounted_count": ProductionCard.objects.filter(accounted=False).count(),
+            "pending_inwards_count": VendorInward.objects.filter(accounted=False, is_active=True).count(),
         }
         
         return Response({

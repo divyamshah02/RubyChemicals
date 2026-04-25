@@ -574,6 +574,112 @@ class TodayStockLogViewSet(viewsets.ViewSet):
         }, status=200)
 
 
+class MarkDispatchAccountedViewSet(viewsets.ViewSet):
+    """Mark Dispatch as accounted with invoice details"""
+    
+    @handle_exceptions
+    @check_authentication()
+    def create(self, request):
+        """Mark dispatch as accounted"""
+        dispatch_id = request.data.get("dispatch_id")
+        invoice_number = request.data.get("invoice_number", "")
+        pdf = request.FILES.get("pdf", None)
+        
+        if not dispatch_id:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Dispatch ID required"
+            }, status=400)
+        
+        try:
+            dispatch = Dispatch.objects.get(id=dispatch_id)
+            dispatch.accounted = True
+            dispatch.invoice_number = invoice_number
+            if pdf:
+                dispatch.pdf = pdf
+            dispatch.save()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action="DISPATCH_ACCOUNTED",
+                model_name="Dispatch",
+                record_id=dispatch.dispatch_code,
+                description=f"Dispatch {dispatch.dispatch_code} marked as accounted with invoice {invoice_number}"
+            )
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": {"dispatch_id": dispatch.id, "accounted": dispatch.accounted},
+                "error": None
+            }, status=200)
+        except Dispatch.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Dispatch not found"
+            }, status=404)
+
+
+class MarkVendorInwardAccountedViewSet(viewsets.ViewSet):
+    """Mark VendorInward as accounted with invoice details"""
+    
+    @handle_exceptions
+    @check_authentication()
+    def create(self, request):
+        """Mark vendor inward as accounted"""
+        inward_id = request.data.get("inward_id")
+        invoice_number = request.data.get("invoice_number", "")
+        pdf = request.FILES.get("pdf", None)
+        
+        if not inward_id:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Inward ID required"
+            }, status=400)
+        
+        try:
+            inward = VendorInward.objects.get(id=inward_id)
+            inward.accounted = True
+            inward.invoice_number = invoice_number
+            if pdf:
+                inward.pdf = pdf
+            inward.save()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action="VENDOR_INWARD_ACCOUNTED",
+                model_name="VendorInward",
+                record_id=inward.inward_code,
+                description=f"Vendor inward {inward.inward_code} marked as accounted with invoice {invoice_number}"
+            )
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": {"inward_id": inward.id, "accounted": inward.accounted},
+                "error": None
+            }, status=200)
+        except VendorInward.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Vendor inward not found"
+            }, status=404)
+
+
 class ProductionCardViewSet(viewsets.ViewSet):
 
     @handle_exceptions

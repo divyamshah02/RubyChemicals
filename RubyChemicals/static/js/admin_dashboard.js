@@ -1,14 +1,18 @@
 const ADMIN_DASHBOARD_API = "/operation-api/admin-dashboard-api/";
 const ADMIN_MARK_ACCOUNTED_API = "/operation-api/admin-dashboard-api/mark_accounted/";
 const ADMIN_MARK_DISPATCH_ACCOUNTED_API = "/operation-api/admin-dashboard-api/mark_dispatch_accounted/";
+const MARK_DISPATCH_ACCOUNTED_API = "/operation-api/mark-dispatch-accounted-api/";
+const MARK_VENDOR_INWARD_ACCOUNTED_API = "/operation-api/mark-vendor-inward-accounted-api/";
 const STOCK_ITEM_API = "/operation-api/stock-item-api/";
 const STOCK_GROUP_API = "/operation-api/stock-group-api/";
 let csrf_token = ""
 let stockGroups = [];
 let currentCardId = null;
 let currentDispatchId = null;
+let currentInwardId = null;
 let unaccountedCards = [];
 let pendingDispatches = [];
+let pendingInwards = [];
 
 async function loadAdminDashboard(csrf_token_param) {
     csrf_token = csrf_token_param
@@ -17,6 +21,7 @@ async function loadAdminDashboard(csrf_token_param) {
         const data = res.data;
         unaccountedCards = data.unaccounted_cards;
         pendingDispatches = data.pending_dispatches || [];
+        pendingInwards = data.pending_inwards || [];
         
         document.getElementById("negativeStockCount").textContent = data.negative_stock_count;
         document.getElementById("lowStockCount").textContent = data.low_stock_items.length;
@@ -86,6 +91,28 @@ async function loadAdminDashboard(csrf_token_param) {
                     <td>₹${dispatch.freight_amount}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="viewDispatch(${dispatch.id})" title="View details">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        // Pending Inwards Table
+        const pendingInwardsTable = document.getElementById("pendingInwardsTable");
+        if (!data.pending_inwards || data.pending_inwards.length === 0) {
+            pendingInwardsTable.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">All inwards accounted</td></tr>';
+        } else {
+            pendingInwardsTable.innerHTML = data.pending_inwards.map(inward => `
+                <tr>
+                    <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-weight: 600;">${inward.inward_code}</code></td>
+                    <td>${inward.inward_date}</td>
+                    <td>${inward.vendor_name}</td>
+                    <td><span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-weight: 600;">${inward.item_count}</span></td>
+                    <td>${inward.invoice_number}</td>
+                    <td>${inward.has_pdf ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="viewInward(${inward.id})" title="View details">
                             <i class="fas fa-eye"></i> View
                         </button>
                     </td>
@@ -232,5 +259,108 @@ async function markDispatchAccountedFromModal() {
             alert("Error: " + (res.error || "Failed to update"));
         }
     }
+}
+
+function openMarkDispatchAccountedModal() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById("viewDispatchModalAdmin"));
+    if (modal) modal.hide();
+    
+    document.getElementById("dispatchInvoiceNumber").value = "";
+    document.getElementById("dispatchPdfFile").value = "";
+    new bootstrap.Modal(document.getElementById("markDispatchAccountedModal")).show();
+}
+
+async function submitMarkDispatchAccounted() {
+    const invoiceNumber = document.getElementById("dispatchInvoiceNumber").value.trim();
+    const pdfFile = document.getElementById("dispatchPdfFile").files[0] || null;
+    
+    if (!invoiceNumber) {
+        alert("Invoice number is required");
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append("dispatch_id", currentDispatchId);
+    formData.append("invoice_number", invoiceNumber);
+    if (pdfFile) {
+        formData.append("pdf", pdfFile);
+    }
+    
+    const [ok, res] = await fetch(MARK_DISPATCH_ACCOUNTED_API, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrf_token
+        },
+        body: formData
+    }).then(r => r.json()).then(data => [true, data]).catch(e => [false, {error: e.message}]);
+    
+    if (ok && res.success) {
+        alert("Dispatch marked as accounted successfully!");
+        const modal = bootstrap.Modal.getInstance(document.getElementById("markDispatchAccountedModal"));
+        if (modal) modal.hide();
+        loadAdminDashboard();
+    } else {
+        alert("Error: " + (res.error || "Failed to update"));
+    }
+}
+
+function viewInward(inwardId) {
+    const inward = findInwardById(inwardId);
+    if (!inward) return;
+    
+    currentInwardId = inwardId;
+    document.getElementById("viewInwardCode").textContent = inward.inward_code;
+    document.getElementById("viewInwardDate").textContent = inward.inward_date;
+    document.getElementById("viewInwardVendor").textContent = inward.vendor_name;
+    document.getElementById("viewInwardItems").textContent = inward.item_count + " items";
+    
+    new bootstrap.Modal(document.getElementById("viewInwardModalAdmin")).show();
+}
+
+function openMarkInwardAccountedModal() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById("viewInwardModalAdmin"));
+    if (modal) modal.hide();
+    
+    document.getElementById("inwardInvoiceNumber").value = "";
+    document.getElementById("inwardPdfFile").value = "";
+    new bootstrap.Modal(document.getElementById("markInwardAccountedModal")).show();
+}
+
+async function submitMarkInwardAccounted() {
+    const invoiceNumber = document.getElementById("inwardInvoiceNumber").value.trim();
+    const pdfFile = document.getElementById("inwardPdfFile").files[0] || null;
+    
+    if (!invoiceNumber) {
+        alert("Invoice number is required");
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append("inward_id", currentInwardId);
+    formData.append("invoice_number", invoiceNumber);
+    if (pdfFile) {
+        formData.append("pdf", pdfFile);
+    }
+    
+    const [ok, res] = await fetch(MARK_VENDOR_INWARD_ACCOUNTED_API, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrf_token
+        },
+        body: formData
+    }).then(r => r.json()).then(data => [true, data]).catch(e => [false, {error: e.message}]);
+    
+    if (ok && res.success) {
+        alert("Inward marked as accounted successfully!");
+        const modal = bootstrap.Modal.getInstance(document.getElementById("markInwardAccountedModal"));
+        if (modal) modal.hide();
+        loadAdminDashboard();
+    } else {
+        alert("Error: " + (res.error || "Failed to update"));
+    }
+}
+
+function findInwardById(inwardId) {
+    return pendingInwards.find(inward => inward.id === inwardId);
 }
 

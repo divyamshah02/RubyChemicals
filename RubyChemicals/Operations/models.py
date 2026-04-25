@@ -124,8 +124,10 @@ class VendorInward(models.Model):
         on_delete=models.PROTECT
     )
     
-    # Accounting Flag
+    # Accounting Details
     accounted = models.BooleanField(default=False, help_text="Mark as accounted in books")
+    invoice_number = models.CharField(max_length=100, blank=True, null=True, help_text="Invoice number for accounting")
+    pdf = models.FileField(upload_to='inward_pdfs/', blank=True, null=True, help_text="Invoice/Inward PDF")
     
     notes = models.TextField(blank=True)
     
@@ -438,8 +440,10 @@ class Dispatch(models.Model):
     vehicle_number = models.CharField(max_length=50, blank=True)
     freight_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
-    # Accounting Flag
+    # Accounting Details
     accounted = models.BooleanField(default=False, help_text="Mark as accounted in books")
+    invoice_number = models.CharField(max_length=100, blank=True, null=True, help_text="Invoice number for accounting")
+    pdf = models.FileField(upload_to='dispatch_pdfs/', blank=True, null=True, help_text="Invoice/Dispatch PDF")
     
     notes = models.TextField(blank=True)
     

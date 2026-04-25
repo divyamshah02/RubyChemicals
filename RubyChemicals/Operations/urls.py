@@ -21,6 +21,8 @@ router.register(r'download-production-card-api', DownloadProductionCardViewSet, 
 router.register(r'production-batch-api', ProductionBatchViewSet, basename='production-batch-api')
 
 router.register(r'dispatch-api', DispatchViewSet, basename='dispatch-api')
+router.register(r'mark-dispatch-accounted-api', MarkDispatchAccountedViewSet, basename='mark-dispatch-accounted-api')
+router.register(r'mark-vendor-inward-accounted-api', MarkVendorInwardAccountedViewSet, basename='mark-vendor-inward-accounted-api')
 
 router.register(r'expense-head-api', ExpenseHeadViewSet, basename='expense-head-api')
 router.register(r'petty-cash-api', PettyCashViewSet, basename='petty-cash-api')
