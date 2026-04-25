@@ -1,11 +1,14 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from django.http import HttpResponse
 from .models import *
 from .serializers import StockGroupSerializer, StockItemSerializer
 from UserDetail.models import ActivityLog
 from utils.decorators import handle_exceptions, check_authentication
 from django.db import transaction
 from decimal import Decimal
+from datetime import datetime
+from utils.create_product_card_pdf import generate_production_card
 
 class StockGroupViewSet(viewsets.ViewSet):
 
@@ -119,6 +122,19 @@ class StockItemViewSet(viewsets.ViewSet):
 
         item = serializer.save()
 
+        # Update stock log for the inward date
+        date = datetime.now().strftime("%Y-%m-%d")
+        stock_log, _ = StockLog.objects.get_or_create(date=date)
+        stock_data = stock_log.stock_data or {}
+        stock_data[str(item.id)] = {
+            "name": item.name,
+            "qty": float(item.current_quantity),
+            "unit": item.unit
+        }
+        stock_log.stock_data = stock_data
+        stock_log.save()
+
+
         ActivityLog.objects.create(
             user=request.user,
             action="UPDATE",
@@ -160,6 +176,18 @@ class StockItemViewSet(viewsets.ViewSet):
             }, status=400)
 
         item = serializer.save()
+
+        # Update stock log for the inward date
+        date = datetime.now().strftime("%Y-%m-%d")
+        stock_log, _ = StockLog.objects.get_or_create(date=date)
+        stock_data = stock_log.stock_data or {}
+        stock_data[str(item.id)] = {
+            "name": item.name,
+            "qty": float(item.current_quantity),
+            "unit": item.unit
+        }
+        stock_log.stock_data = stock_data
+        stock_log.save()
 
         ActivityLog.objects.create(
             user=request.user,
@@ -321,6 +349,17 @@ class StockInwardViewSet(viewsets.ViewSet):
             item.current_quantity += Decimal(quantity)
             item.save()
 
+            # Update stock log for the inward date
+            stock_log, _ = StockLog.objects.get_or_create(date=date)
+            stock_data = stock_log.stock_data or {}
+            stock_data[str(item.id)] = {
+                "name": item.name,
+                "qty": float(item.current_quantity),
+                "unit": item.unit
+            }
+            stock_log.stock_data = stock_data
+            stock_log.save()
+
         ActivityLog.objects.create(
             user=request.user,
             action="STOCK_INWARD",
@@ -417,6 +456,17 @@ class StockAdjustmentViewSet(viewsets.ViewSet):
                 created_by=request.user
             )
 
+            # Update stock log for the adjustment date
+            stock_log, _ = StockLog.objects.get_or_create(date=date)
+            stock_data = stock_log.stock_data or {}
+            stock_data[str(item.id)] = {
+                "name": item.name,
+                "qty": float(item.current_quantity),
+                "unit": item.unit
+            }
+            stock_log.stock_data = stock_data
+            stock_log.save()
+
         ActivityLog.objects.create(
             user=request.user,
             action="STOCK_ADJUSTMENT",
@@ -432,6 +482,96 @@ class StockAdjustmentViewSet(viewsets.ViewSet):
             "data": {"stock_item": item.id, "new_quantity": item.current_quantity},
             "error": None
         }, status=201)
+
+
+class StockLogViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        """Get all dates available for stock history"""
+        logs = StockLog.objects.all().order_by('-date').values('date')
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": list(logs),
+            "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
+    def retrieve(self, request, pk=None):
+        """Get stock data for a specific date (pk = date in YYYY-MM-DD format)"""
+        try:
+            log = StockLog.objects.get(date=pk)
+        except StockLog.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "No stock data for this date"
+            }, status=404)
+
+        # Format data as table rows
+        stock_items = []
+        for stock_id, item_data in log.stock_data.items():
+            stock_items.append({
+                "id": stock_id,
+                "name": item_data.get('name'),
+                "quantity": item_data.get('qty'),
+                "unit": item_data.get('unit')
+            })
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": {
+                "date": str(log.date),
+                "items": stock_items
+            },
+            "error": None
+        }, status=200)
+
+
+class TodayStockLogViewSet(viewsets.ViewSet):
+    """
+    Generate or update today's latest stock log
+    """
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        """Get or generate today's stock log with all current stock items"""
+        from datetime import date
+        
+        today = date.today()
+        stock_log, _ = StockLog.objects.get_or_create(date=today)
+        
+        # Always update with current stock data
+        stock_data = {}
+        items = StockItem.objects.filter(is_active=True)
+        
+        for item in items:
+            stock_data[str(item.id)] = {
+                "name": item.name,
+                "qty": float(item.current_quantity),
+                "unit": item.unit,
+                "group": item.group.name
+            }
+        
+        stock_log.stock_data = stock_data
+        stock_log.save()
+        
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": None,
+            "error": None
+        }, status=200)
 
 
 class ProductionCardViewSet(viewsets.ViewSet):
@@ -794,6 +934,92 @@ class ProductionCardViewSet(viewsets.ViewSet):
             "error": None
         }, status=200)
 
+
+class DownloadProductionCardViewSet(viewsets.ViewSet):   
+
+    # @handle_exceptions
+    @check_authentication()
+    def retrieve(self, request, pk=None):
+        try:
+            card = ProductionCard.objects.prefetch_related('batches', 'consumptions__stock_item').get(pk=pk, is_active=True)
+        except ProductionCard.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Production card not found"
+            }, status=404)
+
+        batches = []
+        for batch in card.batches.filter(is_active=True):
+            batches.append({
+                "id": batch.id,
+                "batch_code": batch.batch_code,
+                "product_id": batch.product.id,
+                "product_name": batch.product.name,
+                "product_unit": batch.product.unit,
+                "output_quantity": batch.output_quantity,
+                "loss_quantity": batch.loss_quantity,
+            })
+
+        consumptions = []
+        for consumption in card.consumptions.filter(is_active=True):
+            consumptions.append({
+                "id": consumption.id,
+                "stock_item_id": consumption.stock_item.id,
+                "stock_item_name": consumption.stock_item.name,
+                "stock_item_unit": consumption.stock_item.unit,
+                "quantity_used": consumption.quantity_used,
+            })
+
+        data = {
+            "product_name": card.product_name,
+            "code": card.production_code,
+            "date": card.production_date,            
+            "total_output": card.total_output_quantity,
+            "uom": card.unit,
+            "total_loss": card.total_loss,
+            "remarks": card.remarks,
+            "batches": batches,
+            "raw_materials": consumptions,
+            "production_incharge": "Divyam Shah",
+            "approved_by": "Divyam Shah",
+            "accounted_by": "Divyam Shah"
+        }
+
+        output_stream = generate_production_card(
+            input_pdf_path=r"production_card_template.pdf",
+            output_pdf_path="production_card_output_challan.pdf",
+            product_name=str(data['product_name']),
+            code=str(data['code']),
+            date=str(data['date']),
+            total_output=str(data['total_output']),
+            uom=str(data['uom']),
+            total_loss=str(data['total_loss']),
+            remarks=str(data['remarks']),
+            batches=data['batches'],
+            raw_materials=data['raw_materials'],
+            production_incharge=str(data['production_incharge']),
+            approved_by=str(data['approved_by']),
+            accounted_by=str(data['accounted_by'])
+        )
+        
+        response = HttpResponse(
+            output_stream,
+            content_type='application/pdf'
+        )
+        response['Content-Disposition'] = 'attachment; filename="generated.pdf"'
+
+        return response
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": data,
+            "error": None
+        }, status=200)
 
 
 class ProductionBatchViewSet(viewsets.ViewSet):

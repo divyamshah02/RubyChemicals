@@ -13,8 +13,11 @@ router.register(r'stock-item-api', StockItemViewSet, basename='stock-item-api')
 
 router.register(r'stock-inward-api', StockInwardViewSet, basename='stock-inward-api')
 router.register(r'stock-adjustment-api', StockAdjustmentViewSet, basename='stock-adjustment-api')
+router.register(r'stock-log-api', StockLogViewSet, basename='stock-log-api')
+router.register(r'today-stock-log-api', TodayStockLogViewSet, basename='today-stock-log-api')
 
 router.register(r'production-card-api', ProductionCardViewSet, basename='production-card-api')
+router.register(r'download-production-card-api', DownloadProductionCardViewSet, basename='download-production-card-api')
 router.register(r'production-batch-api', ProductionBatchViewSet, basename='production-batch-api')
 
 router.register(r'dispatch-api', DispatchViewSet, basename='dispatch-api')

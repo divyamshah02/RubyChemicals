@@ -439,7 +439,7 @@ async function deleteBatch(batchId) {
 
 
 
-async function generatePDF() {
+async function generatePDF_old() {
     const { jsPDF } = window.jspdf;
 
     const original = document.getElementById("cardDetailsContent");
@@ -550,88 +550,9 @@ async function generatePDF() {
 }
 
 
-async function generatePDF_old() {
-    const { jsPDF } = window.jspdf;
-
-    const original = document.getElementById("cardDetailsContent");
-
-    // 🔥 Clone element
-    const clone = original.cloneNode(true);
-    clone.querySelectorAll("*").forEach(el => {
-        el.style.color = "#000 !important"; // force black text
-        el.style.backgroundColor = "transparent"; // remove weird blends
-    });
-
-    clone.querySelectorAll("th, td").forEach(el => {
-        el.style.color = "#000 !important";
-        el.style.borderColor = "#000 !important";
-    });
-
-    clone.querySelectorAll("thead").forEach(el => {
-        el.style.background = "#e5e5e5"; // solid header
-    });
-
-    clone.querySelectorAll("tbody tr td").forEach(el => {
-        el.style.setProperty("color", "#000", "important");
-        el.style.setProperty("opacity", "1", "important");
-        el.style.setProperty("font-weight", "500", "important");
-    });
-
-
-
-    clone.style.fontSize = "14px";
-    clone.style.lineHeight = "1.5";
-
-    // Make it visible and normal flow
-    clone.style.position = "static";
-    clone.style.display = "block";
-    clone.style.width = "800px"; // control layout
-    clone.style.background = "#fff";
-    clone.style.padding = "20px";
-
-    // Put it outside (hidden area)
-    const container = document.createElement("div");
-    container.style.position = "fixed";
-    container.style.top = "-9999px";
-    container.appendChild(clone);
-    document.body.appendChild(container);
-
-    // Wait a bit to ensure render
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const canvas = await html2canvas(clone, {
-        scale: 2,
-        useCORS: true
-    });
-
-    // const imgData = canvas.toDataURL("image/png");
-
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    const imgData = canvas.toDataURL("image/png");
-
-    // First page
-    pdf.addImage(imgData, "PNG", 0, 20, imgWidth, imgHeight);
-    heightLeft -= (pageHeight - 20);
-
-    // Add pages
-    while (heightLeft > 0) {
-        position = heightLeft - imgHeight + 20;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-    }
-    pdf.save("report.pdf");
-
-    // Cleanup
-    document.body.removeChild(container);
+async function generatePDF() {
+  toggle_loader()
+  window.location = `/operation-api/download-production-card-api/${currentCardId}/`
+  toggle_loader()
 }
+

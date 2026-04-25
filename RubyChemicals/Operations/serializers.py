@@ -31,6 +31,11 @@ class StockAdjustmentSerializer(serializers.ModelSerializer):
         model = StockAdjustment
         fields = "__all__"
 
+class StockLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StockLog
+        fields = ["id", "date", "stock_data"]
+
 class ProductionCardSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductionCard

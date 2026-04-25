@@ -52,6 +52,27 @@ class StockItem(models.Model):
     def __str__(self):
         return f"{self.name} ({self.group.name})"
 
+
+class StockLog(models.Model):
+    """
+    Maintains historical stock snapshot for each date
+    stock_data format: {
+        "stock_item_id": {"name": "...", "qty": X.XX, "unit": "..."},
+        ...
+    }
+    """
+    date = models.DateField(unique=True, db_index=True)
+    stock_data = models.JSONField(default=dict)  # {stock_id: {name, qty, unit}}
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Stock Log - {self.date}"
+
+
 class VendorProfile(models.Model):
     company_name = models.CharField(max_length=200, unique=True)
     contact_person = models.CharField(max_length=100)

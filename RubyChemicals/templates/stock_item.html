@@ -235,9 +235,15 @@
     <div class="container-fluid mt-4">
         <div class="page-header">
             <h1 class="page-title"><i class="fas fa-boxes" style="color: #3b82f6; margin-right: 0.75rem;"></i>Stock Management</h1>
-            <button class="btn-primary-custom" onclick="openAddItemModal()">
-                <i class="fas fa-plus" style="margin-right: 0.5rem;"></i> Add Stock Item
-            </button>
+            <div class="text-end">
+                <button class="btn-primary-custom" onclick="openAddItemModal()">
+                    <i class="fas fa-plus" style="margin-right: 0.5rem;"></i> Add Stock Item
+                </button>
+                <br>
+                <button class="btn btn-sm btn-secondary mt-2" onclick="openStockHistoryModal()" title="View Old Stock">
+                    <i class="fas fa-history"></i> Old Stock
+                </button>
+            </div>
         </div>
 
         <!-- Stats Grid -->
@@ -593,6 +599,50 @@
         </div>
     </div>
 
+    <!-- Stock History Modal -->
+    <div class="modal fade" id="stockHistoryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-history" style="color: #8b5cf6; margin-right: 0.5rem;"></i>Historical Stock Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select Date *</label>
+                        <input type="date" class="form-control" id="stockHistoryDate" style="border-radius: 8px;">
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="loadStockHistoryData()" style="margin-bottom: 1rem;">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    
+                    <div id="stockHistoryContent" style="display: none;">
+                        <h6 style="margin-bottom: 1rem; color: #1e293b;">Stock on <span id="historyDateDisplay"></span></h6>
+                        <div class="data-table" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Item Name</th>
+                                        <th>Quantity</th>
+                                        <th>Unit</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stockHistoryTable">
+                                    <tr><td colspan="3" class="text-center">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="stockHistoryEmpty" style="text-align: center; color: #64748b; padding: 2rem; display: none;">
+                        <i class="fas fa-inbox" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <p style="margin-top: 1rem;">No stock data available for this date</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/api_caller.js"></script>
     <script src="/static/js/stock_inward.js"></script>
@@ -608,7 +658,8 @@
         const endpoints_html = {
             stockItems: ITEM_API,
             vendors: "/operation-api/vendor-api/",
-            vendorInwards: "/operation-api/vendor-inward-api/"
+            vendorInwards: "/operation-api/vendor-inward-api/",
+            stockLog: "/operation-api/stock-log-api/"
         };
         init(csrfToken, endpoints_html);
 
@@ -883,6 +934,61 @@
             }
         }
 
+        async function openStockHistoryModal() {
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById("stockHistoryDate").value = today;
+            document.getElementById("stockHistoryContent").style.display = "none";
+            document.getElementById("stockHistoryEmpty").style.display = "none";
+            
+            const modal = new bootstrap.Modal(document.getElementById("stockHistoryModal"));
+            modal.show();
+        }
+
+        async function loadStockHistoryData() {
+            const selectedDate = document.getElementById("stockHistoryDate").value;
+            
+            if (!selectedDate) {
+                alert("Please select a date");
+                return;
+            }
+            
+            // Call API to get stock data for selected date
+            const [ok, res] = await callApi("GET", endpoints.stockLog + selectedDate + "/");
+            
+            if (ok && res.success && res.data) {
+                const items = res.data.items || [];
+                const dateDisplay = new Date(selectedDate).toLocaleDateString('en-IN', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                
+                document.getElementById("historyDateDisplay").textContent = dateDisplay;
+                
+                if (items.length === 0) {
+                    document.getElementById("stockHistoryContent").style.display = "none";
+                    document.getElementById("stockHistoryEmpty").style.display = "block";
+                    return;
+                }
+                
+                // Render table
+                const table = document.getElementById("stockHistoryTable");
+                table.innerHTML = items.map(item => `
+                    <tr>
+                        <td><strong>${item.name}</strong></td>
+                        <td>${parseFloat(item.quantity).toFixed(2)}</td>
+                        <td>${item.unit}</td>
+                    </tr>
+                `).join("");
+                
+                document.getElementById("stockHistoryContent").style.display = "block";
+                document.getElementById("stockHistoryEmpty").style.display = "none";
+            } else {
+                document.getElementById("stockHistoryContent").style.display = "none";
+                document.getElementById("stockHistoryEmpty").style.display = "block";
+            }
+        }
         // Search functionality
         document.getElementById("searchInput").addEventListener("keyup", (e) => {
             const query = e.target.value.toLowerCase();
