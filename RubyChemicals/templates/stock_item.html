@@ -490,17 +490,16 @@
                         </button>
                     </div>
 
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="createInwardAccounted" style="width: 1.25rem; height: 1.25rem; cursor: pointer; border-radius: 4px;">
-                        <label class="form-check-label" for="createInwardAccounted" style="cursor: pointer; font-weight: 500; margin-left: 0.5rem;">
-                            Mark as Accounted
-                        </label>
-                    </div>
-
                     <div class="mb-3">
                         <label class="form-label">Notes</label>
                         <textarea class="form-control" id="createInwardNotes"
                             placeholder="Add any additional notes..." style="border-radius: 8px;" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Inward Image (Optional)</label>
+                        <input type="file" class="form-control" id="createInwardImage" accept="image/*" style="border-radius: 8px;">
+                        <small class="text-muted">Optional: Upload image of inward receipt or proof (JPG, PNG, etc.)</small>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
@@ -589,6 +588,28 @@
                             style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.5rem;">Notes</label>
                         <textarea readonly class="form-control" id="viewInwardNotes" style="border-radius: 8px;"
                             rows="3"></textarea>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.75rem;">Invoice & Attachments</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <label style="font-size: 0.875rem; color: #64748b;">Invoice PDF</label>
+                                <div id="viewInwardPdf" style="margin-top: 0.5rem;">
+                                    <a id="viewInwardPdfLink" href="#" target="_blank" style="color: #3b82f6; text-decoration: none; display: none;">
+                                        <i class="fas fa-file-pdf" style="margin-right: 0.5rem;"></i>Download PDF
+                                    </a>
+                                    <span id="viewInwardPdfNone" style="color: #94a3b8; font-size: 0.875rem;">No PDF attached</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.875rem; color: #64748b;">Inward Image</label>
+                                <div id="viewInwardImageContainer" style="margin-top: 0.5rem;">
+                                    <img id="viewInwardImage" style="max-width: 100%; max-height: 150px; border-radius: 6px; display: none;">
+                                    <span id="viewInwardImageNone" style="color: #94a3b8; font-size: 0.875rem;">No image attached</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">

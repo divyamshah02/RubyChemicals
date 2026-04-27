@@ -1,12 +1,13 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from .models import VendorInward, StockInward, StockItem
+from .models import *
 from .serializers import VendorInwardSerializer, VendorInwardItemSerializer
 from UserDetail.models import ActivityLog
 from utils.decorators import handle_exceptions, check_authentication
 from django.db import transaction
 from decimal import Decimal
-
+from datetime import datetime
+import json
 
 class VendorInwardViewSet(viewsets.ViewSet):
 
@@ -70,6 +71,9 @@ class VendorInwardViewSet(viewsets.ViewSet):
             "vendor": inward.vendor.id,
             "vendor_name": inward.vendor.company_name,
             "accounted": inward.accounted,
+            "invoice_number": inward.invoice_number,
+            "pdf": None if not inward.pdf else inward.pdf.url,
+            "image": None if not inward.image else inward.image.url,
             "notes": inward.notes,
             "items": items,
             "created_by": inward.created_by.name if inward.created_by else None,
@@ -83,15 +87,16 @@ class VendorInwardViewSet(viewsets.ViewSet):
             "error": None
         }, status=200)
 
-    @handle_exceptions
+    # @handle_exceptions
     @check_authentication()
     def create(self, request):
         """Create new vendor inward entry"""
         vendor_id = request.data.get("vendor")
-        inward_date = request.data.get("inward_date")
-        accounted = request.data.get("accounted", False)
+        inward_date = request.data.get("inward_date")        
         notes = request.data.get("notes", "")
         items_data = request.data.get("items", [])
+        items_data = json.loads(items_data)
+        image = request.FILES.get("image", None)
 
         if not vendor_id or not inward_date or not items_data:
             return Response({
@@ -118,11 +123,15 @@ class VendorInwardViewSet(viewsets.ViewSet):
             # Create vendor inward entry
             inward = VendorInward.objects.create(
                 inward_date=inward_date,
-                vendor=vendor,
-                accounted=accounted,
+                vendor=vendor,                
                 notes=notes,
                 created_by=request.user
             )
+            
+            # Add image if provided
+            if image:
+                inward.image = image
+                inward.save()
 
             # Get all stock items needed
             stock_ids = [item["stock_item_id"] for item in items_data]
@@ -172,6 +181,20 @@ class VendorInwardViewSet(viewsets.ViewSet):
                 # Update stock item quantity
                 stock_item.current_quantity += Decimal(quantity)
                 stock_item.save()
+
+                # Update stock log for the inward date
+                date = datetime.now().strftime("%Y-%m-%d")
+                stock_log, _ = StockLog.objects.get_or_create(date=date)
+                stock_data = stock_log.stock_data or {}
+                stock_data[str(stock_item.id)] = {
+                    "name": stock_item.name,
+                    "qty": float(stock_item.current_quantity),
+                    "unit": stock_item.unit
+                }
+                stock_log.stock_data = stock_data
+                stock_log.save()
+
+
 
                 # Log activity
                 ActivityLog.objects.create(

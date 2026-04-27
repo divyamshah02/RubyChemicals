@@ -225,57 +225,63 @@
         </div>
 
         <!-- Unaccounted Cards Section -->
-        <div class="section-header">
-            <div class="section-title"><i class="fas fa-clipboard-list"
-                    style="color: #06b6d4; margin-right: 0.5rem;"></i>Latest Unaccounted Production Cards (Top 5)</div>
-        </div>
-        <div class="data-table" style="margin-bottom: 2rem; max-height: 500px; overflow-y: auto;">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Production Code</th>
-                        <th>Date</th>
-                        <th>Output</th>
-                        <th>Unit</th>
-                        <th>Batches</th>
-                        <th>Materials</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="unaccountedCardsTable">
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <div class="row">
+            <div class="col-6">
+                <div class="section-header">
+                    <div class="section-title"><i class="fas fa-clipboard-list"
+                            style="color: #06b6d4; margin-right: 0.5rem;"></i>Latest Unaccounted Production Cards (Top 5)</div>
+                </div>
+                <div class="data-table" style="margin-bottom: 2rem; max-height: 500px; overflow-y: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Production Code</th>
+                                <th>Date</th>
+                                <th>Output</th>
+                                <th>Unit</th>
+                                <th>Batches</th>
+                                <th>Materials</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unaccountedCardsTable">
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-        <!-- Pending Dispatches Section -->
-        <div class="section-header">
-            <div class="section-title"><i class="fas fa-truck"
-                    style="color: #8b5cf6; margin-right: 0.5rem;"></i>Latest Pending Dispatches (Top 5)</div>
+            </div>
+            <div class="col-6">
+                <!-- Pending Dispatches Section -->
+                <div class="section-header">
+                    <div class="section-title"><i class="fas fa-truck"
+                            style="color: #8b5cf6; margin-right: 0.5rem;"></i>Latest Pending Dispatches (Top 5)</div>
+                </div>
+                <div class="data-table" style="margin-bottom: 2rem; max-height: 500px; overflow-y: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Dispatch Code</th>
+                                <th>Date</th>
+                                <th>Client</th>
+                                <th>Vehicle</th>
+                                <th>Items</th>
+                                <th>Freight</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingDispatchesTable">
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>                
+            </div>
         </div>
-        <div class="data-table" style="margin-bottom: 2rem; max-height: 500px; overflow-y: auto;">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Dispatch Code</th>
-                        <th>Date</th>
-                        <th>Client</th>
-                        <th>Vehicle</th>
-                        <th>Items</th>
-                        <th>Freight</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="pendingDispatchesTable">
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
+        
         <!-- Pending Inwards Section -->
         <div class="section-header">
             <div class="section-title"><i class="fas fa-inbox"

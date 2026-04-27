@@ -83,7 +83,7 @@ async function openCreateInwardModal() {
     document.getElementById("createInwardVendor").value = "";
     document.getElementById("createInwardDate").valueAsDate = new Date();
     document.getElementById("createInwardNotes").value = "";
-    document.getElementById("createInwardAccounted").checked = false;
+    document.getElementById("createInwardImage").value = "";
     document.getElementById("createInwardItems").innerHTML = 
         '<div class="text-center text-muted" style="padding: 1.5rem;"><p>No items added. Click "Add Item" to add stock items.</p></div>';
     
@@ -159,25 +159,29 @@ async function submitInward() {
     const vendorId = parseInt(document.getElementById("createInwardVendor").value);
     const inwardDate = document.getElementById("createInwardDate").value;
     const notes = document.getElementById("createInwardNotes").value;
-    const accounted = document.getElementById("createInwardAccounted").checked;
+    const imageFile = document.getElementById("createInwardImage").files[0] || null;
 
     if (!vendorId || !inwardDate || inwardItems.length === 0) {
         alert("Please fill all required fields and add at least one item");
         return;
     }
 
-    const payload = {
-        inward_date: inwardDate,
-        vendor: vendorId,
-        accounted: accounted,
-        notes: notes,
-        items: inwardItems
-    };
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append("inward_date", inwardDate);
+    formData.append("vendor", vendorId);    
+    formData.append("notes", notes);
+    formData.append("items", JSON.stringify(inwardItems));
+    
+    if (imageFile) {
+        formData.append("image", imageFile);
+    }
 
-    const [ok, res] = await callApi("POST", endpoints.vendorInwards, payload, csrf);
+    const [ok, res] = await callApi("POST", endpoints.vendorInwards, formData, csrf, true);
     
     if (ok) {
         bootstrap.Modal.getInstance(document.getElementById("createInwardModal")).hide();
+        document.getElementById("createInwardImage").value = "";
         loadVendorInwards();
     } else {
         alert("Error creating inward: " + JSON.stringify(res.error || res));
@@ -195,6 +199,28 @@ async function viewInward(inwardId) {
         document.getElementById("viewInwardVendor").textContent = inward.vendor_name || 'N/A';
         document.getElementById("viewInwardAccounted").textContent = inward.accounted ? 'Yes' : 'No';
         document.getElementById("viewInwardNotes").value = inward.notes || '';
+
+        // Handle PDF display
+        if (inward.pdf) {
+            const pdfLink = document.getElementById("viewInwardPdfLink");
+            pdfLink.href = inward.pdf;
+            pdfLink.style.display = "inline";
+            document.getElementById("viewInwardPdfNone").style.display = "none";
+        } else {
+            document.getElementById("viewInwardPdfLink").style.display = "none";
+            document.getElementById("viewInwardPdfNone").style.display = "block";
+        }
+
+        // Handle image display
+        if (inward.image) {
+            const imgElement = document.getElementById("viewInwardImage");
+            imgElement.src = inward.image;
+            imgElement.style.display = "block";
+            document.getElementById("viewInwardImageNone").style.display = "none";
+        } else {
+            document.getElementById("viewInwardImage").style.display = "none";
+            document.getElementById("viewInwardImageNone").style.display = "block";
+        }
 
         if (inward.items && inward.items.length > 0) {
             let itemsHtml = '';
