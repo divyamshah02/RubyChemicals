@@ -18,6 +18,14 @@ class StockItem(models.Model):
         ('kg', 'Kilogram'),
         ('g', 'Gram'),
         ('pcs', 'Pieces'),
+
+        ('BAGS', 'BAGS'),
+        ('NOS', 'NOS'),
+        ('GRAMS', 'GRAMS'),
+        ('KGS', 'KGS'),
+        ('PACK', 'PACK'),
+        ('ROLL', 'ROLL'),
+        ('SQ FT', 'SQ FT')
     ]
 
     name = models.CharField(max_length=255)

@@ -15,3 +15,17 @@ XX add client as per the vendor management system
 
 
 XX add address contact number name and gst
+
+
+Add new stock items and groups
+reconcialtion
+petty cash pdf gnerator
+formula management
+check everything
+    - stock group / item CRUD
+    - stock inward 
+    - stock log
+    - production card CRUD
+    - Dispatch CRUD
+    - Petty cash
+

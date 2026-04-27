@@ -19,6 +19,10 @@ router.register(r'vendor-management', VendorManagementViewSet, basename='vendor-
 router.register(r'petty-cash', PettyCashViewSet, basename='petty-cash')
 
 
+
+router.register(r'test-api', ExtraAddStockDetails, basename='test-api')
+
+
 urlpatterns = [
     path('', include(router.urls)),
 ]
