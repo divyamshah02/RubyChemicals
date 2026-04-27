@@ -104,8 +104,6 @@ def generate_production_card(
 
     can.save()
 
-
-
     packet.seek(0)
 
     new_pdf = PdfReader(packet)

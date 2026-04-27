@@ -403,6 +403,9 @@
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-primary" onclick="generatePDF()" style="border-radius: 8px;">
+                        <i class="fas fa-arrow-down" style="margin-right: 0.5rem;"></i>Download
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
                         style="border-radius: 8px;">Close</button>
                     <!-- <button class="btn btn-warning" onclick="editDispatch()"
@@ -961,6 +964,14 @@
             toggle_loader()
 
         });
+
+        async function generatePDF() {
+            toggle_loader()            
+            window.location = `/operation-api/download-dispatch-api/${currentDispatchId}/`
+            toggle_loader()
+            }
+
+
 
 
         loadData();

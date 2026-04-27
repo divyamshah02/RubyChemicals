@@ -9,6 +9,7 @@ from django.db import transaction
 from decimal import Decimal
 from datetime import datetime
 from utils.create_product_card_pdf import generate_production_card
+from utils.create_dispatch_pdf import generate_challan
 
 class StockGroupViewSet(viewsets.ViewSet):
 
@@ -1664,6 +1665,82 @@ class DispatchViewSet(viewsets.ViewSet):
                 "data": None,
                 "error": "Dispatch not found"
             }, status=404)
+
+
+class DownloadDispatchViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def retrieve(self, request, pk):
+        """List all dispatches with related data"""        
+        dispatch = Dispatch.objects.filter(is_active=True).select_related('client', 'shipping_address').prefetch_related('items').order_by('-dispatch_date').get(pk=pk, is_active=True)
+    
+        items = []
+        total_quantity = 0
+        for item in dispatch.items.all():
+            items.append({                
+                "name": item.stock_item.name,
+                "hsn": "N/A" if not item.stock_item.hsn_code else item.stock_item.hsn_code,
+                "qty": str(item.quantity),
+                "unit": item.unit
+            })
+            total_quantity += float(item.quantity)
+        
+        data = {
+            "id": dispatch.id,
+            "dispatch_code": dispatch.dispatch_code,
+            "accounted": dispatch.accounted,
+            "dispatch_date": dispatch.dispatch_date,
+            "client_name": dispatch.client.company_name if dispatch.client else None,
+            "client": dispatch.client.id if dispatch.client else None,
+            "client_phone": dispatch.client.phone if dispatch.client else None,
+            "vehicle_type": dispatch.vehicle_type,
+            "vehicle_number": dispatch.vehicle_number,
+            "freight_amount": str(dispatch.freight_amount),
+            "total_quantity": total_quantity,
+            "items": items,
+            "shipping_address": dispatch.shipping_address.street if dispatch.shipping_address else None,
+            "shipping_address_full": f"{dispatch.shipping_address.street}, {dispatch.shipping_address.city}, {dispatch.shipping_address.state}" if dispatch.shipping_address else None,
+            "shipping_address_id": dispatch.shipping_address.id if dispatch.shipping_address else None,
+            "shipping_gstin": dispatch.shipping_address.gst_no if dispatch.shipping_address else None,
+            "shipping_cnt_name": dispatch.shipping_address.contact_name if dispatch.shipping_address else None,
+            "shipping_cnt_num": dispatch.shipping_address.contact_number if dispatch.shipping_address else None,
+            "notes": dispatch.notes,
+            "created_at": dispatch.created_at
+        }
+
+        output_stream = generate_challan(
+            input_pdf_path=r"dispatch_template.pdf",
+            output_pdf_path="dispatch_output_challan.pdf",
+            company_name=str(data["client_name"]),
+            challan_no=str(data["dispatch_code"]),
+            address=str(data["shipping_address_full"]),
+            date=str(data["dispatch_date"]),
+            dispatch_through=str(data["vehicle_type"]),
+            vehicle_no=str(data["vehicle_number"]),
+            gstin=str(data["shipping_gstin"]),
+            contact_name=str(data["shipping_cnt_name"]),
+            contact_number=str(data["shipping_cnt_num"]),
+            items=items,
+            remarks=str(data["notes"])
+        )
+
+        response = HttpResponse(
+            output_stream,
+            content_type='application/pdf'
+        )
+        response['Content-Disposition'] = 'attachment; filename="generated.pdf"'
+
+        return response
+            
+            
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": data,
+            "error": None
+        }, status=200)
 
 
 class ExpenseHeadViewSet(viewsets.ViewSet):

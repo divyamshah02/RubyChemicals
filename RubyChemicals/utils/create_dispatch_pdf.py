@@ -1,7 +1,7 @@
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from PyPDF2 import PdfReader, PdfWriter
-import io
+from io import BytesIO
 
 
 def split_text(text, max_len=100):
@@ -46,7 +46,7 @@ def generate_challan(
     items,  # list of dicts: [{sr, name, hsn, qty}]
     remarks
 ):
-    packet = io.BytesIO()
+    packet = BytesIO()
     can = canvas.Canvas(packet, pagesize=letter)
     
     # ---- HEADER FIELDS ----
@@ -107,6 +107,26 @@ def generate_challan(
     # can.drawString(63, 420, remarks)
 
     can.save()
+
+
+    packet.seek(0)
+
+    new_pdf = PdfReader(packet)
+    existing_pdf = PdfReader(input_pdf_path)
+
+    output = PdfWriter()
+
+    page = existing_pdf.pages[0]
+    page.merge_page(new_pdf.pages[0])
+    output.add_page(page)
+    output.add_page(page)
+
+    # 👉 write to memory instead of file
+    output_stream = BytesIO()
+    output.write(output_stream)
+    output_stream.seek(0)
+
+    return output_stream
 
     packet.seek(0)
     new_pdf = PdfReader(packet)

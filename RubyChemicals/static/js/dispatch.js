@@ -44,3 +44,12 @@ async function loadDispatches(){
     table.innerHTML = headers + `<tbody>${rows}</tbody>`
   }
 }
+
+async function generatePDF() {
+  toggle_loader()
+  console.log("hello man agrbhaugborhauo gbruab ghuraowb hu")
+  window.location = `/operation-api/download-dispatch-api/${currentDispatchId}/`
+  toggle_loader()
+}
+
+
