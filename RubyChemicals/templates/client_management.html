@@ -167,7 +167,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header" style="border-bottom: 1px solid #e2e8f0;">
-                    <h5 class="modal-title">Add Address</h5>
+                    <h5 class="modal-title" id="addressModalTitle">Add Address</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -283,6 +283,7 @@
         const CLIENT_API = "/operation-api/client-api/";
         const ADDRESS_API = "/operation-api/client-address-api/";
         let currentClientId = null;
+        let currentAddressId = null;
         let clients = [];
 
         async function loadClients(query = "") {
@@ -369,8 +370,16 @@
                     client.addresses.forEach(addr => {
                         addressHtml += `
                             <div style="padding: 0.75rem; background: #f8fafc; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #e2e8f0;">
-                                <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">
-                                    ${addr.address_type.toUpperCase()} ${addr.is_default ? '<span style="background: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem;">Default</span>' : ''}
+                                <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>${addr.address_type.toUpperCase()} ${addr.is_default ? '<span style="background: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem;">Default</span>' : ''}</span>
+                                    <div>
+                                        <button class="btn btn-sm btn-warning" onclick="editAddress(${addr.id}, ${client.id})" style="margin-right: 0.25rem;">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteAddress(${addr.id}, ${client.id})">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
                                 </div>
                                 <div style="color: #64748b; font-size: 0.875rem;">
                                     ${addr.street}<br>
@@ -475,6 +484,8 @@
 
         function openAddressModal(clientId) {
             currentClientId = clientId;
+            currentAddressId = null;
+            document.getElementById("addressModalTitle").textContent = "Add Address";
             document.getElementById("addressType").value = "shipping";
             document.getElementById("street").value = "";
             document.getElementById("city").value = "";
@@ -488,6 +499,62 @@
             
             const modal = new bootstrap.Modal(document.getElementById("addressModal"));
             modal.show();
+        }
+
+        async function editAddress(addressId, clientId) {
+            const [ok, res] = await callApi("GET", ADDRESS_API + addressId + "/");
+            
+            if (ok && res.data) {
+                const address = res.data;
+                currentAddressId = addressId;
+                currentClientId = clientId;
+                
+                document.getElementById("addressModalTitle").textContent = "Edit Address";
+                document.getElementById("addressType").value = address.address_type;
+                document.getElementById("street").value = address.street;
+                document.getElementById("city").value = address.city;
+                document.getElementById("state").value = address.state;
+                document.getElementById("postalCode").value = address.postal_code;
+                document.getElementById("addressContactPersonName").value = address.contact_name || "";
+                document.getElementById("addressContactPersonNumber").value = address.contact_number || "";
+                document.getElementById("addressGstNumber").value = address.gst_no || "";
+                document.getElementById("country").value = address.country;
+                document.getElementById("isDefault").checked = address.is_default;
+                
+                const modalEl = document.getElementById("viewClientModal");
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+
+
+                const modal = new bootstrap.Modal(document.getElementById("addressModal"));
+                modal.show();
+            } else {
+                alert("Error loading address details");
+            }
+        }
+
+        async function deleteAddress(addressId, clientId) {
+            if (confirm("Are you sure you want to delete this address?")) {
+                const [ok, res] = await callApi("DELETE", ADDRESS_API + addressId + "/", null, "{{csrf_token}}");
+                
+                if (ok) {
+                    loadClients();
+                    const modalEl = document.getElementById("addressModal");
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+
+                    viewClient(clientId)
+                    
+                } else {
+                    alert("Error deleting address");
+                }
+            }
         }
 
         async function saveAddress() {
@@ -510,7 +577,9 @@
                 return;
             }
 
-            const [ok, res] = await callApi("POST", ADDRESS_API, payload, "{{csrf_token}}");
+            const method = currentAddressId ? "PUT" : "POST";
+            const url = currentAddressId ? ADDRESS_API + currentAddressId + "/" : ADDRESS_API;
+            const [ok, res] = await callApi(method, url, payload, "{{csrf_token}}");
 
             if (ok && res.success) {
                 alert("Address saved!");

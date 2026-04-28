@@ -189,6 +189,32 @@ class VendorAddressViewSet(viewsets.ModelViewSet):
 
     @handle_exceptions
     @check_authentication()
+    def retrieve(self, request, pk=None):
+        """List addresses for a vendor"""
+        vendor_id = pk
+        
+        if not vendor_id:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "vendor_id required"
+            }, status=400)
+        
+        addresses = VendorAddress.objects.get(id=vendor_id)
+        serializer = VendorAddressSerializer(addresses)
+        
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": serializer.data,
+            "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
     def create(self, request):
         """Create new address for vendor"""
         serializer = VendorAddressSerializer(data=request.data)

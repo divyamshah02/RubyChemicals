@@ -101,6 +101,13 @@ class StockItemViewSet(viewsets.ViewSet):
         return render(request, 'stock_item.html')
         return render(request, 'stock_items.html')
     
+class StockInwardViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        return render(request, 'stock_inward.html')        
+
 class ProductionViewSet(viewsets.ViewSet):
 
     @handle_exceptions

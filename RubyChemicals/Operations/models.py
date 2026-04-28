@@ -472,10 +472,8 @@ class Dispatch(models.Model):
                 created_at__year=timezone.now().year
             ).order_by('-id').first()
             
-            year = timezone.now().year % 100
-            month = timezone.now().month
             sequence = 1 if not last_dispatch else int(last_dispatch.dispatch_code.split('-')[-1]) + 1
-            self.dispatch_code = f"DISP-{year}{month:02d}-{sequence:05d}"
+            self.dispatch_code = f"{sequence:03d}"
         
         super().save(*args, **kwargs)
 

@@ -189,6 +189,32 @@ class ClientAddressViewSet(viewsets.ModelViewSet):
 
     @handle_exceptions
     @check_authentication()
+    def retrieve(self, request, pk=None):
+        """List addresses for a vendor"""
+        client_id = pk
+
+        if not client_id:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "client_id required"
+            }, status=400)
+        
+        addresses = ClientAddress.objects.get(id=client_id)
+        serializer = ClientAddressSerializer(addresses)
+        
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": serializer.data,
+            "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
     def create(self, request):
         """Create new address for client"""
         serializer = ClientAddressSerializer(data=request.data)
