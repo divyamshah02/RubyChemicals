@@ -35,7 +35,7 @@ async function loadDispatches(){
     const headers = `<thead><tr><th><i class="fas fa-calendar"></i> Date</th><th><i class="fas fa-user"></i> Customer</th><th><i class="fas fa-cube"></i> Product</th><th><i class="fas fa-weight"></i> Quantity</th></tr></thead>`
     const rows = res.data.map(d => `
       <tr>
-        <td>${d.dispatch_date}</td>
+        <td>${CustomformatDate(d.dispatch_date)}</td>
         <td><strong>${d.customer_name}</strong></td>
         <td>${d.stock_item_name}</td>
         <td><span style="background: #bfdbfe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-weight: 600;">${d.quantity}</span></td>

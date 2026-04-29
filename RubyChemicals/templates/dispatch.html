@@ -611,7 +611,7 @@
             tbody.innerHTML = dispatches.map(d => `
             <tr>
                 <td><span class="dispatch-code">${d.dispatch_code}</span></td>
-                <td>${d.dispatch_date}</td>
+                <td>${CustomformatDate(d.dispatch_date)}</td>
                 <td>${d.client_name || 'N/A'}</td>
                 <td>${d.accounted ? 'Yes' : 'No'}</td>
                 <td><span class="item-count-badge">${d.items.length} Items</span></td>
@@ -640,7 +640,7 @@
 
             currentDispatchId = id;
             document.getElementById("viewDispatchCode").textContent = dispatch.dispatch_code;
-            document.getElementById("viewDispatchDate").textContent = dispatch.dispatch_date;
+            document.getElementById("viewDispatchDate").textContent = CustomformatDate(dispatch.dispatch_date);
             document.getElementById("viewDispatchClient").textContent = dispatch.client_name || 'N/A';
             document.getElementById("viewDispatchVehicleType").textContent = dispatch.vehicle_type || 'N/A';
             document.getElementById("viewDispatchVehicleNumber").textContent = dispatch.vehicle_number || 'N/A';

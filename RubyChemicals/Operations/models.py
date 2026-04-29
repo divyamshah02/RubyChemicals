@@ -226,6 +226,7 @@ class ProductionCard(models.Model):
     production_code = models.CharField(max_length=20, unique=True)
     production_date = models.DateField()
     product_name = models.CharField(max_length=255, blank=True)
+    production_incharge = models.CharField(max_length=255, blank=True)
     
     total_output_quantity = models.DecimalField(
         max_digits=12,

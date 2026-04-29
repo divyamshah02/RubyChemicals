@@ -3,6 +3,9 @@ from reportlab.lib.pagesizes import letter
 from PyPDF2 import PdfReader, PdfWriter
 from io import BytesIO
 
+def format_date(s):
+    return f"{s[8:10]}-{s[5:7]}-{s[0:4]}"
+
 
 def split_text(text, max_len=100):
     words = text.split()
@@ -52,7 +55,7 @@ def generate_challan(
     # ---- HEADER FIELDS ----
     can.setFont("Helvetica", 10) 
     can.drawString(73, 748, str(challan_no))
-    can.drawString(440, 748, date)
+    can.drawString(440, 748, format_date(date))
     can.drawString(33, 721, company_name)
 
     # handle address

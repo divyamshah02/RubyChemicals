@@ -31,6 +31,10 @@ def split_text(text, max_len=100):
 
     return result
 
+def format_date(s):
+    return f"{s[8:10]}-{s[5:7]}-{s[0:4]}"
+
+
 def generate_production_card(
     input_pdf_path,
     output_pdf_path,
@@ -54,7 +58,7 @@ def generate_production_card(
     can.setFont("Helvetica", 10) 
     can.drawString(40, 762, str(code))
     can.drawString(240, 762, product_name)
-    can.drawString(477, 762, date)
+    can.drawString(477, 762, format_date(date))
 
     can.drawString(57, 735, total_output)
     can.drawString(189, 735, uom)
@@ -94,13 +98,13 @@ def generate_production_card(
 
     if production_incharge is not None:
             can.drawString(133, 158, production_incharge)
-    can.drawString(384, 158, date)
+    can.drawString(384, 158, format_date(date))
 
-    if approved_by is not None:
-            can.drawString(85, 131, approved_by)
+    # if approved_by is not None:
+    #         can.drawString(85, 131, approved_by)
     
-    if accounted_by is not None:
-            can.drawString(92, 104, accounted_by)
+    # if accounted_by is not None:
+    #         can.drawString(92, 104, accounted_by)
 
     can.save()
 
@@ -113,7 +117,7 @@ def generate_production_card(
 
     page = existing_pdf.pages[0]
     page.merge_page(new_pdf.pages[0])
-    output.add_page(page)
+    # output.add_page(page)
     output.add_page(page)
 
     # 👉 write to memory instead of file

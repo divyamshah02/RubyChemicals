@@ -98,6 +98,7 @@ async function createProductionCardWithBatches() {
     production_code: document.getElementById("productionCode").value,
     production_date: document.getElementById("productionDate").value,
     product_name: document.getElementById("productName").value,
+    production_incharge: document.getElementById("productionIncharge").value,
     total_output_quantity: document.getElementById("totalOutputQty").value,
     total_loss: document.getElementById("totalLoss").value || 0,
     unit: document.getElementById("unitSelect").value,
@@ -140,7 +141,7 @@ async function loadBatches() {
       <tr>
         <td><span class="production-code">${b.batch_code}</span></td>
         <td>${b.production_code || 'N/A'}</td>
-        <td>${b.production_date || 'N/A'}</td>
+        <td>${CustomformatDate(b.production_date) || 'N/A'}</td>
         <td>${b.product_name}</td>
         <td><strong>${b.output_quantity}</strong> ${b.product_unit}</td>        
         <td><strong>${b.loss_quantity}</strong> ${b.product_unit}</td>              
@@ -194,7 +195,7 @@ async function viewProductionCard(cardId) {
       <div style="margin-bottom: 2rem;">
         <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-info-circle"></i> Card Details</h6>
         <div class="row mb-3">
-        <div class="col-md-6"><strong>Date:</strong> ${card.production_date}</div>
+        <div class="col-md-6"><strong>Date:</strong> ${CustomformatDate(card.production_date)}</div>
         <div class="col-md-6"><strong>Code:</strong> ${card.production_code}</div>
         </div>
         <div class="row mb-3">
@@ -204,6 +205,7 @@ async function viewProductionCard(cardId) {
           <div class="row">
           <div class="col-md-6"><strong>Total Output:</strong> ${card.total_output_quantity} ${card.unit}</div>
           <div class="col-md-6"><strong>Total Loss:</strong> ${card.total_loss} ${card.unit}</div>
+          <div class="col-md-6"><strong>Production Incharge:</strong> ${card.production_incharge}</div>
         </div>        
       </div>
 
@@ -252,6 +254,7 @@ async function editProductionCard() {
     document.getElementById("editProductionCode").value = card.production_code
     document.getElementById("editProductionDate").value = card.production_date
     document.getElementById("editProductName").value = card.product_name || ""
+    document.getElementById("editProductionIncharge").value = card.production_incharge || ""
     document.getElementById("editTotalLoss").value = card.total_loss || 0
     document.getElementById("editTotalOutputQty").value = card.total_output_quantity
     document.getElementById("editUnitSelect").value = card.unit
@@ -385,6 +388,7 @@ async function submitEditProductionCard() {
     production_code: document.getElementById("editProductionCode").value,
     production_date: document.getElementById("editProductionDate").value,
     product_name: document.getElementById("editProductName").value,
+    production_incharge: document.getElementById("editProductionIncharge").value,
     total_output_quantity: document.getElementById("editTotalOutputQty").value,
     total_loss: document.getElementById("editTotalLoss").value || 0,
     unit: document.getElementById("editUnitSelect").value,

@@ -694,6 +694,7 @@ class ProductionCardViewSet(viewsets.ViewSet):
                 "production_code": card.production_code,
                 "production_date": card.production_date,
                 "product_name": card.product_name,
+                "production_incharge": card.production_incharge,
                 "total_output_quantity": card.total_output_quantity,
                 "total_loss": card.total_loss,
                 "unit": card.unit,
@@ -750,6 +751,7 @@ class ProductionCardViewSet(viewsets.ViewSet):
                 "production_code": card.production_code,
                 "production_date": card.production_date,
                 "product_name": card.product_name,
+                "production_incharge": card.production_incharge,
                 "total_output_quantity": card.total_output_quantity,
                 "total_loss": card.total_loss,
                 "unit": card.unit,
@@ -776,6 +778,7 @@ class ProductionCardViewSet(viewsets.ViewSet):
         production_code = data.get("production_code")
         production_date = data.get("production_date")
         product_name = data.get("product_name", "")
+        production_incharge = data.get("production_incharge", "")
         total_output_quantity = data.get("total_output_quantity")
         total_loss = data.get("total_loss", 0)
         unit = data.get("unit", "kg")
@@ -832,6 +835,7 @@ class ProductionCardViewSet(viewsets.ViewSet):
                 production_code=production_code,
                 production_date=production_date,
                 product_name=product_name,
+                production_incharge=production_incharge,
                 total_output_quantity=total_output_quantity,
                 total_loss=total_loss,
                 unit=unit,
@@ -908,6 +912,8 @@ class ProductionCardViewSet(viewsets.ViewSet):
             card.production_date = data["production_date"]
         if "product_name" in data:
             card.product_name = data["product_name"]
+        if "production_incharge" in data:
+            card.production_incharge = data["production_incharge"]
         if "total_output_quantity" in data:
             try:
                 card.total_output_quantity = float(data["total_output_quantity"])
@@ -1090,7 +1096,7 @@ class DownloadProductionCardViewSet(viewsets.ViewSet):
             "remarks": card.remarks,
             "batches": batches,
             "raw_materials": consumptions,
-            "production_incharge": "Divyam Shah",
+            "production_incharge": card.production_incharge,
             "approved_by": "Divyam Shah",
             "accounted_by": "Divyam Shah"
         }
@@ -1240,7 +1246,7 @@ class DispatchViewSet(viewsets.ViewSet):
     @check_authentication()
     def list(self, request):
         """List all dispatches with related data"""        
-        dispatches = Dispatch.objects.filter(is_active=True).select_related('client', 'shipping_address').prefetch_related('items').order_by('-dispatch_date') 
+        dispatches = Dispatch.objects.filter(is_active=True).select_related('client', 'shipping_address').prefetch_related('items').order_by('-dispatch_code') 
         
         data = []
         for dispatch in dispatches:

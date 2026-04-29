@@ -341,3 +341,5 @@ function openDoc(url, file_name) {
     bsModal.show();
 
 }
+
+const CustomformatDate = s => `${s.slice(8,10)}-${s.slice(5,7)}-${s.slice(0,4)}`;
