@@ -520,6 +520,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Stock Item *</label>
+                        <input type="text" id="stockSearch" placeholder="Search item..." class="form-control mb-2" style="border-radius: 8px;">
                         <select class="form-control" id="addItemStockItem" style="border-radius: 8px;"></select>
                     </div>
                     <div class="mb-3">
@@ -569,6 +570,7 @@
                 // loadAddresses()
             ]);
             renderKPIs();
+            initSearchableSelect("stockSearch", "addItemStockItem");   
         }
 
         async function loadDispatches() {
@@ -971,10 +973,51 @@
             toggle_loader()
             }
 
+        function initSearchableSelect(inputId, selectId) {
+            const input = document.getElementById(inputId);
+            const select = document.getElementById(selectId);
 
+            input.addEventListener("input", function () {
+                const searchValue = input.value.toLowerCase();
 
+                const options = Array.from(select.options);
 
-        loadData();
+                // keep first option fixed (like "Select Stock Item")
+                const firstOption = options[0];
+                const rest = options.slice(1);
+
+                const matched = [];
+                const unmatched = [];
+
+                rest.forEach(option => {
+                    if (option.text.toLowerCase().includes(searchValue)) {
+                        matched.push(option);
+                    } else {
+                        unmatched.push(option);
+                    }
+                });
+
+                // clear ONLY once
+                select.innerHTML = "";
+
+                // re-append in order
+                select.appendChild(firstOption);
+                matched.forEach(opt => select.appendChild(opt));
+                unmatched.forEach(opt => select.appendChild(opt));
+
+                // force open dropdown
+                select.size = 10;
+            });
+
+            input.addEventListener("blur", function () {
+                setTimeout(() => {
+                    select.size = 1;
+                }, 200);
+            });
+        }
+
+        // init    
+        loadData();                     
     </script>
 
 </body>
