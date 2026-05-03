@@ -28,6 +28,8 @@ router.register(r'mark-vendor-inward-accounted-api', MarkVendorInwardAccountedVi
 router.register(r'expense-head-api', ExpenseHeadViewSet, basename='expense-head-api')
 router.register(r'petty-cash-api', PettyCashViewSet, basename='petty-cash-api')
 router.register(r'petty-cash-account-api', PettyCashAccountViewSet, basename='petty-cash-account-api')
+router.register(r'petty-cash-log-api', PettyCashLogViewSet, basename='petty-cash-log-api')
+router.register(r'today-petty-cash-log-api', TodayPettyCashLogViewSet, basename='today-petty-cash-log-api')
 router.register(r'download-petty-cash-api', DownloadPettyCashPDFViewSet, basename='download-petty-cash-api')
 
 router.register(r'admin-dashboard-api', AdminDashboardViewSet, basename='admin-dashboard-api')

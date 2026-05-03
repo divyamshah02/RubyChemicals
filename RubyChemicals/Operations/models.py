@@ -403,6 +403,26 @@ class PettyCash(models.Model):
         return f"{self.cash_account.get_cash_type_display()} - {self.expense_head.name} - {self.amount}"
 
 
+class PettyCashLog(models.Model):
+    """
+    Maintains historical petty cash balance snapshot for each date per cash account
+    Data format: {
+        "cash_type": {"opening_balance": X.XX, "closing_balance": Y.YY, "total_debit": Z.ZZ, "total_credit": A.AA}
+    }
+    """
+    date = models.DateField(db_index=True)
+    cash_data = models.JSONField(default=dict)  # {cash_type: {opening_bal, closing_bal, total_debit, total_credit}}
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+        unique_together = ('date',)
+
+    def __str__(self):
+        return f"Petty Cash Log - {self.date}"
+
+
 class ClientProfile(models.Model):
     company_name = models.CharField(max_length=200, unique=True)
     contact_person = models.CharField(max_length=100)

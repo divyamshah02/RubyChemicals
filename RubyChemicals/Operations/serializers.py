@@ -108,6 +108,12 @@ class PettyCashSerializer(serializers.ModelSerializer):
         ]
 
 
+class PettyCashLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PettyCashLog
+        fields = ["id", "date", "cash_data"]
+
+
 class ClientAddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClientAddress

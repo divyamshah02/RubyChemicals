@@ -168,6 +168,14 @@ class PettyCashAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related('cash_account', 'expense_head')
 
 
+@admin.register(PettyCashLog)
+class PettyCashLogAdmin(admin.ModelAdmin):
+    list_display = ('date', 'created_at', 'updated_at')
+    ordering = ('-date',)
+    readonly_fields = ('created_at', 'updated_at')
+    search_fields = ('date',)
+
+
 # ---------------- CLIENT ---------------- #
 
 @admin.register(ClientProfile)

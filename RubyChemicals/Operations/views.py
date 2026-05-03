@@ -2,12 +2,12 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.http import HttpResponse
 from .models import *
-from .serializers import StockGroupSerializer, StockItemSerializer
+from .serializers import *
 from UserDetail.models import ActivityLog
 from utils.decorators import handle_exceptions, check_authentication
 from django.db import transaction
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils.create_product_card_pdf import generate_production_card
 from utils.create_dispatch_pdf import generate_challan
 from utils.create_petty_cash_pdf import generate_petty_cash_card
@@ -2098,6 +2098,9 @@ class PettyCashViewSet(viewsets.ViewSet):
                 description=f"Petty Cash {account.get_cash_type_display()} - {transaction_type} ₹{amount}"
             )
             
+            # Update petty cash log for the transaction date
+            update_petty_cash_log(expense_date, account.cash_type)
+            
             return Response({
                 "success": True,
                 "user_not_logged_in": False,
@@ -2122,6 +2125,231 @@ class PettyCashViewSet(viewsets.ViewSet):
                 "data": None,
                 "error": str(e)
             }, status=400)
+
+def str_to_date(date_str):
+    return datetime.strptime(date_str, "%Y-%m-%d")
+
+def update_petty_cash_log(transaction_date, cash_type):
+    """
+    Update petty cash log for a given date and recalculate all subsequent dates
+    This handles when past-dated expenses are entered
+    """    
+    
+    # Get all transactions up to and including transaction_date, ordered by date
+    transaction_date = str_to_date(str(transaction_date))
+    print(transaction_date)
+    all_transactions = PettyCash.objects.filter(
+        cash_account__cash_type=cash_type,
+        expense_date__lte=transaction_date
+    ).order_by('expense_date')
+    
+    if not all_transactions.exists():
+        return
+    
+    # Calculate cumulative balances from first transaction up to transaction_date
+    opening_balance = Decimal('0')
+    
+    # Get the opening balance from previous day if it exists
+    day_before = transaction_date - timedelta(days=1)
+    prev_log = PettyCashLog.objects.filter(date=day_before).first()
+    if prev_log and cash_type in prev_log.cash_data:
+        opening_balance = Decimal(str(prev_log.cash_data[cash_type].get('closing_balance', 0)))
+    
+    # Calculate totals for the transaction date
+    daily_transactions = all_transactions.filter(expense_date=transaction_date)
+    total_debit = Decimal('0')
+    total_credit = Decimal('0')
+    
+    for trans in daily_transactions:
+        if trans.transaction_type == 'debit':
+            total_debit += trans.amount
+        else:
+            total_credit += trans.amount
+    
+    closing_balance = opening_balance + total_credit - total_debit
+    
+    # Update or create log for this date
+    log, created = PettyCashLog.objects.get_or_create(date=transaction_date)
+    cash_data = log.cash_data or {}
+    cash_data[cash_type] = {
+        "opening_balance": float(opening_balance),
+        "closing_balance": float(closing_balance),
+        "total_debit": float(total_debit),
+        "total_credit": float(total_credit)
+    }
+    log.cash_data = cash_data
+    log.save()
+    
+    # Update all subsequent dates
+    next_date = transaction_date + timedelta(days=1)
+    subsequent_dates = PettyCash.objects.filter(
+        cash_account__cash_type=cash_type,
+        expense_date__gt=transaction_date
+    ).values_list('expense_date', flat=True).distinct().order_by('expense_date')
+    
+    current_opening = closing_balance
+    for date in subsequent_dates:
+        daily_trans = PettyCash.objects.filter(
+            cash_account__cash_type=cash_type,
+            expense_date=date
+        )
+        
+        daily_debit = Decimal('0')
+        daily_credit = Decimal('0')
+        
+        for trans in daily_trans:
+            if trans.transaction_type == 'debit':
+                daily_debit += trans.amount
+            else:
+                daily_credit += trans.amount
+        
+        daily_closing = current_opening + daily_credit - daily_debit
+        
+        log, _ = PettyCashLog.objects.get_or_create(date=date)
+        cash_data = log.cash_data or {}
+        cash_data[cash_type] = {
+            "opening_balance": float(current_opening),
+            "closing_balance": float(daily_closing),
+            "total_debit": float(daily_debit),
+            "total_credit": float(daily_credit)
+        }
+        log.cash_data = cash_data
+        log.save()
+        
+        current_opening = daily_closing
+
+
+class PettyCashLogViewSet(viewsets.ViewSet):
+    """Petty Cash Log - Historical balance tracking"""
+    
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        """Get all dates available for petty cash history"""
+        logs = PettyCashLog.objects.all().order_by('-date').values('date')
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": list(logs),
+            "error": None
+        }, status=200)
+    
+    @handle_exceptions
+    @check_authentication()
+    def retrieve(self, request, pk=None):
+        """Get petty cash balances and all expenses for a specific date"""
+        try:
+            log = PettyCashLog.objects.get(date=pk)
+            
+            # Get all expenses for this date
+            expenses = PettyCash.objects.filter(expense_date=pk).order_by('id')
+            
+            expenses_data = []
+            for exp in expenses:
+                expenses_data.append({
+                    "id": exp.id,
+                    "expense_head": exp.expense_head.name if exp.expense_head else "Balance Addition",
+                    "amount": str(exp.amount),
+                    "transaction_type": exp.transaction_type,
+                    "to": exp.to or "—",
+                    "paid_via": exp.paid_via or "—",
+                    "payment_type": exp.payment_type or "—",
+                    "paid_by": exp.paid_by or "—",
+                    "particulars": exp.particulars or "—",
+                    "notes": exp.notes or "—"
+                })
+            
+            log_data = PettyCashLogSerializer(log).data
+            log_data["expenses"] = expenses_data
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": log_data,
+                "error": None
+            }, status=200)
+        except PettyCashLog.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "No log found for this date"
+            }, status=404)
+
+
+
+class TodayPettyCashLogViewSet(viewsets.ViewSet):
+    """Create/Update today's petty cash log in database"""
+    
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        """Create or update today's petty cash log in database"""
+        from datetime import date as date_class
+        today = date_class.today()
+        
+        try:
+            data = {}
+            
+            # Process each cash account
+            for account in PettyCashAccount.objects.all():
+                cash_type = account.cash_type
+                
+                # Get yesterday's closing balance
+                yesterday = today - timedelta(days=1)
+                opening_bal = Decimal('0')
+                prev_log = PettyCashLog.objects.filter(date=yesterday).first()
+                if prev_log and cash_type in prev_log.cash_data:
+                    opening_bal = Decimal(str(prev_log.cash_data[cash_type].get('closing_balance', 0)))
+                
+                # Calculate today's transactions
+                today_trans = PettyCash.objects.filter(
+                    cash_account=account,
+                    expense_date=today
+                )
+                
+                total_debit = Decimal('0')
+                total_credit = Decimal('0')
+                for trans in today_trans:
+                    if trans.transaction_type == 'debit':
+                        total_debit += trans.amount
+                    else:
+                        total_credit += trans.amount
+                
+                closing_bal = opening_bal + total_credit - total_debit
+                
+                data[cash_type] = {
+                    "opening_balance": float(opening_bal),
+                    "closing_balance": float(closing_bal),
+                    "total_debit": float(total_debit),
+                    "total_credit": float(total_credit)
+                }
+            
+            # Create or update log in database
+            log, created = PettyCashLog.objects.get_or_create(date=today)
+            log.cash_data = data
+            log.save()
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": {"message": "Today's petty cash log created/updated", "log_date": str(today)},
+                "error": None
+            }, status=200)
+        
+        except Exception as e:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": str(e)
+            }, status=400)
+
 
 
 class ExpenseHeadViewSet(viewsets.ViewSet):

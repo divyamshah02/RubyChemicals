@@ -60,14 +60,14 @@ async function loadAllTransactions() {
 
 function renderAllTransactionsTab() {
   const table = document.getElementById("allTransactionsTable");
-  
+
   const filteredTransactions = allTransactions.filter(t => t.cash_type === currentCashType);
-  
+
   if (filteredTransactions.length === 0) {
     table.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No transactions</td></tr>';
     return;
   }
-  
+
   table.innerHTML = filteredTransactions.map(trans => `
     <tr>
       <td>${trans.expense_date}</td>
@@ -100,7 +100,7 @@ function renderAllTransactionsTab() {
       <td>
         ${trans.transaction_type === 'debit' ? `
           <button class="btn btn-sm btn-outline-primary" onclick="downloadPettyCashPDF(${trans.id})" title="Download PDF">
-            <i class="fas fa-file-pdf"></i> Download Challan
+            <i class="fas fa-file-pdf"></i> PDF
           </button>
         ` : '—'}
       </td>
@@ -110,7 +110,7 @@ function renderAllTransactionsTab() {
 
 function renderExpenseHeadsTab() {
   const filteredTransactions = allTransactions.filter(t => t.cash_type === currentCashType);
-  
+
   // Group by expense head
   const groupedByHead = {};
   filteredTransactions.forEach(trans => {
@@ -119,17 +119,17 @@ function renderExpenseHeadsTab() {
     }
     groupedByHead[trans.expense_head_name].push(trans);
   });
-  
+
   const accordion = document.getElementById("expenseHeadsAccordion");
-  
+
   if (Object.keys(groupedByHead).length === 0) {
     accordion.innerHTML = '<div class="text-center text-muted" style="padding: 2rem;"><p>No expense heads yet</p></div>';
     return;
   }
-  
+
   accordion.innerHTML = Object.entries(groupedByHead).map(([headName, transactions], idx) => {
     const totalAmount = transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
-    
+
     return `
       <div style="border-bottom: 1px solid #e2e8f0;">
         <button class="collapse-header" data-bs-toggle="collapse" data-bs-target="#head-${idx}" aria-expanded="false">
@@ -213,7 +213,7 @@ async function createExpense() {
   const amount = parseFloat(document.getElementById("expenseAmount").value);
   const date = document.getElementById("expenseDate").value;
   const notes = document.getElementById("expenseNotes").value;
-  
+
   // New fields
   const to = document.getElementById("expenseTo").value;
   const paidVia = document.getElementById("expensePaidVia").value;
@@ -285,6 +285,123 @@ async function downloadPettyCashPDF(pettyCashId) {
   toggle_loader()
   window.location = `/operation-api/download-petty-cash-api/${pettyCashId}/`
   toggle_loader()  
+}
+
+
+function openOldBalanceModal() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('oldBalanceDate').value = today;
+  document.getElementById('oldBalanceResults').innerHTML = '';
+  new bootstrap.Modal(document.getElementById('oldBalanceModal')).show();
+}
+
+async function searchOldBalance() {
+  const date = document.getElementById('oldBalanceDate').value;
+
+  if (!date) {
+    alert('Please select a date');
+    return;
+  }
+
+  const resultsDiv = document.getElementById('oldBalanceResults');
+  resultsDiv.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div> Loading...';
+
+  const [ok, res] = await callApi("GET", `${endpoints.pettyCashLog}${date}/`);
+
+  if (ok && res.data && res.data.cash_data) {
+    const cashData = res.data.cash_data;
+    const expenses = res.data.expenses || [];
+
+    // Filter for current cash type only
+    if (currentCashType in cashData) {
+      const data = cashData[currentCashType];
+      
+      // Build balance summary
+      let balanceHtml = `
+        <div style="background: #f8fafc; border-radius: 8px; padding: 1.5rem; border: 1px solid #e2e8f0; margin-bottom: 1.5rem;">
+          <h6 style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem; text-transform: uppercase;">Balance Summary on ${date}</h6>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.25rem;">Opening Balance</div>
+              <div style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">₹ ${parseFloat(data.opening_balance).toFixed(2)}</div>
+            </div>
+            <div>
+              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.25rem;">Closing Balance</div>
+              <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">₹ ${parseFloat(data.closing_balance).toFixed(2)}</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div style="background: #fee2e2; padding: 1rem; border-radius: 6px;">
+              <div style="font-size: 0.75rem; color: #991b1b; margin-bottom: 0.25rem;">Total Debit (Expense)</div>
+              <div style="font-size: 1.25rem; font-weight: 700; color: #991b1b;">₹ ${parseFloat(data.total_debit).toFixed(2)}</div>
+            </div>
+            <div style="background: #dcfce7; padding: 1rem; border-radius: 6px;">
+              <div style="font-size: 0.75rem; color: #15803d; margin-bottom: 0.25rem;">Total Credit (Addition)</div>
+              <div style="font-size: 1.25rem; font-weight: 700; color: #15803d;">₹ ${parseFloat(data.total_credit).toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Build expenses table
+      let expensesHtml = '';
+      if (expenses.length > 0) {
+        expensesHtml = `
+          <div style="margin-top: 1.5rem;">
+            <h6 style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem; text-transform: uppercase;">Expenses on ${date}</h6>
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 400px; overflow-y: auto;">
+              <table class="table mb-0" style="font-size: 0.875rem;">
+                <thead style="background: #f8fafc; position: sticky; top: 0;">
+                  <tr>
+                    <th>Head</th>
+                    <th>To</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Paid Via</th>
+                    <th>Payment Type</th>
+                    <th>Paid By</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${expenses.map(exp => `
+                    <tr>
+                      <td><strong>${exp.expense_head}</strong></td>
+                      <td>${exp.to}</td>
+                      <td>
+                        <span style="background: ${exp.transaction_type === 'credit' ? '#dcfce7' : '#fee2e2'}; color: ${exp.transaction_type === 'credit' ? '#15803d' : '#991b1b'}; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; font-weight: 600;">
+                          ${exp.transaction_type === 'credit' ? 'Credit' : 'Debit'}
+                        </span>
+                      </td>
+                      <td><strong>₹ ${parseFloat(exp.amount).toFixed(2)}</strong></td>
+                      <td>
+                        <span style="background: #e0e7ff; color: #3730a3; padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">
+                          ${exp.paid_via}
+                        </span>
+                      </td>
+                      <td>
+                        <span style="background: #f3e8ff; color: #6d28d9; padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">
+                          ${exp.payment_type}
+                        </span>
+                      </td>
+                      <td>${exp.paid_by}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      } else {
+        expensesHtml = '<div class="alert alert-info mt-3">No expenses recorded for this date.</div>';
+      }
+      
+      resultsDiv.innerHTML = balanceHtml + expensesHtml;
+    } else {
+      resultsDiv.innerHTML = '<div class="alert alert-info">No data available for this date and cash type.</div>';
+    }
+  } else {
+    resultsDiv.innerHTML = '<div class="alert alert-warning">No log found for this date. Balance data will be calculated from transactions.</div>';
+  }
 }
 
 
