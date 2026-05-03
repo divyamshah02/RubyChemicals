@@ -354,6 +354,17 @@ class ExpenseHead(models.Model):
         return self.name
 
 class PettyCash(models.Model):
+    PAYMENT_TYPE_CHOICES = [
+        ('advance', 'Advance'),
+        ('part', 'Part'),
+        ('final', 'Final'),
+    ]
+    
+    PAID_VIA_CHOICES = [
+        ('online', 'Online'),
+        ('cash', 'Cash'),
+    ]
+    
     cash_account = models.ForeignKey(
         PettyCashAccount,
         on_delete=models.CASCADE,
@@ -372,6 +383,13 @@ class PettyCash(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     transaction_type = models.CharField(max_length=20, choices=[('credit', 'Credit'), ('debit', 'Debit')])
     notes = models.TextField(blank=True)
+    
+    # New Fields
+    to = models.CharField(max_length=255, blank=True, null=True, help_text="Direct recipient name")
+    paid_via = models.CharField(max_length=20, choices=PAID_VIA_CHOICES, blank=True, null=True)
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, blank=True, null=True)
+    particulars = models.TextField(blank=True, null=True, help_text="Details other than remarks")
+    paid_by = models.CharField(max_length=255, blank=True, null=True, help_text="Person who made payment")
     
     created_by = models.ForeignKey(
         'UserDetail.User',

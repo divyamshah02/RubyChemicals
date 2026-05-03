@@ -81,6 +81,29 @@ def generate_petty_cash_card(
         remarks_line += 1
 
 
+
+    can.save()
+
+    packet.seek(0)
+
+    new_pdf = PdfReader(packet)
+    existing_pdf = PdfReader(input_pdf_path)
+
+    output = PdfWriter()
+
+    page = existing_pdf.pages[0]
+    page.merge_page(new_pdf.pages[0])
+    # output.add_page(page)
+    output.add_page(page)
+    output.add_page(page)
+
+    # 👉 write to memory instead of file
+    output_stream = BytesIO()
+    output.write(output_stream)
+    output_stream.seek(0)
+
+    return output_stream
+
     can.save()
 
     # packet.seek(0)

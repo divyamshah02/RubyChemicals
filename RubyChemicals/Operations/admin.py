@@ -148,10 +148,21 @@ class ExpenseHeadAdmin(admin.ModelAdmin):
 
 @admin.register(PettyCash)
 class PettyCashAdmin(admin.ModelAdmin):
-    list_display = ('cash_account', 'expense_head', 'amount', 'transaction_type', 'expense_date')
-    list_filter = ('transaction_type', 'expense_date')
-    search_fields = ('expense_head__name',)
+    list_display = ('cash_account', 'expense_head', 'amount', 'transaction_type', 'expense_date', 'paid_via', 'payment_type')
+    list_filter = ('transaction_type', 'expense_date', 'paid_via', 'payment_type')
+    search_fields = ('expense_head__name', 'to', 'paid_by', 'particulars')
     autocomplete_fields = ('cash_account', 'expense_head')
+    fieldsets = (
+        ('Transaction Details', {
+            'fields': ('cash_account', 'expense_head', 'expense_date', 'amount', 'transaction_type')
+        }),
+        ('Payment Information', {
+            'fields': ('to', 'paid_via', 'payment_type', 'paid_by', 'particulars')
+        }),
+        ('Additional', {
+            'fields': ('notes', 'created_by')
+        }),
+    )
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('cash_account', 'expense_head')

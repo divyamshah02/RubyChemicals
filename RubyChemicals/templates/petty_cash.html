@@ -82,11 +82,15 @@
                         <thead style="background: #f8fafc; position: sticky; top: 0;">
                             <tr>
                                 <th>Date</th>
-                                <th>Expense Head / Description</th>
+                                <th>Expense Head</th>
+                                <th>To</th>
+                                <th>Paid By</th>
                                 <th>Cash Type</th>
                                 <th>Type</th>
                                 <th>Amount</th>
-                                <th>Notes</th>
+                                <th>Paid Via</th>
+                                <th>Payment Type</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="allTransactionsTable"></tbody>
@@ -131,26 +135,66 @@
 
     <!-- Add Expense Modal -->
     <div class="modal fade" id="expenseModal">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-receipt"></i> Add Expense</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <label class="form-label">Expense Head</label>
-                    <select id="expenseHead" class="form-control mb-3"></select>
-                    <label class="form-label">Amount (₹)</label>
-                    <input id="expenseAmount" class="form-control mb-3" placeholder="0.00" type="number">
-                    <label class="form-label">Expense Date</label>
-                    <input id="expenseDate" type="date" class="form-control mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Expense Head</label>
+                            <select id="expenseHead" class="form-control mb-3"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Amount (₹)</label>
+                            <input id="expenseAmount" class="form-control mb-3" placeholder="0.00" type="number">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Expense Date</label>
+                            <input id="expenseDate" type="date" class="form-control mb-3">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">To (Recipient)</label>
+                            <input id="expenseTo" class="form-control mb-3" placeholder="e.g., Dynamic Labz" type="text">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Paid Via</label>
+                            <select id="expensePaidVia" class="form-control mb-3">
+                                <option value="">Select</option>
+                                <option value="online">Online</option>
+                                <option value="cash">Cash</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Payment Type</label>
+                            <select id="expensePaymentType" class="form-control mb-3">
+                                <option value="">Select</option>
+                                <option value="advance">Advance</option>
+                                <option value="part">Part</option>
+                                <option value="final">Final</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Paid By</label>
+                            <input id="expensePaidBy" class="form-control mb-3" placeholder="e.g., Divyam Shah" type="text">
+                        </div>
+                    </div>
+                    <label class="form-label">Particulars</label>
+                    <textarea id="expenseParticulars" class="form-control mb-3" placeholder="Details other than remarks..."></textarea>
                     <label class="form-label">Notes (Optional)</label>
-                    <input id="expenseNotes" class="form-control" placeholder="Add notes...">
+                    <textarea id="expenseNotes" class="form-control" placeholder="Add notes..."></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-primary" onclick="createExpense()"><i class="fas fa-save"></i> Save
-                        Expense</button>
+                    <button class="btn btn-primary" onclick="createExpense()"><i class="fas fa-save"></i> Save Expense</button>
                 </div>
             </div>
         </div>

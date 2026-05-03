@@ -10,6 +10,7 @@ from decimal import Decimal
 from datetime import datetime
 from utils.create_product_card_pdf import generate_production_card
 from utils.create_dispatch_pdf import generate_challan
+from utils.create_petty_cash_pdf import generate_petty_cash_card
 
 class StockGroupViewSet(viewsets.ViewSet):
 
@@ -48,6 +49,86 @@ class StockGroupViewSet(viewsets.ViewSet):
             "data": StockGroupSerializer(group).data,
             "error": None
         }, status=201)
+
+
+class DownloadPettyCashPDFViewSet(viewsets.ViewSet):
+    
+    @handle_exceptions
+    @check_authentication()
+    def retrieve(self, request, pk):
+        """Generate and download petty cash PDF"""
+        try:
+            petty_cash = PettyCash.objects.select_related(
+                'cash_account', 'expense_head', 'created_by'
+            ).get(id=pk)
+            
+            # Only allow downloading debit transactions
+            if petty_cash.transaction_type != 'debit':
+                return Response({
+                    "success": False,
+                    "user_not_logged_in": False,
+                    "user_unauthorized": False,
+                    "data": None,
+                    "error": "PDF generation only available for debit transactions"
+                }, status=400)
+            
+            # Prepare data for PDF
+            data = {
+                "id": petty_cash.id,
+                "challan_no": str(petty_cash.id),
+                "date": str(petty_cash.expense_date),
+                "to": petty_cash.to or "N/A",
+                "expense_head": petty_cash.expense_head.name if petty_cash.expense_head else "N/A",
+                "paid_via": petty_cash.paid_via or "N/A",
+                "payment_type": petty_cash.payment_type or "N/A",
+                "particulars": petty_cash.particulars or "N/A",
+                "amount": str(petty_cash.amount),
+                "total_amount": str(petty_cash.amount),
+                "remarks": petty_cash.notes or "",
+                "paid_by": petty_cash.paid_by or "N/A"
+            }
+            
+            # Generate PDF
+            output_stream = generate_petty_cash_card(
+                input_pdf_path=r"petty_cash_template.pdf",
+                output_pdf_path="petty_cash_output.pdf",
+                challan_no=data["challan_no"],
+                date=data["date"],
+                to=data["to"],
+                expense_head=data["expense_head"],
+                paid_via=data["paid_via"],
+                payment_type=data["payment_type"],
+                particulars=data["particulars"],
+                amount=data["amount"],
+                total_amount=data["total_amount"],
+                remarks=data["remarks"],
+                paid_by=data["paid_by"],
+            )
+            
+            response = HttpResponse(
+                output_stream,
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="petty_cash_{petty_cash.id}.pdf"'
+            
+            return response
+            
+        except PettyCash.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Petty cash transaction not found"
+            }, status=404)
+        except Exception as e:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": f"PDF generation failed: {str(e)}"
+            }, status=400)
 
     @handle_exceptions
     @check_authentication()
@@ -1931,6 +2012,11 @@ class PettyCashViewSet(viewsets.ViewSet):
                 'amount': str(trans.amount),
                 'transaction_type': trans.transaction_type,
                 'notes': trans.notes,
+                'to': trans.to,
+                'paid_via': trans.paid_via,
+                'payment_type': trans.payment_type,
+                'particulars': trans.particulars,
+                'paid_by': trans.paid_by,
                 'created_by': trans.created_by.username if trans.created_by else 'System',
             })
         
@@ -1952,6 +2038,13 @@ class PettyCashViewSet(viewsets.ViewSet):
         expense_date = request.data.get("expense_date")
         transaction_type = request.data.get("transaction_type")  # 'credit' or 'debit'
         notes = request.data.get("notes", "")
+        
+        # New fields
+        to = request.data.get("to", "")
+        paid_via = request.data.get("paid_via", "")
+        payment_type = request.data.get("payment_type", "")
+        particulars = request.data.get("particulars", "")
+        paid_by = request.data.get("paid_by", "")
         
         if not all([cash_type, amount, expense_date, transaction_type]):
             return Response({
@@ -1979,6 +2072,11 @@ class PettyCashViewSet(viewsets.ViewSet):
                 amount=amount,
                 transaction_type=transaction_type,
                 notes=notes,
+                to=to if to else None,
+                paid_via=paid_via if paid_via else None,
+                payment_type=payment_type if payment_type else None,
+                particulars=particulars if particulars else None,
+                paid_by=paid_by if paid_by else None,
                 created_by=request.user
             )
             

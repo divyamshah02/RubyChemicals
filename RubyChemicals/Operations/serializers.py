@@ -100,7 +100,12 @@ class PettyCashSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PettyCash
-        fields = "__all__"
+        fields = [
+            "id", "cash_account", "expense_head", "expense_head_name", 
+            "expense_date", "amount", "transaction_type", "notes",
+            "to", "paid_via", "payment_type", "paid_by", "particulars",
+            "created_by", "created_at"
+        ]
 
 
 class ClientAddressSerializer(serializers.ModelSerializer):

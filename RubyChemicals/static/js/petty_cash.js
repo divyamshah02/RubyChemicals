@@ -64,7 +64,7 @@ function renderAllTransactionsTab() {
   const filteredTransactions = allTransactions.filter(t => t.cash_type === currentCashType);
   
   if (filteredTransactions.length === 0) {
-    table.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No transactions</td></tr>';
+    table.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No transactions</td></tr>';
     return;
   }
   
@@ -73,8 +73,9 @@ function renderAllTransactionsTab() {
       <td>${trans.expense_date}</td>
       <td>
         <strong>${trans.expense_head_name}</strong>
-        ${trans.notes ? `<br><small style="color: #64748b;">${trans.notes}</small>` : ''}
       </td>
+      <td>${trans.to || '—'}</td>
+      <td>${trans.paid_by || '—'}</td>
       <td>
         <span style="background: ${trans.cash_type === 'office' ? '#dbeafe' : '#fef3c7'}; color: ${trans.cash_type === 'office' ? '#1e40af' : '#92400e'}; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
           ${trans.cash_type === 'office' ? 'Office' : 'Factory'}
@@ -86,7 +87,23 @@ function renderAllTransactionsTab() {
         </span>
       </td>
       <td><strong>₹ ${parseFloat(trans.amount).toFixed(2)}</strong></td>
-      <td>${trans.notes ? trans.notes.substring(0, 30) : '—'}</td>
+      <td>
+        <span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">
+          ${trans.paid_via ? trans.paid_via.charAt(0).toUpperCase() + trans.paid_via.slice(1) : '—'}
+        </span>
+      </td>
+      <td>
+        <span style="background: #f3e8ff; color: #6d28d9; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">
+          ${trans.payment_type ? trans.payment_type.charAt(0).toUpperCase() + trans.payment_type.slice(1) : '—'}
+        </span>
+      </td>
+      <td>
+        ${trans.transaction_type === 'debit' ? `
+          <button class="btn btn-sm btn-outline-primary" onclick="downloadPettyCashPDF(${trans.id})" title="Download PDF">
+            <i class="fas fa-file-pdf"></i> Download Challan
+          </button>
+        ` : '—'}
+      </td>
     </tr>
   `).join("");
 }
@@ -196,6 +213,13 @@ async function createExpense() {
   const amount = parseFloat(document.getElementById("expenseAmount").value);
   const date = document.getElementById("expenseDate").value;
   const notes = document.getElementById("expenseNotes").value;
+  
+  // New fields
+  const to = document.getElementById("expenseTo").value;
+  const paidVia = document.getElementById("expensePaidVia").value;
+  const paymentType = document.getElementById("expensePaymentType").value;
+  const particulars = document.getElementById("expenseParticulars").value;
+  const paidBy = document.getElementById("expensePaidBy").value;
 
   if (!headId || !amount || !date) {
     alert("Please fill all required fields");
@@ -208,7 +232,12 @@ async function createExpense() {
     expense_date: date,
     amount: amount,
     transaction_type: 'debit',
-    notes: notes
+    notes: notes,
+    to: to,
+    paid_via: paidVia,
+    payment_type: paymentType,
+    particulars: particulars,
+    paid_by: paidBy
   };
 
   const [ok, res] = await callApi("POST", endpoints.cash, payload, csrf);
@@ -218,6 +247,11 @@ async function createExpense() {
     document.getElementById("expenseDate").value = "";
     document.getElementById("expenseNotes").value = "";
     document.getElementById("expenseHead").value = "";
+    document.getElementById("expenseTo").value = "";
+    document.getElementById("expensePaidVia").value = "";
+    document.getElementById("expensePaymentType").value = "";
+    document.getElementById("expenseParticulars").value = "";
+    document.getElementById("expensePaidBy").value = "";
     const modal = bootstrap.Modal.getInstance(document.getElementById("expenseModal"));
     if (modal) modal.hide();
     loadAccountBalance();
@@ -245,5 +279,13 @@ async function createHead() {
     alert("Error: " + (res.error || "Failed to add head"));
   }
 }
+
+async function downloadPettyCashPDF(pettyCashId) {
+
+  toggle_loader()
+  window.location = `/operation-api/download-petty-cash-api/${pettyCashId}/`
+  toggle_loader()  
+}
+
 
 
