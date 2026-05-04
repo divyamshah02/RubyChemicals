@@ -15,6 +15,21 @@ from utils.create_petty_cash_pdf import generate_petty_cash_card
 class StockGroupViewSet(viewsets.ViewSet):
 
     @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        groups = StockGroup.objects.filter(is_active=True).order_by("name")
+        data = StockGroupSerializer(groups, many=True).data
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": data,
+            "error": None
+        }, status=200)
+
+
+    @handle_exceptions
     @check_authentication(required_role='admin')
     def create(self, request):
         name = request.data.get("name")
@@ -129,21 +144,7 @@ class DownloadPettyCashPDFViewSet(viewsets.ViewSet):
                 "data": None,
                 "error": f"PDF generation failed: {str(e)}"
             }, status=400)
-
-    @handle_exceptions
-    @check_authentication()
-    def list(self, request):
-        groups = StockGroup.objects.filter(is_active=True).order_by("name")
-        data = StockGroupSerializer(groups, many=True).data
-
-        return Response({
-            "success": True,
-            "user_not_logged_in": False,
-            "user_unauthorized": False,
-            "data": data,
-            "error": None
-        }, status=200)
-
+    
 
 class StockItemViewSet(viewsets.ViewSet):
 
@@ -624,7 +625,6 @@ class TodayStockLogViewSet(viewsets.ViewSet):
     """
 
     @handle_exceptions
-    @check_authentication()
     def list(self, request):
         """Get or generate today's stock log with all current stock items"""
         from datetime import date
@@ -2285,7 +2285,6 @@ class TodayPettyCashLogViewSet(viewsets.ViewSet):
     """Create/Update today's petty cash log in database"""
     
     @handle_exceptions
-    @check_authentication()
     def list(self, request):
         """Create or update today's petty cash log in database"""
         from datetime import date as date_class
