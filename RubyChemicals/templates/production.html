@@ -584,9 +584,29 @@
             renderKPIStats();
         };
 
+
+        function get_max_produciton_code() {
+            let maxProdCode = null;
+            document.querySelectorAll('.is_a_prod_code').forEach(el => {
+                const value = el.textContent.trim();
+            
+                // Skip non-numeric values
+                if (!/^\d+$/.test(value)) return;
+            
+                const num = Number(value);
+            
+                if (maxProdCode === null || num > maxProdCode) {
+                    maxProdCode = num;
+                }
+            });
+            
+            document.getElementById('productionCode').value = maxProdCode !== null ? (maxProdCode + 1).toString() : '1';
+        }
+
         // Initialize when card modal opens
         const productionCardModal = document.getElementById("productionCardModal")
         productionCardModal.addEventListener("show.bs.modal", function () {
+            get_max_produciton_code()
             const rawList = document.getElementById("rawList")
             const batchesList = document.getElementById("batchesList")
             if (rawList.innerHTML === "") {

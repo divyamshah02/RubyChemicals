@@ -26,7 +26,7 @@ class AdminDashboardViewSet(viewsets.ViewSet):
         
         # Production cards - unaccounted with batch and consumption counts (latest 5)
         unaccounted_cards_list = []
-        for card in ProductionCard.objects.filter(accounted=False, is_active=True).select_related('product').order_by('-production_date')[:5].values('id', 'production_code', 'production_date', 'total_output_quantity', 'unit', 'accounted'):
+        for card in ProductionCard.objects.filter(accounted=False, is_active=True).select_related('product').order_by('-production_date').values('id', 'production_code', 'production_date', 'total_output_quantity', 'unit', 'accounted'):
             batch_count = ProductionBatch.objects.filter(production_card_id=card['id']).count()
             consumption_count = ProductionConsumption.objects.filter(production_card_id=card['id']).count()
             card['batch_count'] = batch_count
@@ -35,7 +35,7 @@ class AdminDashboardViewSet(viewsets.ViewSet):
         
         # Latest dispatches (pending accounting, latest 5)
         pending_dispatches = []
-        for dispatch in Dispatch.objects.filter(accounted=False, is_active=True).select_related('client').prefetch_related('items').order_by('-dispatch_date')[:5]:
+        for dispatch in Dispatch.objects.filter(accounted=False, is_active=True).select_related('client').prefetch_related('items').order_by('-dispatch_date'):
             item_count = dispatch.items.count()
             total_qty = sum(float(item.quantity) for item in dispatch.items.all())
             pending_dispatches.append({
@@ -53,7 +53,7 @@ class AdminDashboardViewSet(viewsets.ViewSet):
         
         # Pending inwards (unaccounted stock inwards, latest 5)
         pending_inwards = []
-        for inward in VendorInward.objects.filter(accounted=False, is_active=True).select_related('vendor').prefetch_related('items').order_by('-inward_date')[:5]:
+        for inward in VendorInward.objects.filter(accounted=False, is_active=True).select_related('vendor').prefetch_related('items').order_by('-inward_date'):
             item_count = inward.items.filter(is_active=True).count()
             pending_inwards.append({
                 'id': inward.id,

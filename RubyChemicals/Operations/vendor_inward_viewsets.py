@@ -62,6 +62,7 @@ class VendorInwardViewSet(viewsets.ViewSet):
                 "quantity": item.quantity,
                 "notes": item.notes,
                 "date": item.date,
+                "unit": item.stock_item.unit
             })
 
         data = {
@@ -72,6 +73,7 @@ class VendorInwardViewSet(viewsets.ViewSet):
             "vendor_name": inward.vendor.company_name,
             "accounted": inward.accounted,
             "invoice_number": inward.invoice_number,
+            "invoice_value": float(inward.invoice_value) if inward.invoice_value else None,
             "pdf": None if not inward.pdf else inward.pdf.url,
             "image": None if not inward.image else inward.image.url,
             "notes": inward.notes,
@@ -87,13 +89,14 @@ class VendorInwardViewSet(viewsets.ViewSet):
             "error": None
         }, status=200)
 
-    # @handle_exceptions
     @check_authentication()
     def create(self, request):
         """Create new vendor inward entry"""
         vendor_id = request.data.get("vendor")
         inward_date = request.data.get("inward_date")        
         notes = request.data.get("notes", "")
+        invoice_number = request.data.get("invoice_number", "")
+        invoice_value = request.data.get("invoice_value", None)
         items_data = request.data.get("items", [])
         items_data = json.loads(items_data)
         image = request.FILES.get("image", None)
@@ -123,7 +126,9 @@ class VendorInwardViewSet(viewsets.ViewSet):
             # Create vendor inward entry
             inward = VendorInward.objects.create(
                 inward_date=inward_date,
-                vendor=vendor,                
+                vendor=vendor,
+                invoice_number=invoice_number,
+                invoice_value=invoice_value if invoice_value else None,
                 notes=notes,
                 created_by=request.user
             )
@@ -256,3 +261,107 @@ class VendorInwardViewSet(viewsets.ViewSet):
                 "data": None,
                 "error": "Vendor inward not found"
             }, status=404)
+
+    @handle_exceptions
+    @check_authentication()
+    def update(self, request, pk=None):
+        """Update vendor inward entry"""
+        try:
+            inward = VendorInward.objects.get(id=pk, is_active=True)
+        except VendorInward.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Vendor inward not found"
+            }, status=404)
+
+        # Update basic fields
+        inward_date = request.data.get("inward_date", inward.inward_date)
+        notes = request.data.get("notes", inward.notes)
+        invoice_number = request.data.get("invoice_number", inward.invoice_number)
+        invoice_value = request.data.get("invoice_value", inward.invoice_value)
+        items_data = request.data.get("items", None)
+        image = request.FILES.get("image", None)
+
+        if items_data:
+            items_data = json.loads(items_data)
+
+        with transaction.atomic():
+            # Reverse old quantities if items changed
+            if items_data:
+                for item in inward.items.filter(is_active=True):
+                    item.stock_item.current_quantity -= item.quantity
+                    item.stock_item.save()
+                
+                # Delete old items
+                inward.items.all().delete()
+                
+                # Add new items
+                stock_ids = [item["stock_item_id"] for item in items_data]
+                items = StockItem.objects.select_for_update().filter(id__in=stock_ids)
+                item_map = {item.id: item for item in items}
+
+                for item_data in items_data:
+                    stock_item_id = item_data.get("stock_item_id")
+                    quantity = item_data.get("quantity")
+                    item_notes = item_data.get("notes", "")
+
+                    try:
+                        quantity = float(quantity)
+                        if quantity <= 0:
+                            raise ValueError
+                    except:
+                        return Response({
+                            "success": False,
+                            "user_not_logged_in": False,
+                            "user_unauthorized": False,
+                            "data": None,
+                            "error": "Quantity must be a positive number"
+                        }, status=400)
+
+                    try:
+                        stock_item = item_map[stock_item_id]
+                    except KeyError:
+                        return Response({
+                            "success": False,
+                            "user_not_logged_in": False,
+                            "user_unauthorized": False,
+                            "data": None,
+                            "error": "Invalid stock item"
+                        }, status=404)
+
+                    StockInward.objects.create(
+                        inward_entry=inward,
+                        date=inward_date,
+                        stock_item=stock_item,
+                        quantity=quantity,
+                        notes=item_notes,
+                        created_by=request.user
+                    )
+
+                    stock_item.current_quantity += Decimal(quantity)
+                    stock_item.save()
+
+            # Update basic fields
+            inward.inward_date = inward_date
+            inward.notes = notes
+            inward.invoice_number = invoice_number
+            inward.invoice_value = invoice_value if invoice_value else None
+            
+            if image:
+                inward.image = image
+            
+            inward.save()
+
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": {
+                    "id": inward.id,
+                    "inward_code": inward.inward_code
+                },
+                "error": None
+            }, status=200)

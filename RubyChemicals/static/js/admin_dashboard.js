@@ -322,12 +322,14 @@ function openMarkInwardAccountedModal() {
     if (modal) modal.hide();
     
     document.getElementById("inwardInvoiceNumber").value = "";
+    document.getElementById("inwardInvoiceValue").value = "";
     document.getElementById("inwardPdfFile").value = "";
     new bootstrap.Modal(document.getElementById("markInwardAccountedModal")).show();
 }
 
 async function submitMarkInwardAccounted() {
     const invoiceNumber = document.getElementById("inwardInvoiceNumber").value.trim();
+    const invoiceValue = document.getElementById("inwardInvoiceValue").value.trim();
     const pdfFile = document.getElementById("inwardPdfFile").files[0] || null;
     
     if (!invoiceNumber) {
@@ -338,6 +340,7 @@ async function submitMarkInwardAccounted() {
     const formData = new FormData();
     formData.append("inward_id", currentInwardId);
     formData.append("invoice_number", invoiceNumber);
+    formData.append("invoice_value", invoiceValue);
     if (pdfFile) {
         formData.append("pdf", pdfFile);
     }

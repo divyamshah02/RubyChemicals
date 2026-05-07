@@ -486,6 +486,17 @@
                         </div>
                     </div>
 
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Invoice Number</label>
+                            <input type="text" class="form-control" id="createInwardInvoiceNumber" placeholder="Enter invoice number" style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Invoice Value (₹)</label>
+                            <input type="number" class="form-control" id="createInwardInvoiceValue" placeholder="Enter invoice value" step="0.01" style="border-radius: 8px;">
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Stock Items *</label>
                         <div class="items-list" id="createInwardItems">
@@ -534,6 +545,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Stock Item *</label>
+                        <input type="text" id="stockSearch" placeholder="Search item..." class="form-control mb-2" style="border-radius: 8px;">
                         <select class="form-control" id="addInwardItemStockItem" style="border-radius: 8px;"></select>
                     </div>
                     <div class="mb-3">
@@ -572,24 +584,46 @@
                         </div>
                         <div>
                             <label style="font-weight: 600; color: #475569;">Inward Date</label>
-                            <div id="viewInwardDate" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;">
+                            <div id="viewInwardDate" style="font-size: 1.25rem; font-weight: 700; color: #3b82f6; margin-top: 0.5rem;">
                             </div>
                         </div>
                         <div>
                             <label style="font-weight: 600; color: #475569;">Vendor</label>
-                            <div id="viewInwardVendor" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;">
+                            <div id="viewInwardVendor" style="font-size: 1.25rem; font-weight: 700; color: #3b82f6; margin-top: 0.5rem;">
                             </div>
                         </div>
                         <div>
                             <label style="font-weight: 600; color: #475569;">Accounted</label>
-                            <div id="viewInwardAccounted" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <div id="viewInwardAccounted" style="font-size: 1.25rem; font-weight: 700; color: #3b82f6; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Invoice Number</label>
+                            <div id="viewInwardInvoiceNumber" style="font-size: 1.25rem; font-weight: 700; color: #3b82f6; margin-top: 0.5rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #475569;">Invoice Value</label>
+                            <div id="viewInwardInvoiceValue" style="font-size: 1.25rem; font-weight: 700; color: #3b82f6; margin-top: 0.5rem;"></div>
                         </div>
                     </div>
 
                     <div>
                         <label
                             style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.75rem;">Items</label>
-                        <div class="items-list" id="viewInwardItems"></div>
+                        <div class="data-table" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Item Name</th>
+                                        <th>Quantity</th>
+                                        <th>Unit</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="viewInwardItems">
+                                    <tr><td colspan="4" class="text-center text-muted">No items</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <div style="margin-top: 1.5rem;">
@@ -708,6 +742,7 @@
                 populateGroupSelect();
                 renderStockGroups();
             }
+            initSearchableSelect("stockSearch", "addInwardItemStockItem");
         }
 
         function updateStats() {
@@ -1031,6 +1066,50 @@
 
         // Load data on page load
         loadData();
+
+        function initSearchableSelect(inputId, selectId) {
+            const input = document.getElementById(inputId);
+            const select = document.getElementById(selectId);
+
+            input.addEventListener("input", function () {
+                const searchValue = input.value.toLowerCase();
+
+                const options = Array.from(select.options);
+
+                // keep first option fixed (like "Select Stock Item")
+                const firstOption = options[0];
+                const rest = options.slice(1);
+
+                const matched = [];
+                const unmatched = [];
+
+                rest.forEach(option => {
+                    if (option.text.toLowerCase().includes(searchValue)) {
+                        matched.push(option);
+                    } else {
+                        unmatched.push(option);
+                    }
+                });
+
+                // clear ONLY once
+                select.innerHTML = "";
+
+                // re-append in order
+                select.appendChild(firstOption);
+                matched.forEach(opt => select.appendChild(opt));
+                unmatched.forEach(opt => select.appendChild(opt));
+
+                // force open dropdown
+                select.size = 10;
+            });
+
+            input.addEventListener("blur", function () {
+                setTimeout(() => {
+                    select.size = 1;
+                }, 200);
+            });
+        }
+
     </script>
 </body>
 </html>

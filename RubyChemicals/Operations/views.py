@@ -718,6 +718,7 @@ class MarkVendorInwardAccountedViewSet(viewsets.ViewSet):
         """Mark vendor inward as accounted"""
         inward_id = request.data.get("inward_id")
         invoice_number = request.data.get("invoice_number", "")
+        invoice_value = request.data.get("invoice_value", "")
         pdf = request.FILES.get("pdf", None)
         
         if not inward_id:
@@ -733,6 +734,7 @@ class MarkVendorInwardAccountedViewSet(viewsets.ViewSet):
             inward = VendorInward.objects.get(id=inward_id)
             inward.accounted = True
             inward.invoice_number = invoice_number
+            inward.invoice_value = invoice_value
             if pdf:
                 inward.pdf = pdf
             inward.save()

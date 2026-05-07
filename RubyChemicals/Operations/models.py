@@ -137,6 +137,7 @@ class VendorInward(models.Model):
     # Accounting Details
     accounted = models.BooleanField(default=False, help_text="Mark as accounted in books")
     invoice_number = models.CharField(max_length=100, blank=True, null=True, help_text="Invoice number for accounting")
+    invoice_value = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     pdf = models.FileField(upload_to='inward_pdfs/', blank=True, null=True, help_text="Invoice/Inward PDF")
     image = models.ImageField(upload_to='inward_images/', blank=True, null=True, help_text="Inward receipt/proof image")
     

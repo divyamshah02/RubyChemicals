@@ -140,7 +140,7 @@ async function loadBatches() {
     const rows = res.data.map(b => `
       <tr>
         <td><span class="production-code">${b.batch_code}</span></td>
-        <td>${b.production_code || 'N/A'}</td>
+        <td class="is_a_prod_code">${b.production_code || 'N/A'}</td>
         <td>${CustomformatDate(b.production_date) || 'N/A'}</td>
         <td>${b.product_name}</td>
         <td><strong>${b.output_quantity}</strong> ${b.product_unit}</td>        

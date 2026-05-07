@@ -82,6 +82,8 @@ async function openCreateInwardModal() {
     currentInwardId = null;
     document.getElementById("createInwardVendor").value = "";
     document.getElementById("createInwardDate").valueAsDate = new Date();
+    document.getElementById("createInwardInvoiceNumber").value = "";
+    document.getElementById("createInwardInvoiceValue").value = "";
     document.getElementById("createInwardNotes").value = "";
     document.getElementById("createInwardImage").value = "";
     document.getElementById("createInwardItems").innerHTML = 
@@ -158,6 +160,8 @@ function removeInwardItem(idx) {
 async function submitInward() {
     const vendorId = parseInt(document.getElementById("createInwardVendor").value);
     const inwardDate = document.getElementById("createInwardDate").value;
+    const invoiceNumber = document.getElementById("createInwardInvoiceNumber").value;
+    const invoiceValue = document.getElementById("createInwardInvoiceValue").value;
     const notes = document.getElementById("createInwardNotes").value;
     const imageFile = document.getElementById("createInwardImage").files[0] || null;
 
@@ -171,20 +175,24 @@ async function submitInward() {
     formData.append("inward_date", inwardDate);
     formData.append("vendor", vendorId);    
     formData.append("notes", notes);
+    formData.append("invoice_number", invoiceNumber);
+    if (invoiceValue) formData.append("invoice_value", invoiceValue);
     formData.append("items", JSON.stringify(inwardItems));
     
     if (imageFile) {
         formData.append("image", imageFile);
     }
 
-    const [ok, res] = await callApi("POST", endpoints.vendorInwards, formData, csrf, true);
+    const endpoint = currentInwardId ? endpoints.vendorInwards + currentInwardId + "/" : endpoints.vendorInwards;
+    const method = currentInwardId ? "PUT" : "POST";
+    const [ok, res] = await callApi(method, endpoint, formData, csrf, true);
     
     if (ok) {
         bootstrap.Modal.getInstance(document.getElementById("createInwardModal")).hide();
         document.getElementById("createInwardImage").value = "";
         loadVendorInwards();
     } else {
-        alert("Error creating inward: " + JSON.stringify(res.error || res));
+        alert("Error: " + JSON.stringify(res.error || res));
     }
 }
 
@@ -198,6 +206,8 @@ async function viewInward(inwardId) {
         document.getElementById("viewInwardDate").textContent = inward.inward_date;
         document.getElementById("viewInwardVendor").textContent = inward.vendor_name || 'N/A';
         document.getElementById("viewInwardAccounted").textContent = inward.accounted ? 'Yes' : 'No';
+        document.getElementById("viewInwardInvoiceNumber").textContent = inward.invoice_number || 'N/A';
+        document.getElementById("viewInwardInvoiceValue").textContent = inward.invoice_value ? '₹' + parseFloat(inward.invoice_value).toFixed(2) : 'N/A';
         document.getElementById("viewInwardNotes").value = inward.notes || '';
 
         // Handle PDF display
@@ -226,21 +236,49 @@ async function viewInward(inwardId) {
             let itemsHtml = '';
             inward.items.forEach(item => {
                 itemsHtml += `
-                    <div class="item-row">
-                        <div class="item-info">
-                            <div class="item-name">${item.stock_item_name}</div>
-                            <div class="item-qty">Quantity: ${item.quantity}</div>
-                            ${item.notes ? '<div class="item-qty" style="color: #3b82f6;">Notes: ' + item.notes + '</div>' : ''}
-                        </div>
-                    </div>
+                    <tr>
+                        <td>${item.stock_item_name}</td>
+                        <td><strong>${item.quantity}</strong></td>
+                        <td>${item.unit ? `${item.unit}` : 'N/A'}</td>
+                        <td>${item.notes || '-'}</td>
+                    </tr>
                 `;
             });
             document.getElementById("viewInwardItems").innerHTML = itemsHtml;
         } else {
-            document.getElementById("viewInwardItems").innerHTML = '<p class="text-muted">No items</p>';
+            document.getElementById("viewInwardItems").innerHTML = '<tr><td colspan="4" class="text-center text-muted">No items</td></tr>';
         }
 
         const modal = new bootstrap.Modal(document.getElementById("viewInwardModal"));
+        modal.show();
+    } else {
+        alert("Error loading inward details");
+    }
+}
+
+async function editInward(inwardId) {
+    const [ok, res] = await callApi("GET", endpoints.vendorInwards + inwardId + "/");
+    
+    if (ok && res.data) {
+        const inward = res.data;
+        currentInwardId = inwardId;
+        
+        document.getElementById("createInwardVendor").value = inward.vendor;
+        document.getElementById("createInwardDate").value = inward.inward_date;
+        document.getElementById("createInwardInvoiceNumber").value = inward.invoice_number || "";
+        document.getElementById("createInwardInvoiceValue").value = inward.invoice_value || "";
+        document.getElementById("createInwardNotes").value = inward.notes || "";
+        
+        // Load items
+        inwardItems = inward.items.map(item => ({
+            stock_item_id: item.stock_item,
+            quantity: item.quantity,
+            notes: item.notes,
+            item_name: item.stock_item_name
+        }));
+        renderInwardItems();
+        
+        const modal = new bootstrap.Modal(document.getElementById("createInwardModal"));
         modal.show();
     } else {
         alert("Error loading inward details");
