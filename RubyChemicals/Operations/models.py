@@ -8,7 +8,7 @@ class StockGroup(models.Model):
     description = models.TextField(blank=True)
 
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return self.name
@@ -54,7 +54,7 @@ class StockItem(models.Model):
     )
 
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         unique_together = ('name', 'group')
@@ -73,7 +73,7 @@ class StockLog(models.Model):
     """
     date = models.DateField(unique=True, db_index=True)
     stock_data = models.JSONField(default=dict)  # {stock_id: {name, qty, unit}}
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -92,7 +92,7 @@ class VendorProfile(models.Model):
     notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
@@ -118,7 +118,7 @@ class VendorAddress(models.Model):
     
     is_default = models.BooleanField(default=False)
     
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
@@ -148,7 +148,7 @@ class VendorInward(models.Model):
         on_delete=models.SET_NULL,
         null=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
@@ -193,7 +193,7 @@ class StockInward(models.Model):
         on_delete=models.SET_NULL,
         null=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
@@ -220,7 +220,7 @@ class StockAdjustment(models.Model):
         on_delete=models.SET_NULL,
         null=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"Adjustment - {self.stock_item.name}"
@@ -259,7 +259,7 @@ class ProductionCard(models.Model):
         on_delete=models.SET_NULL,
         null=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     
@@ -300,7 +300,7 @@ class ProductionBatch(models.Model):
         on_delete=models.SET_NULL,
         null=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
     
     def __str__(self):
@@ -340,7 +340,7 @@ class PettyCashAccount(models.Model):
     cash_type = models.CharField(max_length=20, choices=CASH_TYPE_CHOICES, unique=True)
     current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     credit_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
@@ -349,7 +349,7 @@ class PettyCashAccount(models.Model):
 class ExpenseHead(models.Model):
     name = models.CharField(max_length=100, unique=True)
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     
     def __str__(self):
         return self.name
@@ -398,10 +398,11 @@ class PettyCash(models.Model):
         null=True,
         blank=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    is_active = models.BooleanField(default=True, help_text="Soft delete flag - False means deleted")
     
     def __str__(self):
-        return f"{self.cash_account.get_cash_type_display()} - {self.expense_head.name} - {self.amount}"
+        return f"{self.cash_account.get_cash_type_display()} - {self.amount}"
 
 
 class PettyCashLog(models.Model):
@@ -413,7 +414,7 @@ class PettyCashLog(models.Model):
     """
     date = models.DateField(db_index=True)
     cash_data = models.JSONField(default=dict)  # {cash_type: {opening_bal, closing_bal, total_debit, total_credit}}
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -433,7 +434,7 @@ class ClientProfile(models.Model):
     notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
@@ -462,7 +463,7 @@ class ClientAddress(models.Model):
 
     is_default = models.BooleanField(default=False)
     
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
@@ -503,7 +504,7 @@ class Dispatch(models.Model):
         on_delete=models.SET_NULL,
         null=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
@@ -541,7 +542,7 @@ class DispatchItem(models.Model):
     ])
     
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.stock_item.name} - {self.quantity} {self.unit}"

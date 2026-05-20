@@ -160,7 +160,7 @@ class PettyCashAdmin(admin.ModelAdmin):
             'fields': ('to', 'paid_via', 'payment_type', 'paid_by', 'particulars')
         }),
         ('Additional', {
-            'fields': ('notes', 'created_by')
+            'fields': ('notes', 'created_by', 'is_active')
         }),
     )
 

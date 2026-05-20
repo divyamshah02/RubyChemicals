@@ -257,6 +257,78 @@
         </div>
     </div>
 
+    <!-- Edit Expense Modal -->
+    <div class="modal fade" id="editExpenseModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Expense</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editTransactionId">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Expense Head</label>
+                            <select id="editExpenseHead" class="form-control mb-3"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Amount (₹)</label>
+                            <input id="editExpenseAmount" class="form-control mb-3" placeholder="0.00" type="number">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Expense Date</label>
+                            <input id="editExpenseDate" type="date" class="form-control mb-3">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">To (Recipient)</label>
+                            <input id="editExpenseTo" class="form-control mb-3" placeholder="e.g., Dynamic Labz"
+                                type="text">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Paid Via</label>
+                            <select id="editExpensePaidVia" class="form-control mb-3">
+                                <option value="">Select</option>
+                                <option value="online">Online</option>
+                                <option value="cash">Cash</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Payment Type</label>
+                            <select id="editExpensePaymentType" class="form-control mb-3">
+                                <option value="">Select</option>
+                                <option value="advance">Advance</option>
+                                <option value="part">Part</option>
+                                <option value="final">Final</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Paid By</label>
+                            <input id="editExpensePaidBy" class="form-control mb-3" placeholder="e.g., Divyam Shah"
+                                type="text">
+                        </div>
+                    </div>
+                    <label class="form-label">Particulars</label>
+                    <textarea id="editExpenseParticulars" class="form-control mb-3"
+                        placeholder="Details other than remarks..."></textarea>
+                    <label class="form-label">Notes (Optional)</label>
+                    <textarea id="editExpenseNotes" class="form-control" placeholder="Add notes..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" onclick="updateTransaction()"><i class="fas fa-save"></i> Update
+                        Expense</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Old Balance Modal -->
     <div class="modal fade" id="oldBalanceModal">
         <div class="modal-dialog modal-lg">

@@ -104,7 +104,7 @@ class PettyCashSerializer(serializers.ModelSerializer):
             "id", "cash_account", "expense_head", "expense_head_name", 
             "expense_date", "amount", "transaction_type", "notes",
             "to", "paid_via", "payment_type", "paid_by", "particulars",
-            "created_by", "created_at"
+            "created_by", "created_at", "is_active"
         ]
 
 

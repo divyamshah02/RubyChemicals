@@ -1998,11 +1998,11 @@ class PettyCashViewSet(viewsets.ViewSet):
     @handle_exceptions
     @check_authentication()
     def list(self, request):
-        """List all petty cash transactions for all accounts"""
-        transactions = PettyCash.objects.select_related(
-            'cash_account', 'expense_head', 'created_by'
+        """List all petty cash transactions for all accounts (excluding soft-deleted)"""
+        transactions = PettyCash.objects.filter(is_active=True).select_related(
+        'cash_account', 'expense_head', 'created_by'
         ).order_by('-expense_date')
-        
+                
         data = []
         for trans in transactions:
             data.append({
@@ -2128,21 +2128,248 @@ class PettyCashViewSet(viewsets.ViewSet):
                 "error": str(e)
             }, status=400)
 
+    @handle_exceptions
+    @check_authentication()
+    def retrieve(self, request, pk=None):
+        """Retrieve a single petty cash transaction by ID"""
+        try:
+            transaction = PettyCash.objects.select_related(
+                'cash_account', 'expense_head', 'created_by'
+            ).get(id=pk, is_active=True)
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": {
+                    "id": transaction.id,
+                    "cash_account_id": transaction.cash_account.id,
+                    "cash_type": transaction.cash_account.cash_type,
+                    "expense_head_id": transaction.expense_head_id,
+                    "expense_head_name": transaction.expense_head.name if transaction.expense_head else None,
+                    "expense_date": str(transaction.expense_date),
+                    "amount": str(transaction.amount),
+                    "transaction_type": transaction.transaction_type,
+                    "notes": transaction.notes,
+                    "to": transaction.to,
+                    "paid_via": transaction.paid_via,
+                    "payment_type": transaction.payment_type,
+                    "particulars": transaction.particulars,
+                    "paid_by": transaction.paid_by,
+                },
+                "error": None
+            }, status=200)
+        except PettyCash.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Transaction not found"
+            }, status=404)
+
+    # @handle_exceptions
+    @check_authentication()
+    def update(self, request, pk=None):
+        """Update a petty cash transaction"""
+        try:
+            print("Update request data:", request.data)
+            transaction = PettyCash.objects.select_related('cash_account').get(id=pk, is_active=True)
+            account = transaction.cash_account
+            
+            # Get old values
+            old_amount = transaction.amount
+            old_date = transaction.expense_date
+            old_type = transaction.transaction_type
+            
+            # Update fields
+            expense_head_id = request.data.get("expense_head_id")
+            amount = request.data.get("amount")
+            expense_date = request.data.get("expense_date")
+            transaction_type = request.data.get("transaction_type")  # 'credit' or 'debit'
+            notes = request.data.get("notes")
+            
+            # New fields
+            to = request.data.get("to")
+            paid_via = request.data.get("paid_via")
+            payment_type = request.data.get("payment_type")
+            particulars = request.data.get("particulars")
+            paid_by = request.data.get("paid_by")
+            
+            if amount:
+                transaction.amount = Decimal(str(amount))
+            if expense_date:
+                transaction.expense_date = expense_date
+            if transaction_type:
+                transaction.transaction_type = transaction_type
+            if notes is not None:
+                transaction.notes = notes
+            
+            # Update optional fields
+            if to is not None:
+                transaction.to = to if to else None
+            if paid_via is not None:
+                transaction.paid_via = paid_via if paid_via else None
+            if payment_type is not None:
+                transaction.payment_type = payment_type if payment_type else None
+            if particulars is not None:
+                transaction.particulars = particulars if particulars else None
+            if paid_by is not None:
+                transaction.paid_by = paid_by if paid_by else None
+            
+            # Update expense head if debit
+            if transaction_type == 'debit' and expense_head_id:
+                expense_head = ExpenseHead.objects.get(id=expense_head_id)
+                transaction.expense_head = expense_head
+            
+            transaction.save()
+            
+            # Recalculate account balance: reverse old transaction, apply new one
+            amount_decimal = Decimal(str(amount)) if amount else old_amount
+            
+            # Reverse old transaction impact
+            if old_type == 'credit':
+                account.current_balance -= old_amount
+                account.credit_balance -= old_amount
+            else:  # debit
+                account.current_balance += old_amount
+            
+            # Apply new transaction impact
+            if transaction_type == 'credit':
+                account.current_balance += amount_decimal
+                account.credit_balance += amount_decimal
+            else:  # debit
+                account.current_balance -= amount_decimal
+            
+            account.save()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action="PETTY_CASH_UPDATED",
+                model_name="PettyCash",
+                record_id=str(transaction.id),
+                description=f"Updated Petty Cash {account.get_cash_type_display()} - ₹{amount_decimal}"
+            )
+            
+            # Update logs for the affected date and all subsequent dates
+            # Need to recalculate from min(old_date, new_date) onwards
+            print(type(old_date), old_date)
+            print(type(str_to_date(transaction.expense_date).date()))
+            
+            affected_date = min(old_date, str_to_date(transaction.expense_date).date()) if expense_date else old_date
+            update_petty_cash_log(affected_date, account.cash_type)
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": {"id": transaction.id, "new_balance": str(account.current_balance)},
+                "error": None
+            }, status=200)
+            
+        except PettyCash.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Transaction not found"
+            }, status=404)
+        except ExpenseHead.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Expense head not found"
+            }, status=404)
+        except Exception as e:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": str(e)
+            }, status=400)
+
+    @handle_exceptions
+    @check_authentication()
+    def destroy(self, request, pk=None):
+        """Soft delete a petty cash transaction (mark as inactive)"""
+        try:
+            transaction = PettyCash.objects.select_related('cash_account').get(id=pk, is_active=True)
+            account = transaction.cash_account
+            
+            # Get transaction details
+            amount = transaction.amount
+            expense_date = transaction.expense_date
+            transaction_type = transaction.transaction_type
+            
+            # Soft delete: mark as inactive
+            transaction.is_active = False
+            transaction.save()
+            
+            # Reverse the account balance impact
+            if transaction_type == 'credit':
+                account.current_balance -= amount
+                account.credit_balance -= amount
+            else:  # debit
+                account.current_balance += amount
+            
+            account.save()
+            
+            ActivityLog.objects.create(
+                user=request.user,
+                action="PETTY_CASH_DELETED",
+                model_name="PettyCash",
+                record_id=str(transaction.id),
+                description=f"Deleted Petty Cash {account.get_cash_type_display()} - ₹{amount}"
+            )
+            
+            # Update logs for the transaction date and all subsequent dates
+            update_petty_cash_log(expense_date, account.cash_type)
+            
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": {"new_balance": str(account.current_balance)},
+                "error": None
+            }, status=200)
+            
+        except PettyCash.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Transaction not found or already deleted"
+            }, status=404)
+        except Exception as e:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": str(e)
+            }, status=400)
+
 def str_to_date(date_str):
     return datetime.strptime(date_str, "%Y-%m-%d")
 
 def update_petty_cash_log(transaction_date, cash_type):
     """
     Update petty cash log for a given date and recalculate all subsequent dates
-    This handles when past-dated expenses are entered
+    This handles when past-dated expenses are entered. Only includes is_active=True transactions.
     """    
     
-    # Get all transactions up to and including transaction_date, ordered by date
+    # Get all ACTIVE transactions up to and including transaction_date, ordered by date
     transaction_date = str_to_date(str(transaction_date))
     print(transaction_date)
     all_transactions = PettyCash.objects.filter(
         cash_account__cash_type=cash_type,
-        expense_date__lte=transaction_date
+        expense_date__lte=transaction_date,
+        is_active=True
     ).order_by('expense_date')
     
     if not all_transactions.exists():
@@ -2186,14 +2413,16 @@ def update_petty_cash_log(transaction_date, cash_type):
     next_date = transaction_date + timedelta(days=1)
     subsequent_dates = PettyCash.objects.filter(
         cash_account__cash_type=cash_type,
-        expense_date__gt=transaction_date
+        expense_date__gt=transaction_date,
+        is_active=True
     ).values_list('expense_date', flat=True).distinct().order_by('expense_date')
     
     current_opening = closing_balance
     for date in subsequent_dates:
         daily_trans = PettyCash.objects.filter(
             cash_account__cash_type=cash_type,
-            expense_date=date
+            expense_date=date,
+            is_active=True
         )
         
         daily_debit = Decimal('0')

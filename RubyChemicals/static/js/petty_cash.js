@@ -98,11 +98,12 @@ function renderAllTransactionsTab() {
         </span>
       </td>
       <td>
-        ${trans.transaction_type === 'debit' ? `
-          <button class="btn btn-sm btn-outline-primary" onclick="downloadPettyCashPDF(${trans.id})" title="Download PDF">
-            <i class="fas fa-file-pdf"></i> PDF
-          </button>
-        ` : '—'}
+        <button class="btn btn-sm btn-outline-warning" onclick="editTransaction(${trans.id})" title="Edit transaction">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteTransaction(${trans.id})" title="Delete transaction">
+          <i class="fas fa-trash"></i> Delete
+        </button>
       </td>
     </tr>
   `).join("");
@@ -285,6 +286,98 @@ async function downloadPettyCashPDF(pettyCashId) {
   toggle_loader()
   window.location = `/operation-api/download-petty-cash-api/${pettyCashId}/`
   toggle_loader()  
+}
+
+async function editTransaction(transactionId) {
+  // Fetch transaction details
+  const [ok, res] = await callApi("GET", `${endpoints.cash}${transactionId}/`);
+  
+  if (ok && res.data) {
+    const trans = res.data;
+    
+    // Populate edit modal with transaction data
+    document.getElementById("editTransactionId").value = transactionId;
+    document.getElementById("editExpenseHead").value = trans.expense_head_id || "";
+    document.getElementById("editExpenseAmount").value = trans.amount;
+    document.getElementById("editExpenseDate").value = trans.expense_date;
+    document.getElementById("editExpenseTo").value = trans.to || "";
+    document.getElementById("editExpensePaidVia").value = trans.paid_via || "";
+    document.getElementById("editExpensePaymentType").value = trans.payment_type || "";
+    document.getElementById("editExpensePaidBy").value = trans.paid_by || "";
+    document.getElementById("editExpenseParticulars").value = trans.particulars || "";
+    document.getElementById("editExpenseNotes").value = trans.notes || "";
+    
+    // Load expense heads for dropdown
+    const [headsOk, headsRes] = await callApi("GET", endpoints.heads);
+    if (headsOk && headsRes.data) {
+      document.getElementById("editExpenseHead").innerHTML = '<option value="">Select Expense Head</option>' + headsRes.data
+        .filter(h => h.is_active)
+        .map(h => `<option value="${h.id}">${h.name}</option>`).join("");
+      document.getElementById("editExpenseHead").value = trans.expense_head_id || "";
+    }
+    
+    // Open modal
+    new bootstrap.Modal(document.getElementById("editExpenseModal")).show();
+  } else {
+    alert("Error: " + (res.error || "Failed to load transaction"));
+  }
+}
+
+async function updateTransaction() {
+  const transactionId = document.getElementById("editTransactionId").value;
+  const headId = document.getElementById("editExpenseHead").value;
+  const amount = parseFloat(document.getElementById("editExpenseAmount").value);
+  const date = document.getElementById("editExpenseDate").value;
+  const notes = document.getElementById("editExpenseNotes").value;
+  
+  // New fields
+  const to = document.getElementById("editExpenseTo").value;
+  const paidVia = document.getElementById("editExpensePaidVia").value;
+  const paymentType = document.getElementById("editExpensePaymentType").value;
+  const particulars = document.getElementById("editExpenseParticulars").value;
+  const paidBy = document.getElementById("editExpensePaidBy").value;
+  
+  if (!headId || !amount || !date) {
+    alert("Please fill all required fields");
+    return;
+  }
+  
+  const payload = {
+    expense_head_id: parseInt(headId),
+    amount: amount,
+    expense_date: date,
+    transaction_type: 'debit',
+    notes: notes,
+    to: to,
+    paid_via: paidVia,
+    payment_type: paymentType,
+    particulars: particulars,
+    paid_by: paidBy
+  };
+  
+  const [ok, res] = await callApi("PUT", `${endpoints.cash}${transactionId}/`, payload, csrf);
+  if (ok && res.success) {
+    alert("Expense updated successfully!");
+    const modal = bootstrap.Modal.getInstance(document.getElementById("editExpenseModal"));
+    if (modal) modal.hide();
+    loadAccountBalance();
+    loadAllTransactions();
+  } else {
+    alert("Error: " + (res.error || "Failed to update expense"));
+  }
+}
+
+async function deleteTransaction(transactionId) {
+  if (confirm("Are you sure you want to delete this transaction? This action cannot be undone.")) {
+    const [ok, res] = await callApi("DELETE", `${endpoints.cash}${transactionId}/`, {}, csrf);
+    if (ok && res.success) {
+      alert("Transaction deleted successfully!");
+      loadAccountBalance();
+      loadAllTransactions();
+    } else {
+      alert("Error: " + (res.error || "Failed to delete transaction"));
+    }
+  }
 }
 
 
