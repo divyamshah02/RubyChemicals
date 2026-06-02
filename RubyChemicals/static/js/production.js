@@ -136,8 +136,18 @@ async function loadBatches() {
   const [ok, res] = await callApi("GET", endpoints.productionBatch)
   if (ok) {
     const table = document.getElementById("batchTable")
+    let data = res.data
+    // data.sort((a, b) => Number(b.production_code) - Number(a.production_code));
+    data.sort((a, b) => {
+        const aNum = Number(a.production_code);
+        const bNum = Number(b.production_code);
 
-    const rows = res.data.map(b => `
+        if (isNaN(aNum)) return 1;
+        if (isNaN(bNum)) return -1;
+
+        return bNum - aNum;
+    });
+    const rows = data.map(b => `
       <tr>
         <td><span class="production-code">${b.batch_code}</span></td>
         <td class="is_a_prod_code">${b.production_code || 'N/A'}</td>

@@ -1223,7 +1223,8 @@ class ProductionBatchViewSet(viewsets.ViewSet):
     @handle_exceptions
     @check_authentication()
     def list(self, request):
-        batches = ProductionBatch.objects.select_related('product', 'production_card').order_by("-created_at")
+        # batches = ProductionBatch.objects.select_related('product', 'production_card').order_by("-created_at")
+        batches = ProductionBatch.objects.select_related('product', 'production_card')
         data = []
         for b in batches:
             data.append({

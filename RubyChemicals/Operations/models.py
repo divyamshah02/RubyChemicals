@@ -470,7 +470,7 @@ class ClientAddress(models.Model):
         return f"{self.client.company_name} - {self.address_type}"
 
 class Dispatch(models.Model):
-    dispatch_code = models.CharField(max_length=20, unique=True, editable=False)
+    dispatch_code = models.CharField(max_length=20, unique=True)
     dispatch_date = models.DateField()
     
     client = models.ForeignKey(

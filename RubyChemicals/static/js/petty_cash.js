@@ -98,6 +98,11 @@ function renderAllTransactionsTab() {
         </span>
       </td>
       <td>
+       ${trans.transaction_type === 'debit' ? `
+          <button class="btn btn-sm btn-outline-primary" onclick="downloadPettyCashPDF(${trans.id})" title="Download PDF">
+            <i class="fas fa-file-pdf"></i> PDF
+          </button>
+        ` : '—'}
         <button class="btn btn-sm btn-outline-warning" onclick="editTransaction(${trans.id})" title="Edit transaction">
           <i class="fas fa-edit"></i> Edit
         </button>
