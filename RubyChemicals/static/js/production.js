@@ -1,5 +1,5 @@
 let csrf, endpoints, stockItems = [], currentCardId = null
-
+let prod_card_data = null
 function init(csrfToken, eps) {
   csrf = csrfToken
   endpoints = eps
@@ -137,6 +137,7 @@ async function loadBatches() {
   if (ok) {
     const table = document.getElementById("batchTable")
     let data = res.data
+    prod_card_data = data
     // data.sort((a, b) => Number(b.production_code) - Number(a.production_code));
     data.sort((a, b) => {
         const aNum = Number(a.production_code);
@@ -568,5 +569,128 @@ async function generatePDF() {
   toggle_loader()
   window.location = `/operation-api/download-production-card-api/${currentCardId}/`
   toggle_loader()
+}
+
+
+function exportProductionReport(startDate = null, endDate = null) {
+    // Filter data if date range is provided
+    let filteredData = prod_card_data;
+
+    if (startDate || endDate) {
+        filteredData = prod_card_data.filter(item => {
+            const productionDate = new Date(item.production_date);
+
+            if (startDate && productionDate < new Date(startDate)) {
+                return false;
+            }
+
+            if (endDate && productionDate > new Date(endDate)) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+    filteredData.sort(
+        (a, b) => new Date(a.production_date) - new Date(b.production_date)
+    );
+    // =========================
+    // Sheet 1 - Production Cards
+    // =========================
+    const productionRows = filteredData.map(item => ({
+        "DATE": CustomformatDate(item.production_date),
+        "BATCH NO.": item.batch_code,
+        "PRODUCT": item.product_name,
+        "QTY": `${item.output_quantity} ${item.product_unit}`
+    }));
+
+    // =========================
+    // Sheet 2 - Product Totals
+    // =========================
+    const productTotals = {};
+
+    filteredData.forEach(item => {
+        const key = item.product_name;
+
+        if (!productTotals[key]) {
+            productTotals[key] = {
+                product_name: item.product_name,
+                unit: item.product_unit,
+                total_quantity: 0
+            };
+        }
+
+        productTotals[key].total_quantity += Number(item.output_quantity || 0);
+    });
+
+    const totalRows = Object.values(productTotals)
+        .sort((a, b) => a.product_name.localeCompare(b.product_name))
+        .map(item => ({
+            "PRODUCT": item.product_name,
+            "TOTAL QTY": `${item.total_quantity} ${item.unit}`,
+            // "UNIT": item.unit
+        }));
+
+    // =========================
+    // Generate Workbook
+    // =========================
+    const workbook = XLSX.utils.book_new();
+
+    const productionSheet = XLSX.utils.json_to_sheet(productionRows);
+    XLSX.utils.book_append_sheet(
+        workbook,
+        productionSheet,
+        "Production Cards"
+    );
+
+    const totalsSheet = XLSX.utils.json_to_sheet(totalRows);
+    XLSX.utils.book_append_sheet(
+        workbook,
+        totalsSheet,
+        "Product Totals"
+    );
+
+    // =========================
+    // File Name
+    // =========================
+
+    const today = new Date().toISOString().split('T')[0];
+
+    let fileName;
+
+    if (startDate || endDate) {
+        fileName = `Production_Cards_${CustomformatDate(startDate) || 'START'}_to_${CustomformatDate(endDate) || 'END'}.xlsx`;
+    } else {
+        fileName = `All_Production_Cards_As_On_${CustomformatDate(today)}.xlsx`;
+    }
+
+    XLSX.writeFile(workbook, fileName);
+
+
+    // let fileName = "Production_Report.xlsx";
+
+    // if (startDate || endDate) {
+    //     fileName = `Production_Report_${startDate || 'ALL'}_to_${endDate || 'ALL'}.xlsx`;
+    // }
+
+    // XLSX.writeFile(workbook, fileName);
+}
+
+
+
+function handleProductionReportExport() {
+  toggle_loader()
+    const startDate = document.getElementById('export_start_date').value || null;
+    const endDate = document.getElementById('export_end_date').value || null;
+
+    exportProductionReport(        
+        startDate,
+        endDate
+    );
+
+    bootstrap.Modal
+        .getInstance(document.getElementById('exportProductionReportModal'))
+        ?.hide();
+    toggle_loader()
 }
 
