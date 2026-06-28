@@ -502,5 +502,128 @@ async function searchOldBalance() {
   }
 }
 
+function handleExpenseSummaryExport() {
+    const startDate = document.getElementById('expense_export_start_date').value || null;
+    const endDate = document.getElementById('expense_export_end_date').value || null;
+    let expensesData = allTransactions.filter(t => t.cash_type === currentCashType);
+    exportExpenseSummary(
+        expensesData, // replace with your expenses array variable
+        startDate,
+        endDate
+    );
 
+    bootstrap.Modal
+        .getInstance(document.getElementById('exportExpenseSummaryModal'))
+        ?.hide();
+}
+
+
+function exportExpenseSummary(expensesData, startDate = null, endDate = null) {
+
+    let filteredData = expensesData;
+
+    // Filter dates
+    if (startDate || endDate) {
+        filteredData = expensesData.filter(item => {
+            const expenseDate = new Date(item.expense_date);
+
+            if (startDate && expenseDate < new Date(startDate)) {
+                return false;
+            }
+
+            if (endDate && expenseDate > new Date(endDate)) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    // Only debit entries
+    filteredData = filteredData.filter(
+        item => item.transaction_type === "debit"
+    );
+
+    // Sort by date ascending
+    filteredData.sort(
+        (a, b) => new Date(a.expense_date) - new Date(b.expense_date)
+    );
+
+    // =========================
+    // SHEET 1 - EXPENSE DETAILS
+    // =========================
+
+    const expenseRows = filteredData.map(item => ({
+        "DATE": CustomformatDate(item.expense_date),
+        "EXP HEAD": item.expense_head_name || "",
+        "PARTICULARS": item.particulars || "",
+        "TO": item.to || "",
+        "PAID BY": item.paid_by || "",
+        "AMOUNT": Number(item.amount || 0),
+        "PAYMENT METHOD": item.paid_via || "",
+        "PAYMENT TYPE": item.payment_type || ""
+    }));
+
+
+    // =========================
+    // SHEET 2 - EXPENSE TOTALS
+    // =========================
+
+    const expenseTotals = {};
+
+    filteredData.forEach(item => {
+        const head = item.expense_head_name || "Unknown";
+
+        if (!expenseTotals[head]) {
+            expenseTotals[head] = 0;
+        }
+
+        expenseTotals[head] += Number(item.amount || 0);
+    });
+
+    const summaryRows = Object.entries(expenseTotals)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([head, total]) => ({
+            "EXPENSE HEAD": head,
+            "TOTAL AMOUNT": total.toFixed(2)
+        }));
+
+
+    // =========================
+    // WORKBOOK
+    // =========================
+
+    const workbook = XLSX.utils.book_new();
+
+    const detailsSheet = XLSX.utils.json_to_sheet(expenseRows);
+    XLSX.utils.book_append_sheet(
+        workbook,
+        detailsSheet,
+        "Expense Details"
+    );
+
+    const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
+    XLSX.utils.book_append_sheet(
+        workbook,
+        summarySheet,
+        "Expense Summary"
+    );
+
+
+    // =========================
+    // FILE NAME
+    // =========================
+
+    const today = new Date().toISOString().split('T')[0];
+
+    let fileName;
+
+    if (startDate || endDate) {
+        fileName = `${currentCashType}_Expense_Summary_${startDate || 'START'}_to_${endDate || 'END'}.xlsx`;
+    } else {
+        fileName = `${currentCashType}_All_Expense_Summary_As_On_${today}.xlsx`;
+    }
+
+    XLSX.writeFile(workbook, fileName);
+}
 
