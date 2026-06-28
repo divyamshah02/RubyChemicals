@@ -197,3 +197,65 @@ class VendorInwardSerializer(serializers.ModelSerializer):
     def get_item_count(self, obj):
         return obj.items.filter(is_active=True).count()
 
+
+
+class LeadCallRecordSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
+    lead_status_display = serializers.CharField(source='get_lead_status_display', read_only=True)
+
+    class Meta:
+        model = LeadCallRecord
+        fields = [
+            'id', 'lead', 'call_date', 'contact_number', 'briefing',
+            'lead_status', 'lead_status_display', 'next_followup',
+            'follow_up_done', 'forwarded_to',
+            'created_by', 'created_by_name', 'created_at'
+        ]
+        read_only_fields = ['created_by', 'created_at']
+
+
+class LeadSerializer(serializers.ModelSerializer):
+    call_records = LeadCallRecordSerializer(many=True, read_only=True)
+    party_type_display = serializers.CharField(source='get_party_type_display', read_only=True)
+    lead_status_display = serializers.CharField(source='get_lead_status_display', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
+    call_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Lead
+        fields = [
+            'id', 'lead_id', 'date_of_connect', 'lead_source',
+            'party_type', 'party_type_display', 'party_name', 'location',
+            'contact_person', 'mobile_number', 'email',
+            'lead_status', 'lead_status_display', 'remarks',
+            'next_followup', 'forwarded_to',
+            'created_by', 'created_by_name', 'created_at', 'updated_at',
+            'call_records', 'call_count'
+        ]
+        read_only_fields = ['lead_id', 'created_by', 'created_at', 'updated_at']
+
+    def get_call_count(self, obj):
+        return obj.call_records.filter(is_active=True).count()
+
+
+class LeadListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for list views (no nested call records)"""
+    party_type_display = serializers.CharField(source='get_party_type_display', read_only=True)
+    lead_status_display = serializers.CharField(source='get_lead_status_display', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
+    call_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Lead
+        fields = [
+            'id', 'lead_id', 'date_of_connect', 'lead_source',
+            'party_type', 'party_type_display', 'party_name', 'location',
+            'contact_person', 'mobile_number', 'email',
+            'lead_status', 'lead_status_display', 'remarks',
+            'next_followup', 'forwarded_to',
+            'created_by_name', 'created_at', 'call_count'
+        ]
+
+    def get_call_count(self, obj):
+        return obj.call_records.filter(is_active=True).count()
+

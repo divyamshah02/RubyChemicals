@@ -547,3 +547,142 @@ class DispatchItem(models.Model):
     def __str__(self):
         return f"{self.stock_item.name} - {self.quantity} {self.unit}"
 
+
+class Lead(models.Model):
+
+    PARTY_TYPE_CHOICES = [
+        ('dealer', 'Dealer'),
+        ('distributor', 'Distributor'),
+        ('waterproofing_applicator', 'Waterproofing Applicator'),
+        ('tile_adhesive_applicator', 'Tile Adhesive Applicator'),
+        ('oem', 'OEM'),
+        ('architect', 'Architect'),
+        ('interior_designer', 'Interior Designer'),
+        ('pmc', 'PMC'),
+        ('builder_project', 'Builder Project'),
+        ('individual_project', 'Individual Project'),
+        ('bungalow', 'Bungalow'),
+        ('structural_consultant', 'Structural Consultant'),
+        ('mepf_consultant', 'MEPF Consultant'),
+        ('other', 'Other'),
+    ]
+
+    LEAD_STATUS_CHOICES = [
+        ('new_lead', 'New Lead'),
+        ('contacted', 'Contacted'),
+        ('details_shared', 'Details Shared'),
+        ('appointment_fixed', 'Appointment Fixed'),
+        ('visit_done', 'Visit Done'),
+        ('proposal_sent', 'Proposal Sent'),
+        ('sample_to_be_done', 'Sample To Be Done'),
+        ('sample_done', 'Sample Done'),
+        ('negotiation_followup', 'Negotiation / Follow-up'),
+        ('won', 'Won'),
+        ('repeat_order', 'Repeat Order'),
+        ('closed_lost', 'Closed – Lost'),
+        ('closed_forwarded', 'Closed – Forwarded'),
+        ('on_hold', 'On Hold'),
+        ('future_potential', 'Future Potential'),
+        ('other', 'Other'),
+    ]
+
+    lead_id = models.PositiveIntegerField(unique=True, editable=False)
+    date_of_connect = models.DateField(null=True, blank=True)
+    lead_source = models.CharField(max_length=255, blank=True)
+
+    party_type = models.CharField(max_length=50, choices=PARTY_TYPE_CHOICES)
+    party_name = models.CharField(max_length=200)
+    location = models.CharField(max_length=255, blank=True)
+
+    contact_person = models.CharField(max_length=100, blank=True)
+    mobile_number = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+
+    lead_status = models.CharField(
+        max_length=50,
+        choices=LEAD_STATUS_CHOICES,
+        default='new_lead'
+    )
+
+    remarks = models.TextField(blank=True, help_text="Remarks / Briefing about the lead")
+
+    # Next follow-up tracking
+    next_followup = models.DateTimeField(null=True, blank=True)
+
+    # Forwarded to (used when status = closed_forwarded)
+    forwarded_to = models.CharField(max_length=255, blank=True)
+
+    created_by = models.ForeignKey(
+        'UserDetail.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='leads_created'
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        if not self.lead_id:
+            last = Lead.objects.order_by('-id').first()
+            self.lead_id = 1 if not last else last.lead_id + 1
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.lead_id} - {self.party_name}"
+
+
+class LeadCallRecord(models.Model):
+    """Tracks every call / connect made for a lead"""
+
+    lead = models.ForeignKey(
+        Lead,
+        on_delete=models.CASCADE,
+        related_name='call_records'
+    )
+
+    call_date = models.DateField()
+    contact_number = models.CharField(max_length=20, blank=True)
+    briefing = models.TextField(help_text="What was discussed in this call")
+
+    lead_status = models.CharField(
+        max_length=50,
+        choices=Lead.LEAD_STATUS_CHOICES,
+        blank=True,
+        help_text="Lead status after this call"
+    )
+
+    next_followup = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Next follow-up date & time after this call"
+    )
+
+    follow_up_done = models.BooleanField(
+        default=False,
+        help_text="Mark as True when the follow-up is completed"
+    )
+
+    forwarded_to = models.CharField(
+        max_length=255, blank=True,
+        help_text="Email/name of person forwarded to (when status = Closed-Forwarded)"
+    )
+
+    created_by = models.ForeignKey(
+        'UserDetail.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-call_date', '-created_at']
+
+    def __str__(self):
+        return f"Call for {self.lead.lead_id} on {self.call_date}"

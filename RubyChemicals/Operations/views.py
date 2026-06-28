@@ -11,6 +11,10 @@ from datetime import datetime, timedelta
 from utils.create_product_card_pdf import generate_production_card
 from utils.create_dispatch_pdf import generate_challan
 from utils.create_petty_cash_pdf import generate_petty_cash_card
+from rest_framework.decorators import action
+from django.db.models import Q
+
+
 
 class StockGroupViewSet(viewsets.ViewSet):
 
@@ -2640,4 +2644,313 @@ class ExpenseHeadViewSet(viewsets.ViewSet):
             "data": {"id": head.id, "name": head.name},
             "error": None
         }, status=201)
+
+
+
+class LeadViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        """List all leads"""
+        leads = Lead.objects.filter(is_active=True).order_by('-created_at')
+        serializer = LeadListSerializer(leads, many=True)
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": serializer.data,
+            "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
+    def retrieve(self, request, pk=None):
+        """Get single lead with call records"""
+        try:
+            lead = Lead.objects.get(id=pk, is_active=True)
+            serializer = LeadSerializer(lead)
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": serializer.data,
+                "error": None
+            }, status=200)
+        except Lead.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Lead not found"
+            }, status=404)
+
+    @handle_exceptions
+    @check_authentication()
+    def create(self, request):
+        """Create new lead"""
+        serializer = LeadSerializer(data=request.data)
+        if serializer.is_valid():
+            lead = serializer.save(created_by=request.user)
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": LeadSerializer(lead).data,
+                "error": None
+            }, status=201)
+        return Response({
+            "success": False,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": None,
+            "error": serializer.errors
+        }, status=400)
+
+    @handle_exceptions
+    @check_authentication()
+    def update(self, request, pk=None):
+        """Update lead"""
+        try:
+            lead = Lead.objects.get(id=pk, is_active=True)
+            serializer = LeadSerializer(lead, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    "success": True,
+                    "user_not_logged_in": False,
+                    "user_unauthorized": False,
+                    "data": serializer.data,
+                    "error": None
+                }, status=200)
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": serializer.errors
+            }, status=400)
+        except Lead.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Lead not found"
+            }, status=404)
+
+    @handle_exceptions
+    @check_authentication()
+    def destroy(self, request, pk=None):
+        """Soft delete lead"""
+        try:
+            lead = Lead.objects.get(id=pk, is_active=True)
+            lead.is_active = False
+            lead.save()
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": None
+            }, status=200)
+        except Lead.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Lead not found"
+            }, status=404)
+
+    @handle_exceptions
+    @check_authentication()
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Search leads"""
+        query = request.query_params.get('q', '')
+        status_filter = request.query_params.get('status', '')
+        party_type_filter = request.query_params.get('party_type', '')
+
+        leads = Lead.objects.filter(is_active=True)
+
+        if query:
+            leads = leads.filter(
+                Q(party_name__icontains=query) |
+                Q(contact_person__icontains=query) |
+                Q(mobile_number__icontains=query) |
+                Q(lead_id__icontains=query)
+            )
+        if status_filter:
+            leads = leads.filter(lead_status=status_filter)
+        if party_type_filter:
+            leads = leads.filter(party_type=party_type_filter)
+
+        leads = leads.order_by('-created_at')
+        serializer = LeadListSerializer(leads, many=True)
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": serializer.data,
+            "error": None
+        }, status=200)
+
+
+class LeadCallRecordViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        """List call records - optionally filter by lead_id"""
+        lead_id = request.query_params.get('lead_id')
+        if lead_id:
+            records = LeadCallRecord.objects.filter(lead_id=lead_id, is_active=True).order_by('-call_date')
+        else:
+            records = LeadCallRecord.objects.filter(is_active=True).order_by('-call_date')
+        serializer = LeadCallRecordSerializer(records, many=True)
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": serializer.data,
+            "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
+    def retrieve(self, request, pk=None):
+        """Get single call record"""
+        try:
+            record = LeadCallRecord.objects.get(id=pk, is_active=True)
+            serializer = LeadCallRecordSerializer(record)
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": serializer.data,
+                "error": None
+            }, status=200)
+        except LeadCallRecord.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Call record not found"
+            }, status=404)
+
+    @handle_exceptions
+    @check_authentication()
+    def create(self, request):
+        """Add a call record to a lead"""
+        serializer = LeadCallRecordSerializer(data=request.data)
+        if serializer.is_valid():
+            record = serializer.save(created_by=request.user)
+
+            # Update lead status and next follow-up if provided
+            lead = record.lead
+            new_status = request.data.get('lead_status')
+            next_followup = request.data.get('next_followup')
+            forwarded_to = request.data.get('forwarded_to', '')
+
+            if new_status:
+                lead.lead_status = new_status
+            if next_followup and new_status not in ['closed_lost', 'closed_forwarded']:
+                lead.next_followup = next_followup
+            if forwarded_to and new_status == 'closed_forwarded':
+                lead.forwarded_to = forwarded_to
+                lead.next_followup = None
+            if new_status in ['closed_lost', 'closed_forwarded']:
+                lead.next_followup = None
+            lead.save()
+
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": LeadCallRecordSerializer(record).data,
+                "error": None
+            }, status=201)
+        return Response({
+            "success": False,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": None,
+            "error": serializer.errors
+        }, status=400)
+
+    @handle_exceptions
+    @check_authentication()
+    def update(self, request, pk=None):
+        """Update call record and sync lead status / next follow-up"""
+        try:
+            record = LeadCallRecord.objects.get(id=pk, is_active=True)
+            serializer = LeadCallRecordSerializer(record, data=request.data, partial=True)
+            if serializer.is_valid():
+                record = serializer.save()
+
+                # Sync lead status and follow-up from the edited call record
+                lead = record.lead
+                new_status   = request.data.get('lead_status')
+                next_followup = request.data.get('next_followup')
+                forwarded_to  = request.data.get('forwarded_to', '')
+
+                if new_status:
+                    lead.lead_status = new_status
+                if new_status in ['closed_lost', 'closed_forwarded']:
+                    lead.next_followup = None
+                elif next_followup:
+                    lead.next_followup = next_followup
+                if forwarded_to and new_status == 'closed_forwarded':
+                    lead.forwarded_to = forwarded_to
+                lead.save()
+
+                return Response({
+                    "success": True,
+                    "user_not_logged_in": False,
+                    "user_unauthorized": False,
+                    "data": serializer.data,
+                    "error": None
+                }, status=200)
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": serializer.errors
+            }, status=400)
+        except LeadCallRecord.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Call record not found"
+            }, status=404)
+
+    @handle_exceptions
+    @check_authentication()
+    def destroy(self, request, pk=None):
+        """Delete call record"""
+        try:
+            record = LeadCallRecord.objects.get(id=pk, is_active=True)
+            record.is_active = False
+            record.save()
+            return Response({
+                "success": True,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": None
+            }, status=200)
+        except LeadCallRecord.DoesNotExist:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Call record not found"
+            }, status=404)
 

@@ -145,6 +145,13 @@ class VendorManagementViewSet(viewsets.ViewSet):
         return render(request, 'vendor_management.html')
 
 
+class LeadsViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        return render(request, 'leads.html')
+
 
 
 class ExtraAddStockDetails(viewsets.ViewSet):

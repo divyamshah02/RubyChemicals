@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Lead Management - CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            background: #f8fafc;
+        }
+
+        .container-fluid {
+            /* max-width: 1400px; */
+            margin: 0 auto;
+            /* padding: 2rem 1rem; */
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .btn-primary-custom {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary-custom:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            opacity: 0.75;
+        }
+
+        .stat-content h3 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .stat-content p {
+            margin: 0.2rem 0 0;
+            color: #64748b;
+            font-size: 0.82rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2rem 0 1.25rem 0;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .table {
+            margin: 0;
+        }
+
+        .table thead {
+            background: #f1f5f9;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table thead th {
+            color: #475569;
+            font-weight: 600;
+            padding: 0.9rem 1rem;
+            border: none;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table tbody td {
+            padding: 0.85rem 1rem;
+            border-color: #e2e8f0;
+            vertical-align: middle;
+            color: #475569;
+            font-size: 0.875rem;
+        }
+
+        .table tbody tr {
+            transition: all 0.2s;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .lead-id-badge {
+            background: #dbeafe52;
+            color: #1e40af;
+            padding: 0.3rem 0.65rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .action-buttons .btn {
+            padding: 0.3rem 0.65rem;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .action-buttons .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-info {
+            background: #06b6d4;
+            color: white;
+            border: none;
+        }
+
+        .btn-info:hover { background: #0891b2; color: white; }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+            border: none;
+        }
+
+        .btn-warning:hover { background: #d97706; color: white; }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover { background: #dc2626; color: white; }
+
+        .btn-success-custom {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+        }
+
+        .btn-success-custom:hover { background: #059669; color: white; }
+
+        .modal-content {
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .modal-header {
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-title {
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .form-section {
+            background: #f0f9ff;
+            padding: 1.25rem 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #bfdbfe;
+        }
+
+        .form-section-title {
+            color: #1e40af;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.875rem;
+        }
+
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.875rem;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Status badge colours */
+        .status-badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-new_lead       { background: #dbeafe; color: #1d4ed8; }
+        .status-contacted      { background: #e0f2fe; color: #0369a1; }
+        .status-details_shared { background: #f0fdf4; color: #166534; }
+        .status-appointment_fixed { background: #fef3c7; color: #92400e; }
+        .status-visit_done     { background: #dcfce7; color: #166534; }
+        .status-proposal_sent  { background: #ede9fe; color: #5b21b6; }
+        .status-sample_to_be_done { background: #fef9c3; color: #854d0e; }
+        .status-sample_done    { background: #d1fae5; color: #065f46; }
+        .status-negotiation_followup { background: #fff7ed; color: #9a3412; }
+        .status-won            { background: #bbf7d0; color: #14532d; }
+        .status-repeat_order   { background: #a7f3d0; color: #064e3b; }
+        .status-closed_lost    { background: #fee2e2; color: #991b1b; }
+        .status-closed_forwarded { background: #fce7f3; color: #9d174d; }
+        .status-on_hold        { background: #f3f4f6; color: #374151; }
+        .status-future_potential { background: #e0e7ff; color: #3730a3; }
+        .status-other          { background: #f1f5f9; color: #475569; }
+
+        /* Call records timeline */
+        .call-timeline {
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .call-timeline::before {
+            content: '';
+            position: absolute;
+            left: 0.45rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+        }
+
+        .call-item {
+            position: relative;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .call-item::before {
+            content: '';
+            position: absolute;
+            left: -1.2rem;
+            top: 1.1rem;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+
+        .call-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .call-date-badge {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 0.2rem 0.6rem;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .followup-alert {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.84rem;
+            color: #92400e;
+        }
+
+        /* Follow-up panel cards */
+        .followup-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .followup-panels { grid-template-columns: 1fr; }
+        }
+
+        .followup-panel {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .followup-panel-header {
+            padding: 0.85rem 1.25rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .panel-today .followup-panel-header {
+            background: #f0fdf4;
+            color: #166534;
+            border-bottom-color: #bbf7d0;
+        }
+
+        .panel-missed .followup-panel-header {
+            background: #fef2f2;
+            color: #991b1b;
+            border-bottom-color: #fecaca;
+        }
+
+        .followup-panel-body {
+            padding: 0.75rem 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .followup-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.65rem 0.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.82rem;
+        }
+
+        .followup-row:last-child { border-bottom: none; }
+
+        .followup-row-info { flex: 1; }
+
+        .followup-row-info .party { font-weight: 700; color: #1e293b; }
+
+        .followup-row-info .time  { color: #64748b; margin-top: 0.1rem; }
+
+        .followup-row-info .type  {
+            font-size: 0.73rem;
+            color: #94a3b8;
+            margin-top: 0.1rem;
+        }
+
+        .followup-empty {
+            padding: 1.25rem;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.83rem;
+        }
+
+        .filters-bar {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filters-bar .form-control,
+        .filters-bar .form-select {
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .filters-bar { flex-direction: column; }
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include 'header.html' %}
+
+    <div class="container-fluid">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-funnel-dollar" style="margin-right: 0.75rem; color: #3b82f6;"></i>Lead Management
+            </h1>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createLeadModal">
+                    <i class="fas fa-plus" style="margin-right: 0.5rem;"></i>New Lead
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Stats -->
+        <div class="stats-grid" id="leadKpiStats">
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #3b82f6;"><i class="fas fa-list"></i></div>
+                <div class="stat-content">
+                    <h3 id="kpiTotal">—</h3>
+                    <p>Total Leads</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #10b981;"><i class="fas fa-trophy"></i></div>
+                <div class="stat-content">
+                    <h3 id="kpiWon">—</h3>
+                    <p>Won</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #f59e0b;"><i class="fas fa-clock"></i></div>
+                <div class="stat-content">
+                    <h3 id="kpiPending">—</h3>
+                    <p>Pending Follow-ups</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #ef4444;"><i class="fas fa-times-circle"></i></div>
+                <div class="stat-content">
+                    <h3 id="kpiLost">—</h3>
+                    <p>Closed – Lost</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #6366f1;"><i class="fas fa-phone-alt"></i></div>
+                <div class="stat-content">
+                    <h3 id="kpiContacted">—</h3>
+                    <p>Contacted</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Follow-up Sections: Today + Missed -->
+        <div id="followupSections"></div>
+
+        <!-- Filters Bar -->
+        <div class="filters-bar">
+            <div>
+                <label class="form-label mb-1">Search</label>
+                <input type="text" id="searchInput" class="form-control" placeholder="Name, Mobile, Lead ID..." style="min-width: 220px;" oninput="applyFilters()">
+            </div>
+            <div>
+                <label class="form-label mb-1">Status</label>
+                <select id="statusFilter" class="form-select" style="min-width: 180px;" onchange="applyFilters()">
+                    <option value="">All Statuses</option>
+                    <option value="new_lead">New Lead</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="details_shared">Details Shared</option>
+                    <option value="appointment_fixed">Appointment Fixed</option>
+                    <option value="visit_done">Visit Done</option>
+                    <option value="proposal_sent">Proposal Sent</option>
+                    <option value="sample_to_be_done">Sample To Be Done</option>
+                    <option value="sample_done">Sample Done</option>
+                    <option value="negotiation_followup">Negotiation / Follow-up</option>
+                    <option value="won">Won</option>
+                    <option value="repeat_order">Repeat Order</option>
+                    <option value="closed_lost">Closed – Lost</option>
+                    <option value="closed_forwarded">Closed – Forwarded</option>
+                    <option value="on_hold">On Hold</option>
+                    <option value="future_potential">Future Potential</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label mb-1">Party Type</label>
+                <select id="partyTypeFilter" class="form-select" style="min-width: 180px;" onchange="applyFilters()">
+                    <option value="">All Types</option>
+                    <option value="dealer">Dealer</option>
+                    <option value="distributor">Distributor</option>
+                    <option value="waterproofing_applicator">Waterproofing Applicator</option>
+                    <option value="tile_adhesive_applicator">Tile Adhesive Applicator</option>
+                    <option value="oem">OEM</option>
+                    <option value="architect">Architect</option>
+                    <option value="interior_designer">Interior Designer</option>
+                    <option value="pmc">PMC</option>
+                    <option value="builder_project">Builder Project</option>
+                    <option value="individual_project">Individual Project</option>
+                    <option value="bungalow">Bungalow</option>
+                    <option value="structural_consultant">Structural Consultant</option>
+                    <option value="mepf_consultant">MEPF Consultant</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="clearFilters()" style="border-radius: 8px;">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Leads Table -->
+        <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-table" style="margin-right: 0.5rem;"></i>All Leads</h2>
+            <span class="text-muted" style="font-size: 0.875rem;" id="leadsCount"></span>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-hover" id="leadsTable">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-hashtag"></i> Lead ID</th>
+                        <th><i class="fas fa-building"></i> Party Name</th>
+                        <th><i class="fas fa-tag"></i> Party Type</th>
+                        <th><i class="fas fa-user"></i> Contact</th>
+                        <th><i class="fas fa-phone"></i> Mobile</th>
+                        <th><i class="fas fa-map-marker-alt"></i> Location</th>
+                        <th><i class="fas fa-signal"></i> Status</th>
+                        <th><i class="fas fa-bell"></i> Next Follow-up</th>
+                        <th><i class="fas fa-phone-alt"></i> Calls</th>
+                        <th><i class="fas fa-calendar"></i> Created</th>
+                        <th style="width: 160px;"><i class="fas fa-cogs"></i> Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+    </div><!-- /container-fluid -->
+
+
+    <!-- ==================== CREATE LEAD MODAL ==================== -->
+    <div class="modal fade" id="createLeadModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle" style="color: #3b82f6; margin-right: 0.5rem;"></i>Create New Lead
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+
+                    <!-- Lead Source & Date -->
+                    <div class="form-section">
+                        <p class="form-section-title"><i class="fas fa-info-circle me-2"></i>Lead Information</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date of Connect</label>
+                                <input type="date" id="createDateOfConnect" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lead Source</label>
+                                <input type="text" id="createLeadSource" class="form-control" placeholder="e.g., Referral, Website, Cold Call" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Party Details -->
+                    <div class="form-section">
+                        <p class="form-section-title"><i class="fas fa-building me-2"></i>Party Details</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Party Type <span class="text-danger">*</span></label>
+                                <select id="createPartyType" class="form-select">
+                                    <option value="">Select Party Type</option>
+                                    <option value="dealer">Dealer</option>
+                                    <option value="distributor">Distributor</option>
+                                    <option value="waterproofing_applicator">Waterproofing Applicator</option>
+                                    <option value="tile_adhesive_applicator">Tile Adhesive Applicator</option>
+                                    <option value="oem">OEM</option>
+                                    <option value="architect">Architect</option>
+                                    <option value="interior_designer">Interior Designer</option>
+                                    <option value="pmc">PMC</option>
+                                    <option value="builder_project">Builder Project</option>
+                                    <option value="individual_project">Individual Project</option>
+                                    <option value="bungalow">Bungalow</option>
+                                    <option value="structural_consultant">Structural Consultant</option>
+                                    <option value="mepf_consultant">MEPF Consultant</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Party Name <span class="text-danger">*</span></label>
+                                <input type="text" id="createPartyName" class="form-control" placeholder="Company / Individual Name" autocomplete="off">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Location</label>
+                                <input type="text" id="createLocation" class="form-control" placeholder="City / Area" autocomplete="off">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lead Status</label>
+                                <select id="createLeadStatus" class="form-select">
+                                    <option value="new_lead" selected>New Lead</option>
+                                    <option value="contacted">Contacted</option>
+                                    <option value="details_shared">Details Shared</option>
+                                    <option value="appointment_fixed">Appointment Fixed</option>
+                                    <option value="visit_done">Visit Done</option>
+                                    <option value="proposal_sent">Proposal Sent</option>
+                                    <option value="sample_to_be_done">Sample To Be Done</option>
+                                    <option value="sample_done">Sample Done</option>
+                                    <option value="negotiation_followup">Negotiation / Follow-up</option>
+                                    <option value="won">Won</option>
+                                    <option value="repeat_order">Repeat Order</option>
+                                    <option value="closed_lost">Closed – Lost</option>
+                                    <option value="closed_forwarded">Closed – Forwarded</option>
+                                    <option value="on_hold">On Hold</option>
+                                    <option value="future_potential">Future Potential</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Details -->
+                    <div class="form-section">
+                        <p class="form-section-title"><i class="fas fa-address-card me-2"></i>Contact Details</p>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Contact Person</label>
+                                <input type="text" id="createContactPerson" class="form-control" placeholder="Name" autocomplete="off">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Mobile Number</label>
+                                <input type="tel" id="createMobileNumber" class="form-control" placeholder="Mobile" autocomplete="off">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Email ID</label>
+                                <input type="email" id="createEmail" class="form-control" placeholder="email@example.com" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Remarks -->
+                    <div class="mb-3">
+                        <label class="form-label">Remarks / Briefing</label>
+                        <textarea id="createRemarks" class="form-control" rows="3" placeholder="Add any initial briefing or remarks..."></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button class="btn btn-success-custom" onclick="createLead()" style="padding: 0.5rem 1.25rem;">
+                        <i class="fas fa-save me-2"></i>Save Lead
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== VIEW LEAD DETAIL MODAL ==================== -->
+    <div class="modal fade" id="viewLeadModal">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye" style="color: #06b6d4; margin-right: 0.5rem;"></i>Lead Details
+                        <span id="viewLeadIdBadge" class="lead-id-badge ms-2"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 85vh; overflow-y: auto;">
+                    <div id="leadDetailContent"></div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-primary" onclick="openAddCallRecord()" style="border-radius: 8px;">
+                        <i class="fas fa-phone-alt me-1"></i> Add Call Record
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="openEditLead()" style="border-radius: 8px; color: white;">
+                        <i class="fas fa-edit me-1"></i> Edit Lead
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="deleteLead()" style="border-radius: 8px;">
+                        <i class="fas fa-trash me-1"></i> Delete
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== EDIT LEAD MODAL ==================== -->
+    <div class="modal fade" id="editLeadModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit" style="color: #f59e0b; margin-right: 0.5rem;"></i>Edit Lead
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+
+                    <div class="form-section">
+                        <p class="form-section-title"><i class="fas fa-info-circle me-2"></i>Lead Information</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date of Connect</label>
+                                <input type="date" id="editDateOfConnect" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lead Source</label>
+                                <input type="text" id="editLeadSource" class="form-control" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <p class="form-section-title"><i class="fas fa-building me-2"></i>Party Details</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Party Type <span class="text-danger">*</span></label>
+                                <select id="editPartyType" class="form-select">
+                                    <option value="dealer">Dealer</option>
+                                    <option value="distributor">Distributor</option>
+                                    <option value="waterproofing_applicator">Waterproofing Applicator</option>
+                                    <option value="tile_adhesive_applicator">Tile Adhesive Applicator</option>
+                                    <option value="oem">OEM</option>
+                                    <option value="architect">Architect</option>
+                                    <option value="interior_designer">Interior Designer</option>
+                                    <option value="pmc">PMC</option>
+                                    <option value="builder_project">Builder Project</option>
+                                    <option value="individual_project">Individual Project</option>
+                                    <option value="bungalow">Bungalow</option>
+                                    <option value="structural_consultant">Structural Consultant</option>
+                                    <option value="mepf_consultant">MEPF Consultant</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Party Name <span class="text-danger">*</span></label>
+                                <input type="text" id="editPartyName" class="form-control" autocomplete="off">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Location</label>
+                                <input type="text" id="editLocation" class="form-control" autocomplete="off">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lead Status</label>
+                                <select id="editLeadStatus" class="form-select">
+                                    <option value="new_lead">New Lead</option>
+                                    <option value="contacted">Contacted</option>
+                                    <option value="details_shared">Details Shared</option>
+                                    <option value="appointment_fixed">Appointment Fixed</option>
+                                    <option value="visit_done">Visit Done</option>
+                                    <option value="proposal_sent">Proposal Sent</option>
+                                    <option value="sample_to_be_done">Sample To Be Done</option>
+                                    <option value="sample_done">Sample Done</option>
+                                    <option value="negotiation_followup">Negotiation / Follow-up</option>
+                                    <option value="won">Won</option>
+                                    <option value="repeat_order">Repeat Order</option>
+                                    <option value="closed_lost">Closed – Lost</option>
+                                    <option value="closed_forwarded">Closed – Forwarded</option>
+                                    <option value="on_hold">On Hold</option>
+                                    <option value="future_potential">Future Potential</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <p class="form-section-title"><i class="fas fa-address-card me-2"></i>Contact Details</p>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Contact Person</label>
+                                <input type="text" id="editContactPerson" class="form-control" autocomplete="off">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Mobile Number</label>
+                                <input type="tel" id="editMobileNumber" class="form-control" autocomplete="off">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Email ID</label>
+                                <input type="email" id="editEmail" class="form-control" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Remarks / Briefing</label>
+                        <textarea id="editRemarks" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <!-- Forwarded To (shown only when status = closed_forwarded) -->
+                    <div class="mb-3" id="editForwardedToGroup" style="display:none;">
+                        <label class="form-label">Forwarded To (Email / Executive Name)</label>
+                        <input type="text" id="editForwardedTo" class="form-control" autocomplete="off">
+                    </div>
+
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button class="btn btn-warning" onclick="submitEditLead()" style="border-radius: 8px; color: white; padding: 0.5rem 1.25rem;">
+                        <i class="fas fa-save me-2"></i>Update Lead
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== ADD CALL RECORD MODAL ==================== -->
+    <div class="modal fade" id="addCallRecordModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-phone-alt" style="color: #10b981; margin-right: 0.5rem;"></i>Add Call Record
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="form-section">
+                        <p class="form-section-title"><i class="fas fa-info-circle me-2"></i>Call Details</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Call Date <span class="text-danger">*</span></label>
+                                <input type="date" id="callDate" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contact Number</label>
+                                <input type="tel" id="callContactNumber" class="form-control" placeholder="Number used in this call" autocomplete="off">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lead Status After Call</label>
+                                <select id="callLeadStatus" class="form-select" onchange="toggleForwardedTo()">
+                                    <option value="">-- No Change --</option>
+                                    <option value="new_lead">New Lead</option>
+                                    <option value="contacted">Contacted</option>
+                                    <option value="details_shared">Details Shared</option>
+                                    <option value="appointment_fixed">Appointment Fixed</option>
+                                    <option value="visit_done">Visit Done</option>
+                                    <option value="proposal_sent">Proposal Sent</option>
+                                    <option value="sample_to_be_done">Sample To Be Done</option>
+                                    <option value="sample_done">Sample Done</option>
+                                    <option value="negotiation_followup">Negotiation / Follow-up</option>
+                                    <option value="won">Won</option>
+                                    <option value="repeat_order">Repeat Order</option>
+                                    <option value="closed_lost">Closed – Lost</option>
+                                    <option value="closed_forwarded">Closed – Forwarded</option>
+                                    <option value="on_hold">On Hold</option>
+                                    <option value="future_potential">Future Potential</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3" id="nextFollowupGroup">
+                                <label class="form-label">Next Follow-up Date & Time</label>
+                                <input type="datetime-local" id="callNextFollowup" class="form-control">
+                            </div>
+                        </div>
+                        <!-- Forwarded To (shown only when status = closed_forwarded) -->
+                        <div class="mb-3" id="forwardedToGroup" style="display:none;">
+                            <label class="form-label">Forwarded To (Email / Executive Name) <span class="text-danger">*</span></label>
+                            <input type="text" id="callForwardedTo" class="form-control" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Briefing / Discussion Notes <span class="text-danger">*</span></label>
+                        <textarea id="callBriefing" class="form-control" rows="4" placeholder="What was discussed in this call..."></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button class="btn btn-success-custom" onclick="submitCallRecord()" style="padding: 0.5rem 1.25rem;">
+                        <i class="fas fa-save me-2"></i>Save Call Record
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== EDIT CALL RECORD MODAL ==================== -->
+    <div class="modal fade" id="editCallRecordModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-pencil-alt" style="color: #f59e0b; margin-right: 0.5rem;"></i>Edit Call Record
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editCallRecordId">
+
+                    <div class="form-section">
+                        <p class="form-section-title"><i class="fas fa-info-circle me-2"></i>Call Details</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Call Date <span class="text-danger">*</span></label>
+                                <input type="date" id="editCallDate" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contact Number</label>
+                                <input type="tel" id="editCallContactNumber" class="form-control" placeholder="Number used in this call" autocomplete="off">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lead Status After Call</label>
+                                <select id="editCallLeadStatus" class="form-select" onchange="toggleEditForwardedTo()">
+                                    <option value="">-- No Change --</option>
+                                    <option value="new_lead">New Lead</option>
+                                    <option value="contacted">Contacted</option>
+                                    <option value="details_shared">Details Shared</option>
+                                    <option value="appointment_fixed">Appointment Fixed</option>
+                                    <option value="visit_done">Visit Done</option>
+                                    <option value="proposal_sent">Proposal Sent</option>
+                                    <option value="sample_to_be_done">Sample To Be Done</option>
+                                    <option value="sample_done">Sample Done</option>
+                                    <option value="negotiation_followup">Negotiation / Follow-up</option>
+                                    <option value="won">Won</option>
+                                    <option value="repeat_order">Repeat Order</option>
+                                    <option value="closed_lost">Closed &#8211; Lost</option>
+                                    <option value="closed_forwarded">Closed &#8211; Forwarded</option>
+                                    <option value="on_hold">On Hold</option>
+                                    <option value="future_potential">Future Potential</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3" id="editNextFollowupGroup">
+                                <label class="form-label">Next Follow-up Date &amp; Time</label>
+                                <input type="datetime-local" id="editCallNextFollowup" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-3" id="editForwardedToGroup" style="display:none;">
+                            <label class="form-label">Forwarded To (Email / Executive Name) <span class="text-danger">*</span></label>
+                            <input type="text" id="editCallForwardedTo" class="form-control" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Briefing / Discussion Notes <span class="text-danger">*</span></label>
+                        <textarea id="editCallBriefing" class="form-control" rows="4" placeholder="What was discussed in this call..."></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button class="btn btn-warning" onclick="submitEditCallRecord()" style="border-radius: 8px; color: white; padding: 0.5rem 1.25rem;">
+                        <i class="fas fa-save me-2"></i>Update Call Record
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Inject endpoints & CSRF from Django template
+        const CSRF = "{{ csrf_token }}"
+        const ENDPOINTS = {
+            leads: "{% url 'lead-api-list' %}",
+            callRecords: "{% url 'lead-call-record-api-list' %}"
+        }
+    </script>
+    <script src="/static/js/api_caller.js"></script>
+    <script src="/static/js/leads.js"></script>
+
+    <script>
+        // Boot
+        initLeads(CSRF, ENDPOINTS)
+    </script>
+
+</body>
+</html>

@@ -18,6 +18,7 @@ router.register(r'dispatch', DispatchViewSet, basename='dispatch')
 router.register(r'client-management', ClientManagementViewSet, basename='client-management')
 router.register(r'vendor-management', VendorManagementViewSet, basename='vendor-management')
 router.register(r'petty-cash', PettyCashViewSet, basename='petty-cash')
+router.register(r'leads', LeadsViewSet, basename='leads')
 
 
 

@@ -218,3 +218,55 @@ class DispatchItemAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('dispatch', 'stock_item')
+
+
+
+class LeadCallRecordInline(admin.TabularInline):
+    model = LeadCallRecord
+    extra = 0
+    readonly_fields = ('created_at',)
+    fields = (
+        'call_date', 'contact_number', 'briefing',
+        'lead_status', 'next_followup', 'follow_up_done',
+        'forwarded_to', 'created_by', 'created_at'
+    )
+
+
+@admin.register(Lead)
+class LeadAdmin(admin.ModelAdmin):
+    list_display = (
+        'lead_id', 'party_name', 'party_type', 'contact_person',
+        'mobile_number', 'lead_status', 'next_followup', 'created_at'
+    )
+    list_filter = ('lead_status', 'party_type', 'is_active')
+    search_fields = ('lead_id', 'party_name', 'contact_person', 'mobile_number', 'email')
+    readonly_fields = ('lead_id', 'created_at', 'updated_at')
+    inlines = [LeadCallRecordInline]
+
+    fieldsets = (
+        ('Lead Info', {
+            'fields': ('lead_id', 'date_of_connect', 'lead_source')
+        }),
+        ('Party Details', {
+            'fields': ('party_type', 'party_name', 'location', 'contact_person', 'mobile_number', 'email')
+        }),
+        ('Status & Follow-up', {
+            'fields': ('lead_status', 'remarks', 'next_followup', 'forwarded_to')
+        }),
+        ('Meta', {
+            'fields': ('created_by', 'created_at', 'updated_at', 'is_active')
+        }),
+    )
+
+
+@admin.register(LeadCallRecord)
+class LeadCallRecordAdmin(admin.ModelAdmin):
+    list_display = (
+        'lead', 'call_date', 'contact_number', 'lead_status',
+        'next_followup', 'follow_up_done', 'created_by'
+    )
+    list_filter = ('lead_status', 'follow_up_done', 'call_date')
+    search_fields = ('lead__lead_id', 'lead__party_name', 'briefing')
+    autocomplete_fields = ('lead',)
+    readonly_fields = ('created_at',)
+
