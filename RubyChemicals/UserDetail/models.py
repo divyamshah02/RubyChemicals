@@ -7,9 +7,11 @@ import string
 
 def generate_user_id(role):
     prefix = {
-        'admin': 'AD',
-        'accounts': 'AC',
-        'factory': 'FC'
+        'admin':      'AD',
+        'accounts':   'AC',
+        'factory':    'FC',
+        'accountant': 'AN',
+        'office':     'OF',
     }.get(role, 'US')
 
     while True:
@@ -21,12 +23,13 @@ def generate_user_id(role):
 
 class User(AbstractUser):
     ROLE_CHOICES = [
-        ('admin', 'Admin'),
-        ('accounts', 'Accounts'),
-        ('factory', 'Factory'),
+        ('admin',      'Admin'),
+        ('accounts',   'Accounts'),
+        ('factory',    'Factory'),
+        ('accountant', 'Accountant'),
+        ('office',     'Office'),
     ]
 
-    # username = None
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
@@ -34,8 +37,35 @@ class User(AbstractUser):
     created_at = models.DateTimeField(default=timezone.now)
     active_user = models.BooleanField(default=True)
 
-    # USERNAME_FIELD = 'email'
+    # ── Super Admin overrides all plugin permissions ──────────────────────
+    is_super_admin = models.BooleanField(
+        default=False,
+        help_text="Super Admin has access to every module regardless of individual permissions."
+    )
+
+    # ── Plugin-level permissions ──────────────────────────────────────────
+    # NOTE: can_stock_items also grants access to Stock Inwards (they are one module)
+    can_stock_items        = models.BooleanField(default=False, verbose_name="Stock Items")
+    can_vendor_management  = models.BooleanField(default=False, verbose_name="Vendor Management")
+    can_production         = models.BooleanField(default=False, verbose_name="Production")
+    can_dispatch           = models.BooleanField(default=False, verbose_name="Dispatch")
+    can_client_management  = models.BooleanField(default=False, verbose_name="Client Management")
+    can_petty_cash         = models.BooleanField(default=False, verbose_name="Petty Cash")
+    can_leads              = models.BooleanField(default=False, verbose_name="Leads")
+
     REQUIRED_FIELDS = ['name', 'role']
+
+    def has_plugin_access(self, permission_field: str) -> bool:
+        """
+        Returns True if the user is a super-admin OR has the specific
+        plugin permission enabled.
+
+        Usage:
+            user.has_plugin_access('can_production')
+        """
+        if self.is_super_admin:
+            return True
+        return bool(getattr(self, permission_field, False))
 
     def save(self, *args, **kwargs):
         if not self.user_id:

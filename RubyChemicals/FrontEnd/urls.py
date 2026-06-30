@@ -20,10 +20,10 @@ router.register(r'vendor-management', VendorManagementViewSet, basename='vendor-
 router.register(r'petty-cash', PettyCashViewSet, basename='petty-cash')
 router.register(r'leads', LeadsViewSet, basename='leads')
 
-
+# Role Manager — accessible to admin role only
+router.register(r'role-manager', RoleManagerViewSet, basename='role-manager')
 
 router.register(r'test-api', ExtraAddStockDetails, basename='test-api')
-
 
 urlpatterns = [
     path('', include(router.urls)),
