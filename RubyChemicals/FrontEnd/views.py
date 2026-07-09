@@ -13,21 +13,54 @@ from Operations.models import *
 
 # ── Decorators ────────────────────────────────────────────────────────────────
 
-def check_authentication(required_role=None, required_permission=None):
+def get_first_permitted_url(user):
+    """
+    Returns the URL name of the first page the user has access to.
+    Dashboard is only for 'accounts' role (or super_admin).
+    For all other roles, find the first granted plugin page.
+    Falls back to dashboard if nothing is permitted.
+    """
+    # Accounts role always lands on dashboard
+    if getattr(user, 'role', None) == 'accounts' or getattr(user, 'is_super_admin', False):
+        return 'admin-dashboard-list'
+
+    # Ordered list of (permission_field, url_name) to check
+    PLUGIN_URLS = [
+        ('can_stock_items',       'stock-items-list'),
+        ('can_vendor_management', 'vendor-management-list'),
+        ('can_production',        'production-list'),
+        ('can_dispatch',          'dispatch-list'),
+        ('can_client_management', 'client-management-list'),
+        ('can_petty_cash',        'petty-cash-list'),
+        ('can_leads',             'leads-list'),
+    ]
+
+    for field, url_name in PLUGIN_URLS:
+        if bool(getattr(user, field, False)):
+            return url_name
+
+    # No plugins granted — fall back to dashboard
+    return 'admin-dashboard-list'
+
+
+def check_authentication(required_role=None, required_permission=None, dashboard_only=False):
     """
     Checks that:
       1. The user is authenticated (redirect to login if not).
-      2. Optionally that user.role is in required_role.
+      2. Optionally that user.role is in required_role (returns 403 JSON for API views).
       3. Optionally that the user has a plugin permission OR is_super_admin.
+         Non-compliant users are redirected to their first permitted page.
+      4. dashboard_only=True: only 'accounts' role and super-admins may access;
+         all other roles are redirected to their first permitted plugin page.
 
     Parameters
     ----------
     required_role : str | list | None
-        If provided, user.role must be in this value.
+        If provided, user.role must be in this value (used for API endpoints).
     required_permission : str | None
         A field name on the User model, e.g. 'can_production'.
-        If provided, user must have that field == True OR be a super_admin.
-        Non-compliant authenticated users are redirected to the dashboard.
+    dashboard_only : bool
+        If True, blocks everyone except the 'accounts' role and super-admins.
     """
     def decorator(view_func):
         @wraps(view_func)
@@ -38,7 +71,7 @@ def check_authentication(required_role=None, required_permission=None):
             if not user.is_authenticated:
                 return redirect('login-list')
 
-            # ── 2. Role check ────────────────────────────────────────────
+            # ── 2. Role check (API endpoints) ────────────────────────────
             if required_role:
                 allowed_roles = (
                     required_role
@@ -57,15 +90,21 @@ def check_authentication(required_role=None, required_permission=None):
                         status=status.HTTP_403_FORBIDDEN
                     )
 
-            # ── 3. Plugin permission check ───────────────────────────────
+            # ── 3. Dashboard-only guard ──────────────────────────────────
+            if dashboard_only:
+                is_accounts = getattr(user, 'role', None) == 'accounts'
+                is_super    = getattr(user, 'is_super_admin', False)
+                if not (is_accounts or is_super):
+                    return redirect(get_first_permitted_url(user))
+
+            # ── 4. Plugin permission check ───────────────────────────────
             if required_permission:
                 has_access = (
                     getattr(user, "is_super_admin", False) or
                     bool(getattr(user, required_permission, False))
                 )
                 if not has_access:
-                    # Redirect to the dashboard instead of showing an error page
-                    return redirect('admin-dashboard-list')
+                    return redirect(get_first_permitted_url(user))
 
             return view_func(self, request, *args, **kwargs)
 
@@ -83,9 +122,13 @@ class LoginViewSet(viewsets.ViewSet):
 
 
 class AdminDashboardViewSet(viewsets.ViewSet):
+    """
+    Dashboard is only accessible to the 'accounts' role and super-admins.
+    All other roles are redirected to their first permitted plugin page.
+    """
 
     @handle_exceptions
-    @check_authentication()
+    @check_authentication(dashboard_only=True)
     def list(self, request):
         return render(request, 'admin_dashboard.html')
 
@@ -123,9 +166,10 @@ class StockItemViewSet(viewsets.ViewSet):
 
 
 class StockInwardViewSet(viewsets.ViewSet):
+    """Stock Inwards shares the same permission as Stock Items."""
 
     @handle_exceptions
-    @check_authentication(required_permission='can_stock_inwards')
+    @check_authentication(required_permission='can_stock_items')
     def list(self, request):
         return render(request, 'stock_inward.html')
 
@@ -183,12 +227,16 @@ class LeadsViewSet(viewsets.ViewSet):
 class RoleManagerViewSet(viewsets.ViewSet):
     """
     Renders the Role Manager HTML page.
-    Only accessible to users who are super-admin or have the admin role.
+    Only accessible to users who are super-admin OR have the 'admin' role.
     """
 
     @handle_exceptions
-    @check_authentication(required_role="admin")
     def list(self, request):
+        user = request.user
+        if not user.is_authenticated:
+            return redirect('login-list')
+        if not (getattr(user, 'role', None) == 'admin' or getattr(user, 'is_super_admin', False)):
+            return redirect(get_first_permitted_url(user))
         return render(request, 'role_manager.html')
 
 

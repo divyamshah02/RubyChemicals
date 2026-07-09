@@ -2653,7 +2653,10 @@ class LeadViewSet(viewsets.ViewSet):
     @check_authentication()
     def list(self, request):
         """List all leads"""
-        leads = Lead.objects.filter(is_active=True).order_by('-created_at')
+        if request.user.role in ['admin', 'manager']:
+            leads = Lead.objects.filter(is_active=True).order_by('-created_at')
+        else:
+            leads = Lead.objects.filter(is_active=True, created_by=request.user).order_by('-created_at')
         serializer = LeadListSerializer(leads, many=True)
         return Response({
             "success": True,

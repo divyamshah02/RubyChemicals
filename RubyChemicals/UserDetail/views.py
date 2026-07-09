@@ -2,6 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import get_object_or_404, render, redirect
+from django.http import HttpResponse, JsonResponse
 from .models import User, ActivityLog
 from .serializers import (
     UserSerializer,
@@ -378,3 +380,20 @@ class ActivityLogViewSet(viewsets.ViewSet):
             "data": data,
             "error": None
         }, status=200)
+
+
+class LogInToUserAccount(viewsets.ViewSet):
+    @handle_exceptions
+    @check_authentication(required_role='admin')
+    def list(self, request):
+            request_user = request.user
+            user_id = request.GET.get('user_id')
+
+            user = User.objects.get(user_id=user_id)
+
+            if request_user.is_staff:
+                print('Staff')
+                login(request, user)
+                request.session.set_expiry(30 * 24 * 60 * 60)
+
+            return redirect('/')            
