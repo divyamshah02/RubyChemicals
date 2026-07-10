@@ -14,7 +14,7 @@ from utils.create_petty_cash_pdf import generate_petty_cash_card
 from rest_framework.decorators import action
 from django.db.models import Q
 
-
+from UserDetail.models import User
 
 class StockGroupViewSet(viewsets.ViewSet):
 
@@ -2956,4 +2956,54 @@ class LeadCallRecordViewSet(viewsets.ViewSet):
                 "data": None,
                 "error": "Call record not found"
             }, status=404)
+
+class TransferLeadViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        return Response({
+            "success": True,
+        })
+
+    @handle_exceptions
+    @check_authentication()
+    def create(self, request):
+        """Create new lead"""
+        lead_id = request.data.get("lead_id")
+        new_owner_id = request.data.get("new_owner_id")
+
+        new_user = User.objects.filter(id=new_owner_id, is_active=True).first()
+        if not new_user:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "New owner not found"
+            }, status=404)
+        
+        lead = Lead.objects.filter(id=lead_id, is_active=True).first()
+        if not lead:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "Lead not found"
+            }, status=404)
+        
+        lead.created_by = new_user
+        lead.forwarded_to = request.user.name  # Store the username of the user who transferred the lead
+        lead.save()
+    
+    
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": "Lead transferred successfully",
+            "error": None
+        }, status=201)
+        
 

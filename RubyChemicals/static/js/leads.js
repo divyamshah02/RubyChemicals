@@ -622,6 +622,12 @@ async function openEditCallRecord(recordId) {
   }, 300)
 }
 
+function openLeadTransfer(){
+  setTimeout(() => {
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("transferLeadModal")).show()
+  }, 300)
+}
+
 function toggleEditForwardedTo() {
   const status = document.getElementById("editCallLeadStatus").value
   const fwdGroup  = document.getElementById("editForwardedToGroup")
@@ -677,6 +683,31 @@ async function submitEditCallRecord() {
     alert("Call record updated successfully!")
   } else {
     const err = res.error ? JSON.stringify(res.error) : "Failed to update call record"
+    alert("Error: " + err)
+  }
+}
+
+async function submitTransferLead() {
+  if (!currentLeadId) return
+  const newOwner = document.getElementById("allLeadUsers").value
+  if (!newOwner) {
+    alert("Please select a user to transfer the lead to.")
+    return
+  }
+
+  const payload = {
+    lead_id: currentLeadId,
+    new_owner_id: newOwner,
+  }
+
+  const [ok, res] = await callApi("POST", `${leadEndpoints.transferLeads}`, payload, leadCsrf)
+  if (ok && res.success) {
+    bootstrap.Modal.getInstance(document.getElementById("transferLeadModal")).hide()
+    // Re-open lead detail with refreshed data
+    await loadLeads()
+    alert("Lead transferred successfully!")
+  } else {
+    const err = res.error ? JSON.stringify(res.error) : "Failed to transfer lead"
     alert("Error: " + err)
   }
 }

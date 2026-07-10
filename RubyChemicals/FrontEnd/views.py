@@ -9,7 +9,8 @@ from django.shortcuts import render, redirect
 from functools import wraps
 from django.contrib.auth import authenticate, login, logout
 from Operations.models import *
-
+from UserDetail.models import User
+from django.db.models import Q
 
 # ── Decorators ────────────────────────────────────────────────────────────────
 
@@ -219,7 +220,10 @@ class LeadsViewSet(viewsets.ViewSet):
     @handle_exceptions
     @check_authentication(required_permission='can_leads')
     def list(self, request):
-        return render(request, 'leads.html')
+        all_users_with_leads_permission = User.objects.filter(
+            Q(role='admin') | Q(can_leads=True)
+        ).exclude(id=request.user.id)
+        return render(request, 'leads.html', {'all_users_with_leads_permission': all_users_with_leads_permission})
 
 
 # ── Role Manager page ─────────────────────────────────────────────────────────

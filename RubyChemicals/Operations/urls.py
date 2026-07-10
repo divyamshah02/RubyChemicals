@@ -49,6 +49,7 @@ router.register(r'vendor-inward-api', VendorInwardViewSet, basename='vendor-inwa
 
 router.register(r'lead-api', LeadViewSet, basename='lead-api')
 router.register(r'lead-call-record-api', LeadCallRecordViewSet, basename='lead-call-record-api')
+router.register(r'transfer-lead-api', TransferLeadViewSet, basename='transfer-lead-api')
 
 urlpatterns = [
     path('', include(router.urls)),
