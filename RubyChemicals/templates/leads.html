@@ -464,8 +464,25 @@
                 <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createLeadModal">
                     <i class="fas fa-plus" style="margin-right: 0.5rem;"></i>New Lead
                 </button>
+
+                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#generateReportModal">
+                    <i class="fas fa-download" style="margin-right: 0.5rem;"></i>Generate Report
+                </button>
             </div>
         </div>
+        {% if is_admin_or_super %}
+        <div class="filters-bar">
+            <div>
+                <label class="form-label mb-1">Leads Data of</label>
+                <select id="leadUsers" class="form-select" style="min-width: 180px;" onchange="applyLeadFilters()">
+                    <option value="">All</option>
+                    {% for user in all_users_with_leads_permission %}
+                        <option value="{{ user.user_id }}">{{ user.name }}</option>
+                    {% endfor %}                    
+                </select>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- KPI Stats -->
         <div class="stats-grid" id="leadKpiStats">
@@ -713,6 +730,38 @@
         </div>
     </div>
 
+
+    <!-- ==================== GENERATE REPORT MODAL ==================== -->
+    <div class="modal fade" id="generateReportModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-download" style="color: #3b82f6; margin-right: 0.5rem;"></i>Generate Report
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                    <!-- Lead Source & Date -->
+                    <div class="form-section">
+                        <p class="form-section-title"><i class="fas fa-info-circle me-2"></i>Select date of report you need</p>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Date of Report</label>
+                                <input type="date" id="createDateOfReport" value="" class="form-control">
+                            </div>                           
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button class="btn btn-success-custom" onclick="window.location.href = `/operation-api/lead/export-daily-log/?date_of_report=${document.getElementById('createDateOfReport').value}`" style="padding: 0.5rem 1.25rem;">
+                        <i class="fas fa-download me-2"></i>Generate Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ==================== VIEW LEAD DETAIL MODAL ==================== -->
     <div class="modal fade" id="viewLeadModal">
@@ -1059,6 +1108,7 @@
 
     <script>
         // Inject endpoints & CSRF from Django template
+        document.getElementById("createDateOfReport").value = new Date().toISOString().split("T")[0];
         const CSRF = "{{ csrf_token }}"
         const ENDPOINTS = {
             leads: "{% url 'lead-api-list' %}",

@@ -53,4 +53,5 @@ router.register(r'transfer-lead-api', TransferLeadViewSet, basename='transfer-le
 
 urlpatterns = [
     path('', include(router.urls)),
+    path("lead/export-daily-log/", export_daily_log, name="export_daily_log"),
 ]

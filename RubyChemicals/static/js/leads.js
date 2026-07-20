@@ -4,6 +4,7 @@
 let leadCsrf, leadEndpoints
 let allLeads = []
 let currentLeadId = null
+let currentUserId = null
 
 // ─────────────────────────────────────────────
 // INIT
@@ -20,39 +21,39 @@ function initLeads(csrfToken, endpoints) {
 // ─────────────────────────────────────────────
 
 const STATUS_LABELS = {
-  new_lead:            "New Lead",
-  contacted:           "Contacted",
-  details_shared:      "Details Shared",
-  appointment_fixed:   "Appointment Fixed",
-  visit_done:          "Visit Done",
-  proposal_sent:       "Proposal Sent",
-  sample_to_be_done:   "Sample To Be Done",
-  sample_done:         "Sample Done",
-  negotiation_followup:"Negotiation / Follow-up",
-  won:                 "Won",
-  repeat_order:        "Repeat Order",
-  closed_lost:         "Closed – Lost",
-  closed_forwarded:    "Closed – Forwarded",
-  on_hold:             "On Hold",
-  future_potential:    "Future Potential",
-  other:               "Other",
+  new_lead: "New Lead",
+  contacted: "Contacted",
+  details_shared: "Details Shared",
+  appointment_fixed: "Appointment Fixed",
+  visit_done: "Visit Done",
+  proposal_sent: "Proposal Sent",
+  sample_to_be_done: "Sample To Be Done",
+  sample_done: "Sample Done",
+  negotiation_followup: "Negotiation / Follow-up",
+  won: "Won",
+  repeat_order: "Repeat Order",
+  closed_lost: "Closed – Lost",
+  closed_forwarded: "Closed – Forwarded",
+  on_hold: "On Hold",
+  future_potential: "Future Potential",
+  other: "Other",
 }
 
 const PARTY_LABELS = {
-  dealer:                   "Dealer",
-  distributor:              "Distributor",
+  dealer: "Dealer",
+  distributor: "Distributor",
   waterproofing_applicator: "Waterproofing Applicator",
   tile_adhesive_applicator: "Tile Adhesive Applicator",
-  oem:                      "OEM",
-  architect:                "Architect",
-  interior_designer:        "Interior Designer",
-  pmc:                      "PMC",
-  builder_project:          "Builder Project",
-  individual_project:       "Individual Project",
-  bungalow:                 "Bungalow",
-  structural_consultant:    "Structural Consultant",
-  mepf_consultant:          "MEPF Consultant",
-  other:                    "Other",
+  oem: "OEM",
+  architect: "Architect",
+  interior_designer: "Interior Designer",
+  pmc: "PMC",
+  builder_project: "Builder Project",
+  individual_project: "Individual Project",
+  bungalow: "Bungalow",
+  structural_consultant: "Structural Consultant",
+  mepf_consultant: "MEPF Consultant",
+  other: "Other",
 }
 
 function statusBadge(status) {
@@ -86,8 +87,17 @@ function isOverdue(dateStr) {
 // LOAD & RENDER
 // ─────────────────────────────────────────────
 
-async function loadLeads() {
-  const [ok, res] = await callApi("GET", leadEndpoints.leads)
+async function loadLeads(user_id=null) {
+  if (user_id) {
+    if (user_id === 'all') {
+      currentUserId = null
+    } else {
+      currentUserId = user_id
+    }
+  }
+  const params = currentUserId ? { user_id: currentUserId } : {}
+  const url = leadEndpoints.leads + "?" + toQueryString(params);
+  const [ok, res] = await callApi("GET", url)
   if (ok && res.success) {
     allLeads = res.data
     renderLeadsTable(allLeads)
@@ -98,10 +108,17 @@ async function loadLeads() {
   }
 }
 
+async function applyLeadFilters() {
+  toggle_loader()
+  const userId = document.getElementById("leadUsers").value
+  await loadLeads(userId || 'all')
+  toggle_loader()
+  }
+
 function renderKPIs(leads) {
-  document.getElementById("kpiTotal").textContent     = leads.length
-  document.getElementById("kpiWon").textContent       = leads.filter(l => l.lead_status === "won" || l.lead_status === "repeat_order").length
-  document.getElementById("kpiLost").textContent      = leads.filter(l => l.lead_status === "closed_lost").length
+  document.getElementById("kpiTotal").textContent = leads.length
+  document.getElementById("kpiWon").textContent = leads.filter(l => l.lead_status === "won" || l.lead_status === "repeat_order").length
+  document.getElementById("kpiLost").textContent = leads.filter(l => l.lead_status === "closed_lost").length
   document.getElementById("kpiContacted").textContent = leads.filter(l => l.lead_status === "contacted").length
 
   // Pending = has a next_followup date that is not cleared (non-closed)
@@ -112,9 +129,9 @@ function renderKPIs(leads) {
 function renderFollowupAlerts(leads) {
   const container = document.getElementById("followupSections")
 
-  const now   = new Date()
+  const now = new Date()
   const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
-  const todayEnd   = new Date(now); todayEnd.setHours(23, 59, 59, 999)
+  const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999)
 
   const CLOSED = ["closed_lost", "closed_forwarded"]
 
@@ -230,15 +247,15 @@ function renderLeadsTable(leads) {
 // ─────────────────────────────────────────────
 
 function applyFilters() {
-  const q         = document.getElementById("searchInput").value.toLowerCase()
+  const q = document.getElementById("searchInput").value.toLowerCase()
   const statusVal = document.getElementById("statusFilter").value
-  const typeVal   = document.getElementById("partyTypeFilter").value
+  const typeVal = document.getElementById("partyTypeFilter").value
 
   const filtered = allLeads.filter(l => {
     const matchQ = !q || [l.party_name, l.contact_person, l.mobile_number, String(l.lead_id)]
       .some(v => v && v.toLowerCase().includes(q))
     const matchStatus = !statusVal || l.lead_status === statusVal
-    const matchType   = !typeVal   || l.party_type === typeVal
+    const matchType = !typeVal || l.party_type === typeVal
     return matchQ && matchStatus && matchType
   })
 
@@ -266,16 +283,16 @@ async function createLead() {
   }
 
   const payload = {
-    date_of_connect:  document.getElementById("createDateOfConnect").value || null,
-    lead_source:      document.getElementById("createLeadSource").value,
-    party_type:       partyType,
-    party_name:       partyName,
-    location:         document.getElementById("createLocation").value,
-    lead_status:      document.getElementById("createLeadStatus").value,
-    contact_person:   document.getElementById("createContactPerson").value,
-    mobile_number:    document.getElementById("createMobileNumber").value,
-    email:            document.getElementById("createEmail").value,
-    remarks:          document.getElementById("createRemarks").value,
+    date_of_connect: document.getElementById("createDateOfConnect").value || null,
+    lead_source: document.getElementById("createLeadSource").value,
+    party_type: partyType,
+    party_name: partyName,
+    location: document.getElementById("createLocation").value,
+    lead_status: document.getElementById("createLeadStatus").value,
+    contact_person: document.getElementById("createContactPerson").value,
+    mobile_number: document.getElementById("createMobileNumber").value,
+    email: document.getElementById("createEmail").value,
+    remarks: document.getElementById("createRemarks").value,
   }
 
   const [ok, res] = await callApi("POST", leadEndpoints.leads, payload, leadCsrf)
@@ -291,8 +308,8 @@ async function createLead() {
 }
 
 function resetCreateForm() {
-  ["createDateOfConnect","createLeadSource","createPartyType","createPartyName",
-   "createLocation","createContactPerson","createMobileNumber","createEmail","createRemarks"]
+  ["createDateOfConnect", "createLeadSource", "createPartyType", "createPartyName",
+    "createLocation", "createContactPerson", "createMobileNumber", "createEmail", "createRemarks"]
     .forEach(id => { document.getElementById(id).value = "" })
   document.getElementById("createLeadStatus").value = "new_lead"
 }
@@ -349,7 +366,7 @@ async function viewLead(leadId) {
   }
 
   // Follow-up alert banner
-  const fuBanner = lead.next_followup && !["closed_lost","closed_forwarded"].includes(lead.lead_status)
+  const fuBanner = lead.next_followup && !["closed_lost", "closed_forwarded"].includes(lead.lead_status)
     ? `<div class="followup-alert">
          <i class="fas fa-bell me-2"></i>
          <strong>Next Follow-up:</strong> ${formatDateTime(lead.next_followup)}
@@ -401,22 +418,22 @@ async function openEditLead() {
   const lead = allLeads.find(l => l.id === currentLeadId)
   if (!lead) return
 
-  document.getElementById("editDateOfConnect").value   = lead.date_of_connect || ""
-  document.getElementById("editLeadSource").value      = lead.lead_source || ""
-  document.getElementById("editPartyType").value       = lead.party_type || ""
-  document.getElementById("editPartyName").value       = lead.party_name || ""
-  document.getElementById("editLocation").value        = lead.location || ""
-  document.getElementById("editLeadStatus").value      = lead.lead_status || "new_lead"
-  document.getElementById("editContactPerson").value   = lead.contact_person || ""
-  document.getElementById("editMobileNumber").value    = lead.mobile_number || ""
-  document.getElementById("editEmail").value           = lead.email || ""
-  document.getElementById("editRemarks").value         = lead.remarks || ""
-  document.getElementById("editForwardedTo").value     = lead.forwarded_to || ""
+  document.getElementById("editDateOfConnect").value = lead.date_of_connect || ""
+  document.getElementById("editLeadSource").value = lead.lead_source || ""
+  document.getElementById("editPartyType").value = lead.party_type || ""
+  document.getElementById("editPartyName").value = lead.party_name || ""
+  document.getElementById("editLocation").value = lead.location || ""
+  document.getElementById("editLeadStatus").value = lead.lead_status || "new_lead"
+  document.getElementById("editContactPerson").value = lead.contact_person || ""
+  document.getElementById("editMobileNumber").value = lead.mobile_number || ""
+  document.getElementById("editEmail").value = lead.email || ""
+  document.getElementById("editRemarks").value = lead.remarks || ""
+  document.getElementById("editForwardedTo").value = lead.forwarded_to || ""
 
   const showFwd = lead.lead_status === "closed_forwarded"
   document.getElementById("editForwardedToGroup").style.display = showFwd ? "block" : "none"
 
-  document.getElementById("editLeadStatus").onchange = function() {
+  document.getElementById("editLeadStatus").onchange = function () {
     document.getElementById("editForwardedToGroup").style.display =
       this.value === "closed_forwarded" ? "block" : "none"
   }
@@ -446,16 +463,16 @@ async function submitEditLead() {
   const status = document.getElementById("editLeadStatus").value
   const payload = {
     date_of_connect: document.getElementById("editDateOfConnect").value || null,
-    lead_source:     document.getElementById("editLeadSource").value,
-    party_type:      partyType,
-    party_name:      partyName,
-    location:        document.getElementById("editLocation").value,
-    lead_status:     status,
-    contact_person:  document.getElementById("editContactPerson").value,
-    mobile_number:   document.getElementById("editMobileNumber").value,
-    email:           document.getElementById("editEmail").value,
-    remarks:         document.getElementById("editRemarks").value,
-    forwarded_to:    status === "closed_forwarded" ? document.getElementById("editForwardedTo").value : "",
+    lead_source: document.getElementById("editLeadSource").value,
+    party_type: partyType,
+    party_name: partyName,
+    location: document.getElementById("editLocation").value,
+    lead_status: status,
+    contact_person: document.getElementById("editContactPerson").value,
+    mobile_number: document.getElementById("editMobileNumber").value,
+    email: document.getElementById("editEmail").value,
+    remarks: document.getElementById("editRemarks").value,
+    forwarded_to: status === "closed_forwarded" ? document.getElementById("editForwardedTo").value : "",
   }
 
   const [ok, res] = await callApi("PUT", `${leadEndpoints.leads}${currentLeadId}/`, payload, leadCsrf)
@@ -518,7 +535,7 @@ function openAddCallRecord() {
 
 function toggleForwardedTo() {
   const status = document.getElementById("callLeadStatus").value
-  const forwardedGroup   = document.getElementById("forwardedToGroup")
+  const forwardedGroup = document.getElementById("forwardedToGroup")
   const nextFollowupGroup = document.getElementById("nextFollowupGroup")
 
   if (status === "closed_forwarded") {
@@ -536,11 +553,11 @@ function toggleForwardedTo() {
 }
 
 async function submitCallRecord() {
-  const callDate  = document.getElementById("callDate").value
-  const briefing  = document.getElementById("callBriefing").value.trim()
-  const status    = document.getElementById("callLeadStatus").value
-  const nextFollowup  = document.getElementById("callNextFollowup").value
-  const forwardedTo   = document.getElementById("callForwardedTo").value.trim()
+  const callDate = document.getElementById("callDate").value
+  const briefing = document.getElementById("callBriefing").value.trim()
+  const status = document.getElementById("callLeadStatus").value
+  const nextFollowup = document.getElementById("callNextFollowup").value
+  const forwardedTo = document.getElementById("callForwardedTo").value.trim()
   const contactNumber = document.getElementById("callContactNumber").value.trim()
 
   if (!callDate || !briefing) {
@@ -554,13 +571,13 @@ async function submitCallRecord() {
   }
 
   const payload = {
-    lead:            currentLeadId,
-    call_date:       callDate,
-    contact_number:  contactNumber,
-    briefing:        briefing,
-    lead_status:     status || null,
-    next_followup:   nextFollowup || null,
-    forwarded_to:    forwardedTo,
+    lead: currentLeadId,
+    call_date: callDate,
+    contact_number: contactNumber,
+    briefing: briefing,
+    lead_status: status || null,
+    next_followup: nextFollowup || null,
+    forwarded_to: forwardedTo,
   }
 
   const [ok, res] = await callApi("POST", leadEndpoints.callRecords, payload, leadCsrf)
@@ -600,15 +617,15 @@ async function openEditCallRecord(recordId) {
   }
 
   const c = res.data
-  document.getElementById("editCallRecordId").value        = c.id
-  document.getElementById("editCallDate").value             = c.call_date || ""
-  document.getElementById("editCallContactNumber").value    = c.contact_number || ""
-  document.getElementById("editCallBriefing").value         = c.briefing || ""
-  document.getElementById("editCallLeadStatus").value       = c.lead_status || ""
-  document.getElementById("editCallNextFollowup").value     = c.next_followup
+  document.getElementById("editCallRecordId").value = c.id
+  document.getElementById("editCallDate").value = c.call_date || ""
+  document.getElementById("editCallContactNumber").value = c.contact_number || ""
+  document.getElementById("editCallBriefing").value = c.briefing || ""
+  document.getElementById("editCallLeadStatus").value = c.lead_status || ""
+  document.getElementById("editCallNextFollowup").value = c.next_followup
     ? c.next_followup.slice(0, 16)   // trim to datetime-local format
     : ""
-  document.getElementById("editCallForwardedTo").value      = c.forwarded_to || ""
+  document.getElementById("editCallForwardedTo").value = c.forwarded_to || ""
 
   // Show/hide groups based on loaded status
   toggleEditForwardedTo()
@@ -622,7 +639,7 @@ async function openEditCallRecord(recordId) {
   }, 300)
 }
 
-function openLeadTransfer(){
+function openLeadTransfer() {
   setTimeout(() => {
     bootstrap.Modal.getOrCreateInstance(document.getElementById("transferLeadModal")).show()
   }, 300)
@@ -630,31 +647,31 @@ function openLeadTransfer(){
 
 function toggleEditForwardedTo() {
   const status = document.getElementById("editCallLeadStatus").value
-  const fwdGroup  = document.getElementById("editForwardedToGroup")
-  const fuGroup   = document.getElementById("editNextFollowupGroup")
+  const fwdGroup = document.getElementById("editForwardedToGroup")
+  const fuGroup = document.getElementById("editNextFollowupGroup")
 
   if (status === "closed_forwarded") {
     fwdGroup.style.display = "block"
-    fuGroup.style.display  = "none"
+    fuGroup.style.display = "none"
     document.getElementById("editCallNextFollowup").value = ""
   } else if (status === "closed_lost") {
     fwdGroup.style.display = "none"
-    fuGroup.style.display  = "none"
+    fuGroup.style.display = "none"
     document.getElementById("editCallNextFollowup").value = ""
   } else {
     fwdGroup.style.display = "none"
-    fuGroup.style.display  = "block"
+    fuGroup.style.display = "block"
   }
 }
 
 async function submitEditCallRecord() {
-  const recordId    = document.getElementById("editCallRecordId").value
-  const callDate    = document.getElementById("editCallDate").value
-  const briefing    = document.getElementById("editCallBriefing").value.trim()
-  const status      = document.getElementById("editCallLeadStatus").value
-  const nextFollowup= document.getElementById("editCallNextFollowup").value
+  const recordId = document.getElementById("editCallRecordId").value
+  const callDate = document.getElementById("editCallDate").value
+  const briefing = document.getElementById("editCallBriefing").value.trim()
+  const status = document.getElementById("editCallLeadStatus").value
+  const nextFollowup = document.getElementById("editCallNextFollowup").value
   const forwardedTo = document.getElementById("editCallForwardedTo").value.trim()
-  const contactNum  = document.getElementById("editCallContactNumber").value.trim()
+  const contactNum = document.getElementById("editCallContactNumber").value.trim()
 
   if (!callDate || !briefing) {
     alert("Call Date and Briefing are required.")
@@ -666,12 +683,12 @@ async function submitEditCallRecord() {
   }
 
   const payload = {
-    call_date:      callDate,
+    call_date: callDate,
     contact_number: contactNum,
-    briefing:       briefing,
-    lead_status:    status || null,
-    next_followup:  nextFollowup || null,
-    forwarded_to:   forwardedTo,
+    briefing: briefing,
+    lead_status: status || null,
+    next_followup: nextFollowup || null,
+    forwarded_to: forwardedTo,
   }
 
   const [ok, res] = await callApi("PUT", `${leadEndpoints.callRecords}${recordId}/`, payload, leadCsrf)

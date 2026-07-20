@@ -2654,7 +2654,11 @@ class LeadViewSet(viewsets.ViewSet):
     def list(self, request):
         """List all leads"""
         if request.user.role in ['admin', 'manager']:
-            leads = Lead.objects.filter(is_active=True).order_by('-created_at')
+            user_id = request.query_params.get('user_id')
+            if user_id:
+                leads = Lead.objects.filter(is_active=True, created_by__user_id=user_id).order_by('-created_at')
+            else:
+                leads = Lead.objects.filter(is_active=True).order_by('-created_at')
         else:
             leads = Lead.objects.filter(is_active=True, created_by=request.user).order_by('-created_at')
         serializer = LeadListSerializer(leads, many=True)
@@ -3006,4 +3010,255 @@ class TransferLeadViewSet(viewsets.ViewSet):
             "error": None
         }, status=201)
         
+
+
+from datetime import datetime, timedelta
+
+from django.db.models import Value, CharField
+from django.http import HttpResponse
+from django.utils import timezone
+from openpyxl import Workbook
+from openpyxl.styles import Font
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def export_daily_log(request):    
+    date_str = request.GET.get("date_of_report")
+    if date_str:
+        try:
+            report_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return Response(
+                {"status": False, "message": "Invalid date format. Use YYYY-MM-DD"},
+                status=400
+            )
+    else:
+        report_date = timezone.localdate()
+    
+
+    
+    start = timezone.make_aware(datetime.combine(report_date, datetime.min.time()))
+    end = start + timedelta(days=1)
+
+    is_admin = request.user.is_superuser
+
+    # ==========================================================
+    # Activity Sheet
+    # ==========================================================
+
+    leads = Lead.objects.filter(
+        created_at__gte=start,
+        created_at__lt=end,
+        is_active=True
+    ).select_related("created_by")
+
+    if not is_admin:
+        leads = leads.filter(created_by=request.user)
+
+    logs = []
+
+    for lead in leads:
+        logs.append({
+            "time": timezone.localtime(lead.created_at),
+            "user": lead.created_by.name if lead.created_by else "",
+            "action": "New Lead Added",
+            "lead_id": lead.lead_id,
+            "party": lead.party_name,
+            "contact": lead.contact_person,
+            "party_type": lead.get_party_type_display(),
+            "status": lead.get_lead_status_display(),
+            "remarks": lead.remarks,
+        })
+
+    calls = LeadCallRecord.objects.filter(
+        created_at__gte=start,
+        created_at__lt=end,
+        is_active=True
+    ).select_related("lead", "created_by")
+
+    if not is_admin:
+        calls = calls.filter(created_by=request.user)
+
+    for call in calls:
+        logs.append({
+            "time": timezone.localtime(call.created_at),
+            "user": call.created_by.name if call.created_by else "",
+            "action": "Call Record Added",
+            "lead_id": call.lead.lead_id,
+            "party": call.lead.party_name,
+            "contact": call.lead.contact_person,
+            "party_type": call.lead.get_party_type_display(),
+            "status": call.get_lead_status_display() if call.lead_status else "",
+            "remarks": call.briefing,
+        })
+
+    logs.sort(key=lambda x: x["time"])
+
+    wb = Workbook()
+
+    ws = wb.active
+    ws.title = "Activity Log"
+
+    row = 1
+
+    ws.cell(row=row, column=1).value = f"Lead Activity Report ({report_date})"
+    ws.cell(row=row, column=1).font = Font(bold=True, size=14)
+
+    row += 2
+
+    headers = ["Time"]
+
+    if is_admin:
+        headers.append("User")
+
+    headers.extend([
+        "Action",
+        "Lead ID",
+        "Party Name",
+        "Contact Person",
+        "Party Type",
+        "Status",
+        "Remarks"
+    ])
+
+    for c, h in enumerate(headers, 1):
+        cell = ws.cell(row=row, column=c)
+        cell.value = h
+        cell.font = Font(bold=True)
+
+    row += 1
+
+    for log in logs:
+
+        values = [
+            log["time"].strftime("%H:%M:%S")
+        ]
+
+        if is_admin:
+            values.append(log["user"])
+
+        values.extend([
+            log["action"],
+            log["lead_id"],
+            log["party"],
+            log["contact"],
+            log["party_type"],
+            log["status"],
+            log["remarks"]
+        ])
+
+        for c, value in enumerate(values, 1):
+            ws.cell(row=row, column=c).value = value
+
+        row += 1
+
+    # ==========================================================
+    # Pending Followups Sheet
+    # ==========================================================
+
+    ws2 = wb.create_sheet("Pending Followups")
+
+    row = 1
+
+    ws2.cell(row=row, column=1).value = f"Pending Followups ({report_date})"
+    ws2.cell(row=row, column=1).font = Font(bold=True, size=14)
+
+    row += 2
+
+    headers = [
+        "Lead ID",
+        "Party Name",
+        "Contact Person",
+        "Mobile",
+        "Party Type",
+        "Current Status",
+        "Followup Date",
+        "Followup Time",
+        "Remarks",
+        "Forwarded To"
+    ]
+
+    if is_admin:
+        headers.insert(0, "User")
+
+    for c, h in enumerate(headers, 1):
+        cell = ws2.cell(row=row, column=c)
+        cell.value = h
+        cell.font = Font(bold=True)
+
+    row += 1
+
+    pending_leads = Lead.objects.filter(
+        is_active=True,
+        next_followup__gte=start,
+        next_followup__lt=end
+    ).select_related("created_by")
+
+    if not is_admin:
+        pending_leads = pending_leads.filter(created_by=request.user)
+
+    for lead in pending_leads:
+
+        call_done = LeadCallRecord.objects.filter(
+            lead=lead,
+            created_at__gte=start,
+            created_at__lt=end,
+            is_active=True
+        ).exists()
+
+        if call_done:
+            continue
+
+        values = []
+
+        if is_admin:
+            values.append(
+                lead.created_by.name if lead.created_by else ""
+            )
+
+        values.extend([
+            lead.lead_id,
+            lead.party_name,
+            lead.contact_person,
+            lead.mobile_number,
+            lead.get_party_type_display(),
+            lead.get_lead_status_display(),
+            timezone.localtime(lead.next_followup).strftime("%d-%m-%Y"),
+            timezone.localtime(lead.next_followup).strftime("%I:%M %p"),
+            lead.remarks,
+            lead.forwarded_to,
+        ])
+
+        for c, value in enumerate(values, 1):
+            ws2.cell(row=row, column=c).value = value
+
+        row += 1
+
+    # ==========================================================
+    # Auto Width
+    # ==========================================================
+
+    for sheet in wb.worksheets:
+        for column_cells in sheet.columns:
+            try:
+                length = max(len(str(cell.value or "")) for cell in column_cells)
+                sheet.column_dimensions[column_cells[0].column_letter].width = min(length + 5, 50)
+            except:
+                pass
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    response["Content-Disposition"] = (
+        f'attachment; filename="Lead_Report_{report_date}.xlsx"'
+    )
+
+    wb.save(response)
+
+    return response
 

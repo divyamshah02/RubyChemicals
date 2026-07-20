@@ -223,7 +223,8 @@ class LeadsViewSet(viewsets.ViewSet):
         all_users_with_leads_permission = User.objects.filter(
             Q(role='admin') | Q(can_leads=True)
         ).exclude(id=request.user.id)
-        return render(request, 'leads.html', {'all_users_with_leads_permission': all_users_with_leads_permission})
+        is_admin_or_super = request.user.role == 'admin' or request.user.is_super_admin
+        return render(request, 'leads.html', {'all_users_with_leads_permission': all_users_with_leads_permission, 'is_admin_or_super': is_admin_or_super})
 
 
 # ── Role Manager page ─────────────────────────────────────────────────────────
