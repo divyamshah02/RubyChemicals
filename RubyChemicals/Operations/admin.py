@@ -220,6 +220,7 @@ class DispatchItemAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related('dispatch', 'stock_item')
 
 
+# ---------------- LEADS (original) ---------------- #
 
 class LeadCallRecordInline(admin.TabularInline):
     model = LeadCallRecord
@@ -235,17 +236,18 @@ class LeadCallRecordInline(admin.TabularInline):
 @admin.register(Lead)
 class LeadAdmin(admin.ModelAdmin):
     list_display = (
-        'lead_id', 'party_name', 'party_type', 'contact_person',
+        'lead_id', 'party_name', 'sub_department', 'party_type', 'contact_person',
         'mobile_number', 'lead_status', 'next_followup', 'created_at'
     )
-    list_filter = ('lead_status', 'party_type', 'is_active')
+    list_filter = ('lead_status', 'party_type', 'sub_department', 'is_active')
     search_fields = ('lead_id', 'party_name', 'contact_person', 'mobile_number', 'email')
     readonly_fields = ('lead_id', 'created_at', 'updated_at')
+    autocomplete_fields = ('sub_department',)
     inlines = [LeadCallRecordInline]
 
     fieldsets = (
         ('Lead Info', {
-            'fields': ('lead_id', 'date_of_connect', 'lead_source')
+            'fields': ('lead_id', 'date_of_connect', 'lead_source', 'sub_department')
         }),
         ('Party Details', {
             'fields': ('party_type', 'party_name', 'location', 'contact_person', 'mobile_number', 'email')
@@ -270,3 +272,104 @@ class LeadCallRecordAdmin(admin.ModelAdmin):
     autocomplete_fields = ('lead',)
     readonly_fields = ('created_at',)
 
+
+# ---------------- LEADS SUB-DEPT MODULE ---------------- #
+
+class QuotationItemInline(admin.TabularInline):
+    model = QuotationItem
+    extra = 1
+    fields = ('stock_item', 'quantity', 'rate', 'uom', 'application_area', 'description', 'is_active')
+    autocomplete_fields = ('stock_item',)
+
+
+class SampleRequisiteItemInline(admin.TabularInline):
+    model = SampleRequisiteItem
+    extra = 1
+    fields = ('stock_item', 'quantity', 'uom', 'qty_sent', 'notes', 'is_active')
+    autocomplete_fields = ('stock_item',)
+
+
+class ApplicationSystemProductItemInline(admin.TabularInline):
+    model = ApplicationSystemProductItem
+    extra = 1
+    fields = ('stock_item', 'product_name', 'hsn_code', 'rate', 'uom', 'quantity', 'is_active')
+    autocomplete_fields = ('stock_item',)
+
+
+class ApplicationFixedItemInline(admin.TabularInline):
+    model = ApplicationFixedItem
+    extra = 1
+    fields = ('stock_item', 'product_name', 'hsn_code', 'rate', 'uom', 'quantity', 'is_active')
+    autocomplete_fields = ('stock_item',)
+
+
+class ApplicationSystemProductInline(admin.TabularInline):
+    model = ApplicationSystemProduct
+    extra = 0
+    show_change_link = True
+    fields = ('name', 'description', 'is_active')
+
+
+@admin.register(LeadSubDepartment)
+class LeadSubDepartmentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'is_active', 'created_at')
+    search_fields = ('name', 'code')
+    list_filter = ('is_active',)
+    ordering = ('name',)
+
+
+@admin.register(SubDeptStockItem)
+class SubDeptStockItemAdmin(admin.ModelAdmin):
+    list_display = ('product_name', 'sub_department', 'hsn_code', 'rate', 'uom', 'warranty', 'is_active')
+    list_filter = ('sub_department', 'uom', 'is_active')
+    search_fields = ('product_name', 'hsn_code', 'warranty')
+    ordering = ('sub_department', 'product_name')
+
+
+@admin.register(Quotation)
+class QuotationAdmin(admin.ModelAdmin):
+    list_display = ('quotation_no', 'lead', 'quotation_date', 'status', 'created_by', 'created_at')
+    list_filter = ('status', 'lead__sub_department')
+    search_fields = ('quotation_no', 'lead__party_name')
+    ordering = ('-created_at',)
+    readonly_fields = ('quotation_no', 'created_at', 'updated_at')
+    inlines = [QuotationItemInline]
+    autocomplete_fields = ('lead', 'created_by')
+
+
+@admin.register(SampleRequisite)
+class SampleRequisiteAdmin(admin.ModelAdmin):
+    list_display = ('sr_no', 'lead', 'sr_date', 'status', 'sent_to_factory_at', 'created_by')
+    list_filter = ('status', 'lead__sub_department')
+    search_fields = ('sr_no', 'lead__party_name')
+    ordering = ('-created_at',)
+    readonly_fields = ('sr_no', 'created_at', 'updated_at')
+    inlines = [SampleRequisiteItemInline]
+    autocomplete_fields = ('lead', 'created_by')
+
+
+@admin.register(ApplicationArea)
+class ApplicationAreaAdmin(admin.ModelAdmin):
+    list_display = ('name', 'sub_department', 'is_active')
+    list_filter = ('sub_department', 'is_active')
+    search_fields = ('name',)
+    inlines = [ApplicationSystemProductInline, ApplicationFixedItemInline]
+    autocomplete_fields = ('sub_department',)
+
+
+@admin.register(ApplicationSystemProduct)
+class ApplicationSystemProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'application_area', 'is_active')
+    list_filter = ('application_area__sub_department', 'is_active')
+    search_fields = ('name',)
+    inlines = [ApplicationSystemProductItemInline]
+    autocomplete_fields = ('application_area',)
+
+
+@admin.register(ApplicationLead)
+class ApplicationLeadAdmin(admin.ModelAdmin):
+    list_display = ('lead', 'application_area', 'created_at')
+    list_filter = ('application_area',)
+    search_fields = ('lead__party_name',)
+    filter_horizontal = ('selected_system_products',)
+    autocomplete_fields = ('lead', 'application_area')

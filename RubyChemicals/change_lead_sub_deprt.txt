@@ -1,0 +1,10 @@
+from Operations.models import *
+rc_sub = LeadSubDepartment.objects.get(id=2)
+rc_sub
+all_leads = Lead.objects.filter(is_active=True, sub_department=None)
+all_leads
+all_leads = Lead.objects.filter(is_active=True, sub_department=None).update(sub_department=rc_sub)
+all_leads = Lead.objects.filter(is_active=True, sub_department=None)
+all_leads
+oem_sub = LeadSubDepartment.objects.get(id=1)
+all_leads = Lead.objects.filter(is_active=True, party_type='oem').update(sub_department=oem_sub)

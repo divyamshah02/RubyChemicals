@@ -1,3 +1,11 @@
+"""
+UserDetail/admin.py
+───────────────────
+Changes vs original:
+  • Added 'sales' to role filter
+  • Added 'leads_sub_department' to User fieldset (Leads Access section)
+"""
+
 from django.contrib import admin
 from .models import User, ActivityLog
 
@@ -6,9 +14,10 @@ from .models import User, ActivityLog
 class UserAdmin(admin.ModelAdmin):
     list_display = (
         "user_id", "name", "email", "role",
-        "is_super_admin", "active_user", "created_at",
+        "is_super_admin", "active_user",
+        "leads_sub_department", "created_at",
     )
-    list_filter = ("role", "active_user", "is_super_admin")
+    list_filter = ("role", "active_user", "is_super_admin", "leads_sub_department")
     search_fields = ("name", "email", "user_id")
     ordering = ("-created_at",)
 
@@ -28,11 +37,16 @@ class UserAdmin(admin.ModelAdmin):
                 "can_leads",
             ),
         }),
+        ("Leads Department Assignment", {
+            "description": "Assign a sub-department for Sales / can_leads users.",
+            "fields": ("leads_sub_department",),
+        }),
         ("Timestamps", {
             "fields": ("created_at",),
         }),
     )
     readonly_fields = ("user_id", "created_at")
+    autocomplete_fields = ("leads_sub_department",)
 
 
 @admin.register(ActivityLog)

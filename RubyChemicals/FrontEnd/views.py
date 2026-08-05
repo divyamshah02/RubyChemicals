@@ -121,6 +121,13 @@ class LoginViewSet(viewsets.ViewSet):
     def list(self, request):
         return render(request, 'login.html')
 
+class LogoutViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    def list(self, request):
+        logout(request)
+        return redirect('login-list')
+
 
 class AdminDashboardViewSet(viewsets.ViewSet):
     """
@@ -225,6 +232,14 @@ class LeadsViewSet(viewsets.ViewSet):
         ).exclude(id=request.user.id)
         is_admin_or_super = request.user.role == 'admin' or request.user.is_super_admin
         return render(request, 'leads.html', {'all_users_with_leads_permission': all_users_with_leads_permission, 'is_admin_or_super': is_admin_or_super})
+
+
+class LeadSubDeptMngmtViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication(required_permission='can_vendor_management')
+    def list(self, request):
+        return render(request, 'lead_sub_dept_mgmt.html')
 
 
 # ── Role Manager page ─────────────────────────────────────────────────────────

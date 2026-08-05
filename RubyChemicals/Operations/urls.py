@@ -5,6 +5,8 @@ from .dashboard_viewsets import *
 from .client_viewsets import ClientProfileViewSet, ClientAddressViewSet
 from .vendor_viewsets import VendorProfileViewSet, VendorAddressViewSet
 from .vendor_inward_viewsets import VendorInwardViewSet
+from .leads_viewsets import *
+from .quotation_pdf_viewset import QuotationPDFViewSet
 
 router = DefaultRouter()
 
@@ -51,7 +53,145 @@ router.register(r'lead-api', LeadViewSet, basename='lead-api')
 router.register(r'lead-call-record-api', LeadCallRecordViewSet, basename='lead-call-record-api')
 router.register(r'transfer-lead-api', TransferLeadViewSet, basename='transfer-lead-api')
 
+
+# ── views ──────────────────────────────────────────────────────────────────
+_sub_dept      = LeadSubDepartmentViewSet.as_view
+_stock_item    = SubDeptStockItemViewSet.as_view
+_dept_lead     = DeptLeadViewSet.as_view
+_quotation     = QuotationViewSet.as_view
+_sr            = SampleRequisiteViewSet.as_view
+_app_area      = ApplicationAreaViewSet.as_view
+_system_prod   = ApplicationSystemProductViewSet.as_view
+_fixed_item    = ApplicationFixedItemViewSet.as_view
+_app_lead      = ApplicationLeadViewSet.as_view
+_quot_pdf = QuotationPDFViewSet.as_view
+
+leads_patterns = [
+
+    # ── LeadSubDepartment ─────────────────────────────────────────────────
+    path(
+        'leads/sub-departments/',
+        _sub_dept({'get': 'list', 'post': 'create'}),
+        name='leads-sub-dept-list'
+    ),
+    path(
+        'leads/sub-departments/<int:pk>/',
+        _sub_dept({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'}),
+        name='leads-sub-dept-detail'
+    ),
+
+    # ── SubDeptStockItem ──────────────────────────────────────────────────
+    path(
+        'leads/stock-items/',
+        _stock_item({'get': 'list', 'post': 'create'}),
+        name='leads-stock-item-list'
+    ),
+    path(
+        'leads/stock-items/<int:pk>/',
+        _stock_item({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'}),
+        name='leads-stock-item-detail'
+    ),
+
+    # ── DeptLead ──────────────────────────────────────────────────────────
+    path(
+        'leads/dept-leads/',
+        _dept_lead({'get': 'list', 'post': 'create'}),
+        name='leads-dept-lead-list'
+    ),
+    path(
+        'leads/dept-leads/<int:pk>/',
+        _dept_lead({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'}),
+        name='leads-dept-lead-detail'
+    ),
+
+    # ── Quotation ─────────────────────────────────────────────────────────
+    path(
+        'leads/quotations/',
+        _quotation({'get': 'list', 'post': 'create'}),
+        name='leads-quotation-list'
+    ),
+    path(
+        'leads/quotations/<int:pk>/',
+        _quotation({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'}),
+        name='leads-quotation-detail'
+    ),
+
+    # ── SampleRequisite ───────────────────────────────────────────────────
+    path(
+        'leads/sample-requisites/',
+        _sr({'get': 'list', 'post': 'create'}),
+        name='leads-sr-list'
+    ),
+    path(
+        'leads/sample-requisites/<int:pk>/',
+        _sr({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'}),
+        name='leads-sr-detail'
+    ),
+    path(
+        'leads/sample-requisites/<int:pk>/mark-sent/',
+        _sr({'post': 'mark_sent'}),
+        name='leads-sr-mark-sent'
+    ),
+
+    # ── ApplicationArea ───────────────────────────────────────────────────
+    path(
+        'leads/application-areas/',
+        _app_area({'get': 'list', 'post': 'create'}),
+        name='leads-app-area-list'
+    ),
+    path(
+        'leads/application-areas/<int:pk>/',
+        _app_area({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'}),
+        name='leads-app-area-detail'
+    ),
+
+    # ── ApplicationSystemProduct ──────────────────────────────────────────
+    path(
+        'leads/system-products/',
+        _system_prod({'get': 'list', 'post': 'create'}),
+        name='leads-system-product-list'
+    ),
+    path(
+        'leads/system-products/<int:pk>/',
+        _system_prod({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'}),
+        name='leads-system-product-detail'
+    ),
+
+    # ── ApplicationFixedItem ──────────────────────────────────────────────
+    path(
+        'leads/fixed-items/',
+        _fixed_item({'get': 'list', 'post': 'create'}),
+        name='leads-fixed-item-list'
+    ),
+    path(
+        'leads/fixed-items/<int:pk>/',
+        _fixed_item({'patch': 'update', 'delete': 'destroy'}),
+        name='leads-fixed-item-detail'
+    ),
+
+    # ── ApplicationLead ───────────────────────────────────────────────────
+    path(
+        'leads/application-leads/',
+        _app_lead({'get': 'list', 'post': 'create'}),
+        name='leads-app-lead-list'
+    ),
+    path(
+        'leads/application-leads/<int:pk>/',
+        _app_lead({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'}),
+        name='leads-app-lead-detail'
+    ),
+
+    path(
+        'leads/quotations/download-pdf/',
+        _quot_pdf({'get': 'list'}),
+        name='leads-quotation-pdf'
+    ),
+]
+
+
 urlpatterns = [
     path('', include(router.urls)),
     path("lead/export-daily-log/", export_daily_log, name="export_daily_log"),
 ]
+urlpatterns += leads_patterns
+

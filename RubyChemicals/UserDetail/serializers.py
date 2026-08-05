@@ -1,7 +1,14 @@
+"""
+UserDetail/serializers.py
+─────────────────────────
+Changes vs original:
+  • Added 'sales' role
+  • Added 'leads_sub_department' and 'leads_sub_department_name' to user serializers
+"""
+
 from rest_framework import serializers
 from .models import User, ActivityLog
 
-# All plugin permission fields — shared across serializers
 PERMISSION_FIELDS = [
     "is_super_admin",
     "can_stock_items",
@@ -15,6 +22,10 @@ PERMISSION_FIELDS = [
 
 
 class UserSerializer(serializers.ModelSerializer):
+    leads_sub_department_name = serializers.CharField(
+        source='leads_sub_department.name', read_only=True
+    )
+
     class Meta:
         model = User
         fields = [
@@ -25,6 +36,8 @@ class UserSerializer(serializers.ModelSerializer):
             "role",
             "active_user",
             "created_at",
+            "leads_sub_department",
+            "leads_sub_department_name",
         ] + PERMISSION_FIELDS
 
 
@@ -33,7 +46,10 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["name", "email", "role", "password"] + PERMISSION_FIELDS
+        fields = [
+            "name", "email", "role", "password",
+            "leads_sub_department",
+        ] + PERMISSION_FIELDS
 
     def validate_email(self, value):
         if User.objects.filter(email__iexact=value).exists():
@@ -53,10 +69,12 @@ class UpdateUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["name", "email", "role", "active_user"] + PERMISSION_FIELDS
+        fields = [
+            "name", "email", "role", "active_user",
+            "leads_sub_department",
+        ] + PERMISSION_FIELDS
 
     def validate_email(self, value):
-        # Allow the same user to keep their email; block if another user has it
         qs = User.objects.filter(email__iexact=value)
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)

@@ -327,7 +327,6 @@ class ProductionConsumption(models.Model):
     
     def __str__(self):
         return f"{self.stock_item.name}"
-        return f"{self.stock_item.name} - {self.production_card.production_code}"
 
 
 # Petty Cash Models
@@ -590,6 +589,18 @@ class Lead(models.Model):
     date_of_connect = models.DateField(null=True, blank=True)
     lead_source = models.CharField(max_length=255, blank=True)
 
+    # ── NEW: sub-department linkage ──────────────────────────────────────────
+    # nullable so existing rows without a sub-department stay valid.
+    # All pre-existing leads should be migrated to sub_department_id=1 (OEM).
+    sub_department = models.ForeignKey(
+        'LeadSubDepartment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='leads',
+        help_text="Leads sub-department (OEM / RC / Applications / …)"
+    )
+
     party_type = models.CharField(max_length=50, choices=PARTY_TYPE_CHOICES)
     party_name = models.CharField(max_length=200)
     location = models.CharField(max_length=255, blank=True)
@@ -627,6 +638,12 @@ class Lead(models.Model):
         if not self.lead_id:
             last = Lead.objects.order_by('-id').first()
             self.lead_id = 1 if not last else last.lead_id + 1
+
+        # if self.sub_department is None:
+        if self.party_type == 'oem':
+            self.sub_department = LeadSubDepartment.objects.filter(code='OEM').first()
+        else:
+            self.sub_department = LeadSubDepartment.objects.filter(code='RC').first()
         super().save(*args, **kwargs)
 
     class Meta:
@@ -686,3 +703,417 @@ class LeadCallRecord(models.Model):
 
     def __str__(self):
         return f"Call for {self.lead.lead_id} on {self.call_date}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. LeadSubDepartment
+# ─────────────────────────────────────────────────────────────────────────────
+
+class LeadSubDepartment(models.Model):
+    """
+    Fully dynamic sub-departments under the Leads/Sales department.
+    Seed data: OEM (id=1), RC, Applications — admins can add more at any time.
+    """
+    name        = models.CharField(max_length=100, unique=True)
+    code        = models.CharField(max_length=20, unique=True,
+                                   help_text="Short code, e.g. OEM / RC / APP")
+    description = models.TextField(blank=True)
+    is_active   = models.BooleanField(default=True)
+    created_at  = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+# ───────────────────────────────────────────────────────��─────────────────────
+# 2. SubDeptStockItem
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SubDeptStockItem(models.Model):
+    """
+    Stock items specific to a LeadSubDepartment.
+    Independent from the main Operations StockItem catalogue.
+    """
+    UOM_CHOICES = [
+        ('NOS',    'NOS'),
+        ('KGS',    'KGS'),
+        ('BAGS',   'BAGS'),
+        ('GRAMS',  'GRAMS'),
+        ('PACK',   'PACK'),
+        ('ROLL',   'ROLL'),
+        ('SQ FT',  'SQ FT'),
+        ('SQ MTR', 'SQ MTR'),
+        ('CBM',    'CBM'),
+        ('LTR',    'LTR'),
+        ('ML',     'ML'),
+        ('PCS',    'PCS'),
+        ('MTR',    'MTR'),
+    ]
+
+    sub_department = models.ForeignKey(
+        LeadSubDepartment,
+        on_delete=models.CASCADE,
+        related_name='stock_items'
+    )
+    product_name = models.CharField(max_length=255)
+    hsn_code     = models.CharField(max_length=20, blank=True, null=True)
+    rate         = models.DecimalField(max_digits=12, decimal_places=2,
+                                       null=True, blank=True,
+                                       help_text="Default rate; can be overridden in quotation")
+    uom          = models.CharField(max_length=20, default='NOS',
+                                    verbose_name="Unit of Measurement")
+    warranty     = models.CharField(max_length=100, blank=True, null=True,
+                                    help_text="Optional warranty info, e.g. '1 Year', '6 Months'")
+    is_active    = models.BooleanField(default=True)
+    created_at   = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ('sub_department', 'product_name')
+        ordering = ['product_name']
+
+    def __str__(self):
+        return f"{self.product_name} ({self.sub_department.code})"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. Quotation + QuotationItem
+#    FK → Lead  (uses the existing Lead model, not DeptLead)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Quotation(models.Model):
+    STATUS_CHOICES = [
+        ('draft',    'Draft'),
+        ('sent',     'Sent'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    ]
+
+    quotation_no   = models.CharField(max_length=30, unique=True, editable=False)
+    lead           = models.ForeignKey(
+        Lead,
+        on_delete=models.CASCADE,
+        related_name='quotations'
+    )
+    quotation_date = models.DateField()
+    status         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    notes          = models.TextField(blank=True)
+
+    # Address / billing info (free-text for flexibility)
+    billing_address  = models.TextField(blank=True)
+    shipping_address = models.TextField(blank=True)
+
+    created_by = models.ForeignKey(
+        'UserDetail.User',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='quotations_created'
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active  = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        if not self.quotation_no:
+            from django.utils import timezone as tz
+            year   = tz.now().year % 100
+            month  = tz.now().month
+            last   = Quotation.objects.filter(
+                created_at__year=tz.now().year
+            ).order_by('-id').first()
+            seq = 1 if not last else int(last.quotation_no.split('-')[-1]) + 1
+            # Use lead's sub_department code if available, else fallback to 'QT'
+            dept_code = 'QT'
+            if self.lead_id:
+                try:
+                    dept_code = Lead.objects.get(pk=self.lead_id).sub_department.code
+                except (Lead.DoesNotExist, AttributeError):
+                    pass
+            self.quotation_no = f"QT-{dept_code}-{year}{month:02d}-{seq:04d}"
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.quotation_no
+
+
+class QuotationItem(models.Model):
+    quotation   = models.ForeignKey(
+        Quotation,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    # Now nullable — application-area items may not have a catalogue entry
+    stock_item  = models.ForeignKey(
+        SubDeptStockItem,
+        on_delete=models.PROTECT,
+        related_name='quotation_items',
+        null=True, blank=True,
+    )
+    # Free-text name used when stock_item is NULL
+    product_name = models.CharField(max_length=255, blank=True, help_text="Used when stock_item is not linked")
+    hsn_code = models.CharField(max_length=20, blank=True, null=True)
+    quantity = models.DecimalField(max_digits=12, decimal_places=3, default=1)
+    # Rate is copied from SubDeptStockItem but fully editable per-line
+    rate = models.DecimalField(max_digits=12, decimal_places=2)
+    uom = models.CharField(max_length=20, blank=True, help_text="Copied from item but can be overridden")
+    scope = models.CharField(
+                max_length=100,
+                blank=True,
+                default='',
+                help_text="Scope of work, e.g. 'LABOUR + MATERIAL', 'LABOUR ONLY'")
+    warranty = models.CharField(max_length=100, blank=True, help_text="Warranty info, e.g. '1 Year'")
+    application_area = models.CharField(max_length=100, null=True, blank=True, help_text="Optional application area for this item")
+    description = models.TextField(blank=True, help_text="Optional line-level description")
+    is_active = models.BooleanField(default=True)
+
+    def get_product_name(self):
+        return self.stock_item.product_name if self.stock_item else self.product_name
+
+    @property
+    def total(self):
+        return self.quantity * self.rate
+
+    def __str__(self):
+        return f"{self.get_product_name()} × {self.quantity}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. SampleRequisite + SampleRequisiteItem
+#    FK → Lead
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SampleRequisite(models.Model):
+    STATUS_CHOICES = [
+        ('pending',        'Pending'),
+        ('partial_sent',   'Partial Sent'),
+        ('sent',           'Sent'),
+    ]
+
+    sr_no     = models.CharField(max_length=30, unique=True, editable=False)
+    lead      = models.ForeignKey(
+        Lead,
+        on_delete=models.CASCADE,
+        related_name='sample_requisites'
+    )
+    sr_date   = models.DateField()
+    status    = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    # Delivery address / contact
+    delivery_address = models.TextField(blank=True)
+    contact_name     = models.CharField(max_length=100, blank=True)
+    contact_number   = models.CharField(max_length=20, blank=True)
+
+    notes      = models.TextField(blank=True)
+    # Factory marks this once sample is dispatched
+    sent_to_factory_at = models.DateTimeField(null=True, blank=True)
+    factory_remarks    = models.TextField(blank=True)
+
+    created_by = models.ForeignKey(
+        'UserDetail.User',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='sr_created'
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active  = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        if not self.sr_no:
+            from django.utils import timezone as tz
+            year   = tz.now().year % 100
+            month  = tz.now().month
+            last   = SampleRequisite.objects.filter(
+                created_at__year=tz.now().year
+            ).order_by('-id').first()
+            seq = 1 if not last else int(last.sr_no.split('-')[-1]) + 1
+            dept_code = 'SR'
+            if self.lead_id:
+                try:
+                    dept_code = Lead.objects.get(pk=self.lead_id).sub_department.code
+                except (Lead.DoesNotExist, AttributeError):
+                    pass
+            self.sr_no = f"SR-{dept_code}-{year}{month:02d}-{seq:04d}"
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.sr_no
+
+
+class SampleRequisiteItem(models.Model):
+    sample_requisite = models.ForeignKey(
+        SampleRequisite,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    stock_item  = models.ForeignKey(
+        SubDeptStockItem,
+        on_delete=models.PROTECT,
+        related_name='sr_items'
+    )
+    quantity    = models.DecimalField(max_digits=12, decimal_places=3, default=1)
+    uom         = models.CharField(max_length=20, blank=True)
+    # Factory field: how much was actually sent (supports partial)
+    qty_sent    = models.DecimalField(max_digits=12, decimal_places=3,
+                                      null=True, blank=True,
+                                      help_text="Quantity actually sent by factory")
+    notes       = models.TextField(blank=True)
+    is_active   = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.stock_item.product_name} × {self.quantity}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5–8. Application Area models (for "Applications" type leads)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ApplicationArea(models.Model):
+    """
+    e.g. Kitchen, Bathroom, Terrace …
+    Belongs to a specific sub-department (usually the 'Applications' sub-dept).
+    """
+    sub_department = models.ForeignKey(
+        LeadSubDepartment,
+        on_delete=models.CASCADE,
+        related_name='application_areas'
+    )
+    name        = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    is_active   = models.BooleanField(default=True)
+    created_at  = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ('sub_department', 'name')
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.sub_department.code})"
+
+
+class ApplicationSystemProduct(models.Model):
+    """
+    A named system product (batch) for a specific application area.
+    e.g. "Full Bathroom Waterproofing Pack"
+    """
+    application_area = models.ForeignKey(
+        ApplicationArea,
+        on_delete=models.CASCADE,
+        related_name='system_products'
+    )
+    name        = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    is_active   = models.BooleanField(default=True)
+    created_at  = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ('application_area', 'name')
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} [{self.application_area.name}]"
+
+
+class ApplicationSystemProductItem(models.Model):
+    """
+    Items that make up a system product.
+    Can point to an existing SubDeptStockItem OR be a free-text product.
+    """
+    system_product  = models.ForeignKey(
+        ApplicationSystemProduct,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    # Either link to catalogue item …
+    stock_item = models.ForeignKey(
+        SubDeptStockItem,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='system_product_items'
+    )
+    # … or provide ad-hoc details
+    product_name = models.CharField(max_length=255, blank=True,
+                                    help_text="Used when stock_item is not linked")
+    hsn_code     = models.CharField(max_length=20, blank=True, null=True)
+    rate         = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    uom          = models.CharField(max_length=20, blank=True)
+
+    quantity     = models.DecimalField(max_digits=12, decimal_places=3, default=1)
+    is_active    = models.BooleanField(default=True)
+
+    def get_product_name(self):
+        return self.stock_item.product_name if self.stock_item else self.product_name
+
+    def __str__(self):
+        return f"{self.get_product_name()} × {self.quantity} [{self.system_product.name}]"
+
+
+class ApplicationFixedItem(models.Model):
+    """
+    Fixed items always included for a given application area.
+    """
+    application_area = models.ForeignKey(
+        ApplicationArea,
+        on_delete=models.CASCADE,
+        related_name='fixed_items'
+    )
+    stock_item   = models.ForeignKey(
+        SubDeptStockItem,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='fixed_items'
+    )
+    product_name = models.CharField(max_length=255, blank=True)
+    hsn_code     = models.CharField(max_length=20, blank=True, null=True)
+    rate         = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    uom          = models.CharField(max_length=20, blank=True)
+
+    quantity     = models.DecimalField(max_digits=12, decimal_places=3, default=1)
+    is_active    = models.BooleanField(default=True)
+
+    def get_product_name(self):
+        return self.stock_item.product_name if self.stock_item else self.product_name
+
+    def __str__(self):
+        return f"{self.get_product_name()} [Fixed - {self.application_area.name}]"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 9. ApplicationLead  (Applications-type lead, extends Lead)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ApplicationLead(models.Model):
+    """
+    Extra data attached to a Lead when the lead type is 'Applications'.
+    Stores which application area and which system products were selected.
+    Quotation / SR flow is the same as a normal Lead.
+    """
+    lead             = models.OneToOneField(
+        Lead,
+        on_delete=models.CASCADE,
+        related_name='application_detail'
+    )
+    application_area = models.ForeignKey(
+        ApplicationArea,
+        on_delete=models.PROTECT,
+        related_name='app_leads'
+    )
+    # Selected system products (many-to-many)
+    selected_system_products = models.ManyToManyField(
+        ApplicationSystemProduct,
+        blank=True,
+        related_name='app_leads'
+    )
+    notes     = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"AppLead for {self.lead}"

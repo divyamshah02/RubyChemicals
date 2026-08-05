@@ -2700,6 +2700,8 @@ class LeadViewSet(viewsets.ViewSet):
         serializer = LeadSerializer(data=request.data)
         if serializer.is_valid():
             lead = serializer.save(created_by=request.user)
+            lead_obj = Lead.objects.get(id=lead.id)
+            lead_obj.save()
             return Response({
                 "success": True,
                 "user_not_logged_in": False,
@@ -2724,6 +2726,8 @@ class LeadViewSet(viewsets.ViewSet):
             serializer = LeadSerializer(lead, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
+                lead_obj = Lead.objects.get(id=lead.id)
+                lead_obj.save()
                 return Response({
                     "success": True,
                     "user_not_logged_in": False,
@@ -2812,8 +2816,12 @@ class LeadCallRecordViewSet(viewsets.ViewSet):
     def list(self, request):
         """List call records - optionally filter by lead_id"""
         lead_id = request.query_params.get('lead_id')
+        lead = request.query_params.get('lead')
         if lead_id:
             records = LeadCallRecord.objects.filter(lead_id=lead_id, is_active=True).order_by('-call_date')
+        if lead:            
+            records = LeadCallRecord.objects.filter(lead_id=lead, is_active=True).order_by('-call_date')
+            print("Lead call records for lead:", lead, "Count:", records.count())
         else:
             records = LeadCallRecord.objects.filter(is_active=True).order_by('-call_date')
         serializer = LeadCallRecordSerializer(records, many=True)
@@ -2830,7 +2838,7 @@ class LeadCallRecordViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """Get single call record"""
         try:
-            record = LeadCallRecord.objects.get(id=pk, is_active=True)
+            record = LeadCallRecord.objects.get(id=pk, is_active=True)            
             serializer = LeadCallRecordSerializer(record)
             return Response({
                 "success": True,
