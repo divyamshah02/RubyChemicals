@@ -1159,7 +1159,7 @@ async function confirmDeleteLead(leadId) {
 
 // ─────────────────────────────────────────────
 // CALL RECORDS
-// ─────────────────────────────────────────────
+// ───────────────────────────────────���─────────
 
 function openAddCallRecord() {
   if (!currentLeadId) return
@@ -1303,4 +1303,44 @@ async function submitTransferLead() {
   } else {
     alert("Error: " + (res.error ? JSON.stringify(res.error) : "Failed to transfer lead"))
   }
+}
+
+// ─────────────────────────────────────────────
+// GENERATE REPORT (PDF / EXCEL / ALL USERS)
+// ─────────────────────────────────────────────
+
+let reportMode = "single"
+
+function setReportMode(mode) {
+  reportMode = mode
+  const titleEl = document.getElementById("generateReportModalTitle")
+  const hintEl = document.getElementById("reportAllUsersHint")
+  const formatSectionEl = document.getElementById("reportFormatSection")
+
+  if (mode === "all") {
+    if (titleEl) titleEl.innerHTML = '<i class="fas fa-users" style="color:#3b82f6; margin-right:0.5rem;"></i>Generate All Users Report'
+    if (hintEl) hintEl.style.display = "block"
+    if (formatSectionEl) formatSectionEl.style.display = "none"
+  } else {
+    if (titleEl) titleEl.innerHTML = '<i class="fas fa-download" style="color:#3b82f6; margin-right:0.5rem;"></i>Generate Report'
+    if (hintEl) hintEl.style.display = "none"
+    if (formatSectionEl) formatSectionEl.style.display = ""
+  }
+}
+
+function generateLeadsReport() {
+  const dateOfReport = document.getElementById("createDateOfReport").value
+  if (!dateOfReport) { alert("Please select a date of report."); return }
+
+  if (reportMode === "all") {
+    window.location.href = `/operation-api/lead/export-all-users-report/?date_of_report=${dateOfReport}`
+  } else {
+    const formatEl = document.querySelector('input[name="reportFormat"]:checked')
+    const format = formatEl ? formatEl.value : "pdf"
+    // NOTE: use "export_format", not "format" — DRF reserves "format" for its
+    // own content negotiation and 404s on unrecognised values like "pdf".
+    window.location.href = `/operation-api/lead/export-daily-log/?date_of_report=${dateOfReport}&export_format=${format}`
+  }
+
+  bootstrap.Modal.getInstance(document.getElementById("generateReportModal"))?.hide()
 }

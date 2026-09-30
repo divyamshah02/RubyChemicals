@@ -5,6 +5,17 @@
       <i class="fas fa-flask"></i> Ruby Chemicals
     </h5>
 
+    {# ── Daily Check In / Check Out ── #}
+    <div class="mb-4 p-2 rounded" style="background: rgba(0,0,0,0.06);">
+      <div class="small mb-2" id="attendance-status-text">Loading attendance…</div>
+      <button type="button" id="btn-check-in" class="btn btn-success btn-sm w-100 mb-2" disabled>
+        <i class="fas fa-right-to-bracket"></i> Check In
+      </button>
+      <button type="button" id="btn-check-out" class="btn btn-danger btn-sm w-100" disabled>
+        <i class="fas fa-right-from-bracket"></i> Check Out
+      </button>
+    </div>
+
     {# ── Dashboard: only accounts role and super-admins ── #}
     {% if request.user.role == 'accounts' or request.user.is_super_admin %}
     <a href="/admin-dashboard/" class="d-block mb-2 text-decoration-none">
@@ -86,6 +97,76 @@
       Developed By <u>DynamicLabz</u>
     </a>
   </div>
+
+  <script>
+    (function () {
+      const CSRF_TOKEN = "{{ csrf_token }}";
+      const checkInBtn = document.getElementById('btn-check-in');
+      const checkOutBtn = document.getElementById('btn-check-out');
+      const statusText = document.getElementById('attendance-status-text');
+
+      function formatDateTime(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        return d.toLocaleString('en-IN', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+      }
+
+      async function loadAttendanceStatus() {
+        try {
+          const res = await fetch('/user-api/attendance-api/', { method: 'GET' });
+          const result = await res.json();
+          if (!result.success || !statusText) return;
+
+          const info = result.data;
+          if (info.has_checked_out_today) {
+            checkInBtn.disabled = true;
+            checkOutBtn.disabled = true;
+            statusText.innerHTML = `Checked out at<br><b>${formatDateTime(info.today.check_out_time)}</b>`;
+          } else if (info.has_checked_in_today) {
+            checkInBtn.disabled = true;
+            checkOutBtn.disabled = false;
+            statusText.innerHTML = `Checked in at<br><b>${formatDateTime(info.today.check_in_time)}</b>`;
+          } else {
+            checkInBtn.disabled = false;
+            checkOutBtn.disabled = true;
+            statusText.innerHTML = info.last_check_out_time
+              ? `Last checked out at<br><b>${formatDateTime(info.last_check_out_time)}</b>`
+              : 'Not checked in today';
+          }
+        } catch (err) {
+          console.error('Attendance status error:', err);
+        }
+      }
+
+      async function postAttendance(url) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json' },
+          });
+          const result = await res.json();
+          if (!result.success) {
+            alert(result.error || 'Something went wrong');
+          }
+          loadAttendanceStatus();
+        } catch (err) {
+          console.error('Attendance action error:', err);
+        }
+      }
+
+      if (checkInBtn) {
+        checkInBtn.addEventListener('click', () => postAttendance('/user-api/attendance-api/check-in/'));
+      }
+      if (checkOutBtn) {
+        checkOutBtn.addEventListener('click', () => postAttendance('/user-api/attendance-api/check-out/'));
+      }
+
+      loadAttendanceStatus();
+    })();
+  </script>
 
   <!-- Page Content -->
   <div class="flex-grow-1 p-4">

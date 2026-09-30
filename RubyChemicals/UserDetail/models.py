@@ -105,3 +105,24 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.action} - {self.model_name}"
+
+
+class Attendance(models.Model):
+    """Simple daily check-in / check-out log for a user (one record per user per day)."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='attendance_records'
+    )
+    date = models.DateField(default=timezone.localdate)
+    check_in_time = models.DateTimeField(null=True, blank=True)
+    check_out_time = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+        unique_together = ('user', 'date')
+
+    def __str__(self):
+        return f"{self.user.name} - {self.date}"

@@ -7,7 +7,7 @@ Changes vs original:
 """
 
 from rest_framework import serializers
-from .models import User, ActivityLog
+from .models import User, ActivityLog, Attendance
 
 PERMISSION_FIELDS = [
     "is_super_admin",
@@ -93,3 +93,9 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActivityLog
         fields = "__all__"
+
+
+class AttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Attendance
+        fields = ["id", "date", "check_in_time", "check_out_time"]

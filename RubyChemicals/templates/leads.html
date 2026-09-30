@@ -222,9 +222,14 @@
                 <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createLeadModal">
                     <i class="fas fa-plus me-1"></i>New Lead
                 </button>
-                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#generateReportModal">
+                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#generateReportModal" onclick="setReportMode('single')">
                     <i class="fas fa-download me-1"></i>Report
                 </button>
+                {% if is_admin_or_super %}
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#generateReportModal" onclick="setReportMode('all')">
+                    <i class="fas fa-users me-1"></i>All Users Report
+                </button>
+                {% endif %}
             </div>
         </div>
 
@@ -495,12 +500,15 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title" id="generateReportModalTitle">
                         <i class="fas fa-download" style="color:#3b82f6; margin-right:0.5rem;"></i>Generate Report
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" style="max-height:80vh; overflow-y:auto;">
+                    <div id="reportAllUsersHint" class="alert alert-info" style="display:none;">
+                        <i class="fas fa-info-circle me-2"></i>This will generate one PDF with a separate section (name, email, leads &amp; follow-ups, missed follow-ups) for every user with leads access.
+                    </div>
                     <div class="form-section">
                         <p class="form-section-title"><i class="fas fa-info-circle me-2"></i>Select date of report you need</p>
                         <div class="row">
@@ -510,10 +518,31 @@
                             </div>
                         </div>
                     </div>
+                    <div class="form-section" id="reportFormatSection">
+                        <p class="form-section-title"><i class="fas fa-file-export me-2"></i>Select report format</p>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="reportFormat" id="reportFormatPdf" value="pdf" checked>
+                                        <label class="form-check-label" for="reportFormatPdf">
+                                            <i class="fas fa-file-pdf me-1" style="color:#ef4444;"></i>PDF (2 pages: Leads &amp; Follow-ups, Missed Follow-ups)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="reportFormat" id="reportFormatExcel" value="excel">
+                                        <label class="form-check-label" for="reportFormatExcel">
+                                            <i class="fas fa-file-excel me-1" style="color:#10b981;"></i>Excel
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:8px;">Cancel</button>
-                    <button class="btn btn-success-custom" onclick="window.location.href=`/operation-api/lead/export-daily-log/?date_of_report=${document.getElementById('createDateOfReport').value}`" style="padding:0.5rem 1.25rem;">
+                    <button class="btn btn-success-custom" onclick="generateLeadsReport()" style="padding:0.5rem 1.25rem;">
                         <i class="fas fa-download me-2"></i>Generate Report
                     </button>
                 </div>

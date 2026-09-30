@@ -4,13 +4,15 @@ from rest_framework.decorators import action
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse, JsonResponse
-from .models import User, ActivityLog
+from django.utils import timezone
+from .models import User, ActivityLog, Attendance
 from .serializers import (
     UserSerializer,
     CreateUserSerializer,
     UpdateUserSerializer,
     ChangePasswordSerializer,
     ActivityLogSerializer,
+    AttendanceSerializer,
 )
 from utils.decorators import handle_exceptions, check_authentication
 
@@ -202,7 +204,7 @@ class UserViewSet(viewsets.ViewSet):
             "error": None
         }, status=200)
 
-    # ── Update (PUT / PATCH) ──────────────────────────────────────────────
+    # ── Update (PUT / PATCH) ────────────────────��─────────────────────────
     @handle_exceptions
     @check_authentication(required_role="admin")
     def update(self, request, pk=None):
@@ -380,6 +382,119 @@ class ActivityLogViewSet(viewsets.ViewSet):
             "data": data,
             "error": None
         }, status=200)
+
+
+class AttendanceViewSet(viewsets.ViewSet):
+    """
+    Simple daily check-in / check-out tracker for the logged-in user.
+    One attendance row per user per calendar day.
+    """
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        """Return today's status plus the last check-in/out for the current user."""
+        today = timezone.localdate()
+        today_record = Attendance.objects.filter(user=request.user, date=today).first()
+        last_record = (
+            Attendance.objects.filter(user=request.user)
+            .exclude(check_in_time__isnull=True)
+            .order_by("-date", "-check_in_time")
+            .first()
+        )
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": {
+                "today": AttendanceSerializer(today_record).data if today_record else None,
+                "has_checked_in_today": bool(today_record and today_record.check_in_time),
+                "has_checked_out_today": bool(today_record and today_record.check_out_time),
+                "last_check_in_time": last_record.check_in_time if last_record else None,
+                "last_check_out_time": last_record.check_out_time if last_record else None,
+            },
+            "error": None
+        }, status=status.HTTP_200_OK)
+
+    @handle_exceptions
+    @check_authentication()
+    @action(detail=False, methods=["post"], url_path="check-in")
+    def check_in(self, request):
+        today = timezone.localdate()
+        record, _ = Attendance.objects.get_or_create(user=request.user, date=today)
+
+        if record.check_in_time:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "You have already checked in today"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        record.check_in_time = timezone.now()
+        record.save()
+
+        ActivityLog.objects.create(
+            user=request.user,
+            action="CHECK_IN",
+            model_name="Attendance",
+            record_id=str(record.id),
+            description=f"Checked in at {record.check_in_time.strftime('%d-%m-%Y %H:%M:%S')}"
+        )
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": AttendanceSerializer(record).data,
+            "error": None
+        }, status=status.HTTP_200_OK)
+
+    @handle_exceptions
+    @check_authentication()
+    @action(detail=False, methods=["post"], url_path="check-out")
+    def check_out(self, request):
+        today = timezone.localdate()
+        record = Attendance.objects.filter(user=request.user, date=today).first()
+
+        if not record or not record.check_in_time:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "You must check in before you can check out"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if record.check_out_time:
+            return Response({
+                "success": False,
+                "user_not_logged_in": False,
+                "user_unauthorized": False,
+                "data": None,
+                "error": "You have already checked out today"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        record.check_out_time = timezone.now()
+        record.save()
+
+        ActivityLog.objects.create(
+            user=request.user,
+            action="CHECK_OUT",
+            model_name="Attendance",
+            record_id=str(record.id),
+            description=f"Checked out at {record.check_out_time.strftime('%d-%m-%Y %H:%M:%S')}"
+        )
+
+        return Response({
+            "success": True,
+            "user_not_logged_in": False,
+            "user_unauthorized": False,
+            "data": AttendanceSerializer(record).data,
+            "error": None
+        }, status=status.HTTP_200_OK)
 
 
 class LogInToUserAccount(viewsets.ViewSet):

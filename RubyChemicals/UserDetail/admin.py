@@ -7,7 +7,7 @@ Changes vs original:
 """
 
 from django.contrib import admin
-from .models import User, ActivityLog
+from .models import User, ActivityLog, Attendance
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import AdminPasswordChangeForm
 from django.urls import path
@@ -155,3 +155,10 @@ class ActivityLogAdmin(admin.ModelAdmin):
     list_display = ("user", "action", "model_name", "record_id", "created_at")
     list_filter = ("action", "model_name")
     ordering = ("-created_at",)
+
+
+@admin.register(Attendance)
+class AttendanceAdmin(admin.ModelAdmin):
+    list_display = ("user__name", "date", "check_in_time", "check_out_time", "created_at")
+    list_filter = ("user__name", "date")
+    search_fields = ("user__name", "date")

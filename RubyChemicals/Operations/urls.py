@@ -145,7 +145,7 @@ leads_patterns = [
         name='leads-app-area-detail'
     ),
 
-    # ── ApplicationSystemProduct ──────────────────────────────────────────
+    # ── ApplicationSystemProduct ──���───────────────────────────────────────
     path(
         'leads/system-products/',
         _system_prod({'get': 'list', 'post': 'create'}),
@@ -192,6 +192,7 @@ leads_patterns = [
 urlpatterns = [
     path('', include(router.urls)),
     path("lead/export-daily-log/", export_daily_log, name="export_daily_log"),
+    path("lead/export-all-users-report/", export_all_users_leads_report, name="export_all_users_leads_report"),
 ]
 urlpatterns += leads_patterns
 

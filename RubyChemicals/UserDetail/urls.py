@@ -9,6 +9,7 @@ router.register(r'user-api', UserViewSet, basename='user-api')
 router.register(r'me-api', MeViewSet, basename='me-api')
 router.register(r'logs-api', ActivityLogViewSet, basename='logs-api')
 router.register(r'admin-other-user-api', LogInToUserAccount, basename='admin-other-user-api')
+router.register(r'attendance-api', AttendanceViewSet, basename='attendance-api')
 
 urlpatterns = [
     path('', include(router.urls)),

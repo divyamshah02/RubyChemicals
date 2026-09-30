@@ -3031,41 +3031,19 @@ from openpyxl.styles import Font
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
+from utils.create_daily_log_pdf import generate_daily_log_pdf, generate_all_users_daily_log_pdf
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def export_daily_log(request):    
-    date_str = request.GET.get("date_of_report")
-    if date_str:
-        try:
-            report_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-        except ValueError:
-            return Response(
-                {"status": False, "message": "Invalid date format. Use YYYY-MM-DD"},
-                status=400
-            )
-    else:
-        report_date = timezone.localdate()
-    
 
-    
-    start = timezone.make_aware(datetime.combine(report_date, datetime.min.time()))
-    end = start + timedelta(days=1)
-
-    is_admin = request.user.is_superuser
-
-    # ==========================================================
-    # Activity Sheet
-    # ==========================================================
-
+def _collect_daily_logs(start, end, filter_user=None):
+    """Leads added + follow-up calls made in the [start, end) window."""
     leads = Lead.objects.filter(
         created_at__gte=start,
         created_at__lt=end,
         is_active=True
     ).select_related("created_by")
 
-    if not is_admin:
-        leads = leads.filter(created_by=request.user)
+    if filter_user is not None:
+        leads = leads.filter(created_by=filter_user)
 
     logs = []
 
@@ -3088,8 +3066,8 @@ def export_daily_log(request):
         is_active=True
     ).select_related("lead", "created_by")
 
-    if not is_admin:
-        calls = calls.filter(created_by=request.user)
+    if filter_user is not None:
+        calls = calls.filter(created_by=filter_user)
 
     for call in calls:
         logs.append({
@@ -3105,6 +3083,102 @@ def export_daily_log(request):
         })
 
     logs.sort(key=lambda x: x["time"])
+    return logs
+
+
+def _collect_pending_followups(start, end, filter_user=None):
+    """Leads whose follow-up fell in [start, end) but no call was logged for them (i.e. missed)."""
+    pending_leads = Lead.objects.filter(
+        is_active=True,
+        next_followup__gte=start,
+        next_followup__lt=end
+    ).select_related("created_by")
+
+    if filter_user is not None:
+        pending_leads = pending_leads.filter(created_by=filter_user)
+
+    result = []
+
+    for lead in pending_leads:
+
+        call_done = LeadCallRecord.objects.filter(
+            lead=lead,
+            created_at__gte=start,
+            created_at__lt=end,
+            is_active=True
+        ).exists()
+
+        if call_done:
+            continue
+
+        result.append({
+            "user": lead.created_by.name if lead.created_by else "",
+            "lead_id": lead.lead_id,
+            "party": lead.party_name,
+            "contact": lead.contact_person,
+            "mobile": lead.mobile_number,
+            "party_type": lead.get_party_type_display(),
+            "status": lead.get_lead_status_display(),
+            "followup_date": timezone.localtime(lead.next_followup).strftime("%d-%m-%Y"),
+            "followup_time": timezone.localtime(lead.next_followup).strftime("%I:%M %p"),
+            "remarks": lead.remarks,
+            "forwarded_to": lead.forwarded_to,
+        })
+
+    return result
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def export_daily_log(request):
+    date_str = request.GET.get("date_of_report")
+    if date_str:
+        try:
+            report_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return Response(
+                {"status": False, "message": "Invalid date format. Use YYYY-MM-DD"},
+                status=400
+            )
+    else:
+        report_date = timezone.localdate()
+
+
+
+    start = timezone.make_aware(datetime.combine(report_date, datetime.min.time()))
+    end = start + timedelta(days=1)
+
+    is_admin = request.user.is_superuser
+    filter_user = None if is_admin else request.user
+
+    # NOTE: DRF reserves the "format" query parameter for its own content
+    # negotiation (?format=json etc.) and raises Http404 during
+    # `perform_content_negotiation` for any value it doesn't recognise
+    # (e.g. "pdf"/"excel") before the view body ever runs. Use a
+    # non-colliding parameter name instead.
+    export_format = (
+        request.GET.get("export_format") or request.GET.get("format") or "pdf"
+    ).strip().lower()
+    if export_format not in ("pdf", "excel"):
+        export_format = "pdf"
+
+    logs = _collect_daily_logs(start, end, filter_user)
+    pending_leads = _collect_pending_followups(start, end, filter_user)
+
+    # ==========================================================
+    # PDF export (default) — 2 pages: Activity Log + Missed Followups
+    # ==========================================================
+    if export_format == "pdf":
+        buffer = generate_daily_log_pdf(report_date, logs, pending_leads, is_admin)
+        response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="Lead_Report_{report_date}.pdf"'
+        )
+        return response
+
+    # ==========================================================
+    # Excel export
+    # ==========================================================
 
     wb = Workbook()
 
@@ -3200,45 +3274,24 @@ def export_daily_log(request):
 
     row += 1
 
-    pending_leads = Lead.objects.filter(
-        is_active=True,
-        next_followup__gte=start,
-        next_followup__lt=end
-    ).select_related("created_by")
-
-    if not is_admin:
-        pending_leads = pending_leads.filter(created_by=request.user)
-
-    for lead in pending_leads:
-
-        call_done = LeadCallRecord.objects.filter(
-            lead=lead,
-            created_at__gte=start,
-            created_at__lt=end,
-            is_active=True
-        ).exists()
-
-        if call_done:
-            continue
+    for followup in pending_leads:
 
         values = []
 
         if is_admin:
-            values.append(
-                lead.created_by.name if lead.created_by else ""
-            )
+            values.append(followup["user"])
 
         values.extend([
-            lead.lead_id,
-            lead.party_name,
-            lead.contact_person,
-            lead.mobile_number,
-            lead.get_party_type_display(),
-            lead.get_lead_status_display(),
-            timezone.localtime(lead.next_followup).strftime("%d-%m-%Y"),
-            timezone.localtime(lead.next_followup).strftime("%I:%M %p"),
-            lead.remarks,
-            lead.forwarded_to,
+            followup["lead_id"],
+            followup["party"],
+            followup["contact"],
+            followup["mobile"],
+            followup["party_type"],
+            followup["status"],
+            followup["followup_date"],
+            followup["followup_time"],
+            followup["remarks"],
+            followup["forwarded_to"],
         ])
 
         for c, value in enumerate(values, 1):
@@ -3268,5 +3321,55 @@ def export_daily_log(request):
 
     wb.save(response)
 
+    return response
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def export_all_users_leads_report(request):
+    """Admin-only: one PDF containing a separate section (name, email, 2 pages) per leads-role user."""
+    if not request.user.is_superuser:
+        return Response({
+            "success": False,
+            "user_not_logged_in": False,
+            "user_unauthorized": True,
+            "data": None,
+            "error": "Only admins can access this report"
+        }, status=403)
+
+    date_str = request.GET.get("date_of_report")
+    if date_str:
+        try:
+            report_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return Response(
+                {"status": False, "message": "Invalid date format. Use YYYY-MM-DD"},
+                status=400
+            )
+    else:
+        report_date = timezone.localdate()
+
+    start = timezone.make_aware(datetime.combine(report_date, datetime.min.time()))
+    end = start + timedelta(days=1)
+
+    lead_users = User.objects.filter(
+        Q(can_leads=True) | Q(role='sales'),
+        is_active=True
+    ).order_by("name")
+
+    users_data = []
+    for lead_user in lead_users:
+        users_data.append({
+            "name": lead_user.name,
+            "email": lead_user.email,
+            "logs": _collect_daily_logs(start, end, filter_user=lead_user),
+            "pending_leads": _collect_pending_followups(start, end, filter_user=lead_user),
+        })
+
+    buffer = generate_all_users_daily_log_pdf(report_date, users_data)
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="All_Users_Lead_Report_{report_date}.pdf"'
+    )
     return response
 
