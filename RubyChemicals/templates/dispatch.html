@@ -614,7 +614,7 @@
             <tr>
                 <td><span class="dispatch-code">${d.dispatch_code}</span></td>
                 <td>${CustomformatDate(d.dispatch_date)}</td>
-                <td>${d.client_name || 'N/A'}</td>
+                <td><span class="search-client-name">${d.client_name || 'N/A'}</span></td>
                 <td>${d.accounted ? 'Yes' : 'No'}</td>
                 <td><span class="item-count-badge">${d.items.length} Items</span></td>
                 <td><span class="vehicle-badge">${d.vehicle_type || 'N/A'}</span></td>
@@ -957,6 +957,9 @@
             rows.forEach(row => {
                 const code = row.querySelector(".dispatch-code").textContent.toLowerCase();
                 row.style.display = code.includes(query) ? "" : "none";
+
+                const clientName = row.querySelector(".search-client-name").textContent.toLowerCase();
+                row.style.display = row.style.display === "" || clientName.includes(query) ? "" : "none";
             });
         });
 

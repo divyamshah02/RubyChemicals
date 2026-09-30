@@ -1228,7 +1228,7 @@ class ProductionBatchViewSet(viewsets.ViewSet):
     @check_authentication()
     def list(self, request):
         # batches = ProductionBatch.objects.select_related('product', 'production_card').order_by("-created_at")
-        batches = ProductionBatch.objects.select_related('product', 'production_card')
+        batches = ProductionBatch.objects.filter(is_active=True).select_related('product', 'production_card')
         data = []
         for b in batches:
             data.append({

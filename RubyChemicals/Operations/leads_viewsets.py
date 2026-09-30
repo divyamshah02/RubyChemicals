@@ -227,10 +227,11 @@ class DeptLeadViewSet(viewsets.ViewSet):
             return qs
         sub_dept = _user_sub_dept(user)
         if sub_dept:
-            return qs.filter(sub_department=sub_dept)
+            return qs.filter(sub_department=sub_dept, created_by=user)
         # If user has no sub-dept assigned, fall back to showing all leads
         # that have a sub_department (i.e. the new-style leads)
-        return qs.filter(sub_department__isnull=False)
+        
+        return qs.filter(sub_department__isnull=False, created_by=user)
 
     @handle_exceptions
     @check_authentication()

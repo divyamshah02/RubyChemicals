@@ -343,3 +343,10 @@ function openDoc(url, file_name) {
 }
 
 const CustomformatDate = s => `${s.slice(8,10)}-${s.slice(5,7)}-${s.slice(0,4)}`;
+
+
+document.addEventListener('wheel', function (e) {
+    if (e.target.matches('input[type="number"]')) {
+        e.preventDefault();
+    }
+}, { passive: false });
