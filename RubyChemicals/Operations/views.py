@@ -153,7 +153,7 @@ class DownloadPettyCashPDFViewSet(viewsets.ViewSet):
 class StockItemViewSet(viewsets.ViewSet):
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
+    @check_authentication(required_role=['admin', 'accountant', 'accounts'])
     def create(self, request):
         serializer = StockItemSerializer(data=request.data)
         if not serializer.is_valid():
@@ -184,7 +184,7 @@ class StockItemViewSet(viewsets.ViewSet):
         }, status=201)
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
+    @check_authentication(required_role=['admin', 'accountant', 'accounts'])
     def update(self, request, pk=None):
         try:
             item = StockItem.objects.get(pk=pk)

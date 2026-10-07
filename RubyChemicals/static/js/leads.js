@@ -312,6 +312,11 @@ async function createLead() {
     party_type:      partyType,
     party_name:      partyName,
     location:        document.getElementById("createLocation").value,
+    country:         document.getElementById("createCountry").value.trim(),
+    state:           document.getElementById("createState").value.trim(),
+    city:            document.getElementById("createCity").value.trim(),
+    pincode:         document.getElementById("createPincode").value.trim(),
+    url:             document.getElementById("createUrl").value.trim(),
     lead_status:     document.getElementById("createLeadStatus").value || "new_lead",
     contact_person:  document.getElementById("createContactPerson").value,
     mobile_number:   document.getElementById("createMobileNumber").value,
@@ -327,6 +332,7 @@ async function createLead() {
       const el = document.getElementById(id); if (el) el.value = ""
     })
     ;["createDateOfConnect", "createLeadSource", "createPartyName", "createLocation",
+      "createCountry", "createState", "createCity", "createPincode", "createUrl",
       "createContactPerson", "createMobileNumber", "createEmail", "createRemarks"
     ].forEach(id => { const el = document.getElementById(id); if (el) el.value = "" })
     await loadLeads()
@@ -449,6 +455,12 @@ async function viewLead(leadId) {
         <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Party Type</span><br>${PARTY_LABELS[lead.party_type] || lead.party_type}</div>
         <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Party Name</span><br><strong>${lead.party_name}</strong></div>
         <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Location</span><br>${lead.location || "—"}</div>
+        <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Country</span><br>${lead.country || "—"}</div>
+        <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">State</span><br>${lead.state || "—"}</div>
+        <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">City</span><br>${lead.city || "—"}</div>
+        <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Pincode</span><br>${lead.pincode || "—"}</div>
+        <div class="col-md-6 mb-2"><span class="text-muted" style="font-size:0.8rem;">URL</span><br><span style="word-break:break-all;">${lead.url || "—"}</span></div>
+
         <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Contact Person</span><br>${lead.contact_person || "—"}</div>
         <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Mobile</span><br>${lead.mobile_number || "—"}</div>
         <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Email</span><br>${lead.email || "—"}</div>
@@ -1081,6 +1093,12 @@ async function openEditLead() {
   document.getElementById("editPartyType").value     = lead.party_type      || ""
   document.getElementById("editPartyName").value     = lead.party_name      || ""
   document.getElementById("editLocation").value      = lead.location        || ""
+  document.getElementById("editCountry").value       = lead.country         || ""
+  document.getElementById("editState").value         = lead.state           || ""
+  document.getElementById("editCity").value          = lead.city            || ""
+  document.getElementById("editPincode").value       = lead.pincode         || ""
+  document.getElementById("editUrl").value           = lead.url             || ""
+
   document.getElementById("editLeadStatus").value    = lead.lead_status     || "new_lead"
   document.getElementById("editContactPerson").value = lead.contact_person  || ""
   document.getElementById("editMobileNumber").value  = lead.mobile_number   || ""
@@ -1113,6 +1131,11 @@ async function submitEditLead() {
     party_type:      partyType,
     party_name:      partyName,
     location:        document.getElementById("editLocation").value,
+    country:         document.getElementById("editCountry").value.trim(),
+    state:           document.getElementById("editState").value.trim(),
+    city:            document.getElementById("editCity").value.trim(),
+    pincode:         document.getElementById("editPincode").value.trim(),
+    url:             document.getElementById("editUrl").value.trim(),
     lead_status:     status,
     contact_person:  document.getElementById("editContactPerson").value,
     mobile_number:   document.getElementById("editMobileNumber").value,
@@ -1159,7 +1182,7 @@ async function confirmDeleteLead(leadId) {
 
 // ─────────────────────────────────────────────
 // CALL RECORDS
-// ───────────────────────────────────���─────────
+// ───────────────────────────────────����─────────
 
 function openAddCallRecord() {
   if (!currentLeadId) return

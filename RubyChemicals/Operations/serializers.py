@@ -226,12 +226,17 @@ class LeadSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'lead_id', 'date_of_connect', 'lead_source',
             'party_type', 'party_type_display', 'party_name', 'location',
+            'country', 'state', 'city', 'pincode', 'url',
             'contact_person', 'mobile_number', 'email',
             'lead_status', 'lead_status_display', 'remarks',
             'next_followup', 'forwarded_to',
             'created_by', 'created_by_name', 'created_at', 'updated_at',
             'call_records', 'call_count'
         ]
+        extra_kwargs = {
+            f: {'required': False, 'allow_blank': True}
+            for f in ('country', 'state', 'city', 'pincode', 'url')
+        }
         read_only_fields = ['lead_id', 'created_by', 'created_at', 'updated_at']
 
     def get_call_count(self, obj):
@@ -251,6 +256,7 @@ class LeadListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'lead_id', 'date_of_connect', 'lead_source',
             'party_type', 'party_type_display', 'party_name', 'location',
+            'country', 'state', 'city', 'pincode', 'url',
             'contact_person', 'mobile_number', 'email',
             'lead_status', 'lead_status_display', 'remarks',
             'next_followup', 'forwarded_to',

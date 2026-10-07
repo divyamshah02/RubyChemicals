@@ -254,7 +254,10 @@ class DeptLeadViewSet(viewsets.ViewSet):
             qs = qs.filter(
                 Q(party_name__icontains=q) |
                 Q(contact_person__icontains=q) |
-                Q(mobile_number__icontains=q)
+                Q(mobile_number__icontains=q) |
+                Q(city__icontains=q) |
+                Q(state__icontains=q) |
+                Q(pincode__icontains=q)
             )
         if user_id_val:
             qs = qs.filter(created_by__user_id=user_id_val)
@@ -340,7 +343,7 @@ class DeptLeadViewSet(viewsets.ViewSet):
             return _std_response(False, error="Lead not found", http_status=404)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ───────────────────────��─────────────────────────────────────────────────────
 # 4. QuotationViewSet
 # ─────────────────────────────────────────────────────────────────────────────
 

@@ -605,6 +605,13 @@ class Lead(models.Model):
     party_name = models.CharField(max_length=200)
     location = models.CharField(max_length=255, blank=True)
 
+    # Address / web details (all optional)
+    country = models.CharField(max_length=100, blank=True, default='')
+    state = models.CharField(max_length=100, blank=True, default='')
+    city = models.CharField(max_length=100, blank=True, default='')
+    pincode = models.CharField(max_length=20, blank=True, default='')
+    url = models.CharField(max_length=500, blank=True, default='')
+
     contact_person = models.CharField(max_length=100, blank=True)
     mobile_number = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
