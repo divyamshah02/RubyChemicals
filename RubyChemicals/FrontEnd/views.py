@@ -231,7 +231,15 @@ class LeadsViewSet(viewsets.ViewSet):
             Q(role='admin') | Q(can_leads=True)
         ).exclude(id=request.user.id)
         is_admin_or_super = request.user.role == 'admin' or request.user.is_super_admin
-        return render(request, 'leads.html', {'all_users_with_leads_permission': all_users_with_leads_permission, 'is_admin_or_super': is_admin_or_super})
+        from utils.lead_access import is_supervisor, filterable_users
+        show_user_filter = is_admin_or_super or is_supervisor(request.user)
+        filter_users = filterable_users(request.user) if show_user_filter else []
+        return render(request, 'leads.html', {
+            'all_users_with_leads_permission': all_users_with_leads_permission,
+            'is_admin_or_super': is_admin_or_super,
+            'show_user_filter': show_user_filter,
+            'filter_users': filter_users,
+        })
 
 
 class LeadSubDeptMngmtViewSet(viewsets.ViewSet):

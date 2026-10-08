@@ -8,6 +8,7 @@ Changes vs original:
 """
 
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 import random
@@ -73,6 +74,28 @@ class User(AbstractUser):
         blank=True,
         related_name='assigned_users',
         help_text="Sub-department this user belongs to for the Leads module (Sales / can_leads users only)."
+    )
+
+    # ── Hierarchy ────────────────────────────────────────────────────────
+    # 1 = top. A supervisor (role office + Leads access) can see leads of
+    # every user whose level number is greater than theirs.
+    level = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        help_text="Hierarchy level (1 = top). Users with a higher level number are below this user."
+    )
+
+    # Direct supervisor. Only that supervisor (and their own supervisors up the
+    # chain) see this user's leads. When empty, every user with a lower level
+    # number (higher rank) can see them.
+    reports_to = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='direct_reports',
+        help_text="Direct supervisor (must have a lower level number). Leave empty to be visible to all upper levels."
     )
 
     REQUIRED_FIELDS = ['name', 'role']

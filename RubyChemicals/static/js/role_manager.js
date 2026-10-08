@@ -86,7 +86,7 @@ function renderTable(users) {
 
     if (!users.length) {
         tbody.innerHTML = `
-            <tr><td colspan="8" class="text-center text-muted py-5">
+            <tr><td colspan="9" class="text-center text-muted py-5">
                 <i class="fas fa-users-slash" style="font-size:2rem; opacity:.3;"></i>
                 <p class="mt-2 mb-0">No users found</p>
             </td></tr>`;
@@ -115,6 +115,11 @@ function renderTable(users) {
             <td><strong>${escHtml(u.name)}</strong></td>
             <td>${escHtml(u.email)}</td>
             <td><span class="${roleCls}">${u.role}</span></td>
+            <td>${u.level
+                ? `<span class="badge bg-dark">L${u.level}</span>${u.reports_to_name
+                    ? `<div class="text-muted" style="font-size:.72rem;">&rarr; ${escHtml(u.reports_to_name)}</div>`
+                    : '<div class="text-muted" style="font-size:.72rem;">Unassigned</div>'}`
+                : '<span class="text-muted">—</span>'}</td>
             <td style="max-width:240px;">${permChips}</td>
             <td>${statusBadge}</td>
             <td>${created}</td>
@@ -163,7 +168,7 @@ function toggleSuperAdmin(prefix) {
     if (banner) banner.style.display = isSuper ? 'block' : 'none';
 }
 
-// ── Collect permissions from a prefix ────────────────────────────────────────
+// ── Collect permissions from a prefix ──────────────────────────────────────���─
 
 function collectPermissions(prefix, pluginsId) {
     const perms = {};
@@ -196,7 +201,43 @@ function openCreateModal() {
         cb.checked  = false;
         cb.disabled = false;
     });
+    document.getElementById('createLevel').value = '';
+    populateReportsTo('create', null);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('createUserModal')).show();
+}
+
+function parseLevel(inputId) {
+    const raw = document.getElementById(inputId).value.trim();
+    const n = parseInt(raw, 10);
+    return raw === '' || isNaN(n) || n < 1 ? null : n;
+}
+
+// Supervisor options: active, non-admin users whose level number is lower
+// than the level typed in (so a L4 user can report to a L3, L2 ...).
+function populateReportsTo(prefix, selectedId) {
+    const select = document.getElementById(`${prefix}ReportsTo`);
+    const level  = parseLevel(`${prefix}Level`);
+    const selfId = prefix === 'edit' ? parseInt(document.getElementById('editUserId').value, 10) : null;
+
+    const candidates = level === null ? [] : allUsers
+        .filter(u => u.level && u.level < level && u.id !== selfId
+            && u.active_user && u.role !== 'admin' && !u.is_super_admin)
+        .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+
+    select.innerHTML = '<option value="">None (visible to all upper levels)</option>' +
+        candidates.map(u => `<option value="${u.id}">L${u.level} · ${escHtml(u.name)}</option>`).join('');
+    select.disabled = level === null;
+    select.value = selectedId && candidates.some(u => u.id === selectedId) ? String(selectedId) : '';
+}
+
+function refreshReportsTo(prefix) {
+    const current = parseInt(document.getElementById(`${prefix}ReportsTo`).value, 10);
+    populateReportsTo(prefix, isNaN(current) ? null : current);
+}
+
+function parseReportsTo(inputId) {
+    const n = parseInt(document.getElementById(inputId).value, 10);
+    return isNaN(n) ? null : n;
 }
 
 async function submitCreateUser() {
@@ -216,6 +257,8 @@ async function submitCreateUser() {
         email,
         password,
         role,
+        level: parseLevel('createLevel'),
+        reports_to: parseReportsTo('createReportsTo'),
         is_super_admin: isSuper,
         ...collectPermissions('create', 'createPlugins'),
     };
@@ -246,6 +289,8 @@ async function openEditModal(userId) {
     document.getElementById('editRole').value         = user.role;
     document.getElementById('editActiveUser').value   = String(user.active_user);
 
+    document.getElementById('editLevel').value = user.level || '';
+    populateReportsTo('edit', user.reports_to);
     setPermissions('edit', 'editPlugins', user);
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('editUserModal')).show();
@@ -268,6 +313,8 @@ async function submitEditUser() {
         name,
         email,
         role,
+        level: parseLevel('editLevel'),
+        reports_to: parseReportsTo('editReportsTo'),
         active_user: active,
         is_super_admin: isSuper,
         ...collectPermissions('edit', 'editPlugins'),
@@ -348,14 +395,14 @@ async function submitDeleteUser() {
 
 function showTableLoader() {
     document.getElementById('usersBody').innerHTML = `
-        <tr><td colspan="8" class="text-center text-muted py-5">
+        <tr><td colspan="9" class="text-center text-muted py-5">
             <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i>
         </td></tr>`;
 }
 
 function showTableError(msg) {
     document.getElementById('usersBody').innerHTML = `
-        <tr><td colspan="8" class="text-center text-danger py-5">
+        <tr><td colspan="9" class="text-center text-danger py-5">
             <i class="fas fa-exclamation-triangle"></i> ${msg}
         </td></tr>`;
 }

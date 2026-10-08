@@ -153,7 +153,7 @@ class DownloadPettyCashPDFViewSet(viewsets.ViewSet):
 class StockItemViewSet(viewsets.ViewSet):
 
     @handle_exceptions
-    @check_authentication(required_role=['admin', 'accountant', 'accounts'])
+    @check_authentication(required_role='admin')
     def create(self, request):
         serializer = StockItemSerializer(data=request.data)
         if not serializer.is_valid():
@@ -184,7 +184,7 @@ class StockItemViewSet(viewsets.ViewSet):
         }, status=201)
 
     @handle_exceptions
-    @check_authentication(required_role=['admin', 'accountant', 'accounts'])
+    @check_authentication(required_role='admin')
     def update(self, request, pk=None):
         try:
             item = StockItem.objects.get(pk=pk)
@@ -2647,21 +2647,34 @@ class ExpenseHeadViewSet(viewsets.ViewSet):
 
 
 
+from utils.lead_access import (
+    visible_leads, apply_user_filter, can_access_lead, can_manage_lead,
+    collaborator_candidates, is_admin_user,
+)
+
+
+def _forbidden_lead_response():
+    return Response({
+        "success": False,
+        "user_not_logged_in": False,
+        "user_unauthorized": True,
+        "data": None,
+        "error": "You do not have access to this lead"
+    }, status=403)
+
+
 class LeadViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
     def list(self, request):
-        """List all leads"""
-        if request.user.role in ['admin', 'manager']:
-            user_id = request.query_params.get('user_id')
-            if user_id:
-                leads = Lead.objects.filter(is_active=True, created_by__user_id=user_id).order_by('-created_at')
-            else:
-                leads = Lead.objects.filter(is_active=True).order_by('-created_at')
-        else:
-            leads = Lead.objects.filter(is_active=True, created_by=request.user).order_by('-created_at')
-        serializer = LeadListSerializer(leads, many=True)
+        """List leads visible to the user (own, shared, and subordinates')"""
+        leads = visible_leads(request.user).prefetch_related('collaborators')
+        user_id = request.query_params.get('user_id')
+        if user_id:
+            leads = apply_user_filter(request.user, leads, user_id)
+        leads = leads.order_by('-created_at')
+        serializer = LeadListSerializer(leads, many=True, context={'request': request})
         return Response({
             "success": True,
             "user_not_logged_in": False,
@@ -2676,7 +2689,9 @@ class LeadViewSet(viewsets.ViewSet):
         """Get single lead with call records"""
         try:
             lead = Lead.objects.get(id=pk, is_active=True)
-            serializer = LeadSerializer(lead)
+            if not can_access_lead(request.user, lead):
+                return _forbidden_lead_response()
+            serializer = LeadSerializer(lead, context={'request': request})
             return Response({
                 "success": True,
                 "user_not_logged_in": False,
@@ -2723,6 +2738,8 @@ class LeadViewSet(viewsets.ViewSet):
         """Update lead"""
         try:
             lead = Lead.objects.get(id=pk, is_active=True)
+            if not can_access_lead(request.user, lead):
+                return _forbidden_lead_response()
             serializer = LeadSerializer(lead, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
@@ -2757,6 +2774,8 @@ class LeadViewSet(viewsets.ViewSet):
         """Soft delete lead"""
         try:
             lead = Lead.objects.get(id=pk, is_active=True)
+            if not can_manage_lead(request.user, lead):
+                return _forbidden_lead_response()
             lead.is_active = False
             lead.save()
             return Response({
@@ -2784,7 +2803,7 @@ class LeadViewSet(viewsets.ViewSet):
         status_filter = request.query_params.get('status', '')
         party_type_filter = request.query_params.get('party_type', '')
 
-        leads = Lead.objects.filter(is_active=True)
+        leads = visible_leads(request.user)
 
         if query:
             leads = leads.filter(
@@ -2815,15 +2834,13 @@ class LeadCallRecordViewSet(viewsets.ViewSet):
     @check_authentication()
     def list(self, request):
         """List call records - optionally filter by lead_id"""
-        lead_id = request.query_params.get('lead_id')
-        lead = request.query_params.get('lead')
-        if lead_id:
-            records = LeadCallRecord.objects.filter(lead_id=lead_id, is_active=True).order_by('-call_date')
-        if lead:            
-            records = LeadCallRecord.objects.filter(lead_id=lead, is_active=True).order_by('-call_date')
-            print("Lead call records for lead:", lead, "Count:", records.count())
-        else:
-            records = LeadCallRecord.objects.filter(is_active=True).order_by('-call_date')
+        lead_param = request.query_params.get('lead_id') or request.query_params.get('lead')
+        records = LeadCallRecord.objects.filter(is_active=True)
+        if lead_param:
+            records = records.filter(lead_id=lead_param)
+        if not is_admin_user(request.user):
+            records = records.filter(lead__in=visible_leads(request.user).values('pk'))
+        records = records.order_by('-call_date')
         serializer = LeadCallRecordSerializer(records, many=True)
         return Response({
             "success": True,
@@ -2838,7 +2855,9 @@ class LeadCallRecordViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """Get single call record"""
         try:
-            record = LeadCallRecord.objects.get(id=pk, is_active=True)            
+            record = LeadCallRecord.objects.get(id=pk, is_active=True)
+            if not can_access_lead(request.user, record.lead):
+                return _forbidden_lead_response()
             serializer = LeadCallRecordSerializer(record)
             return Response({
                 "success": True,
@@ -2860,6 +2879,9 @@ class LeadCallRecordViewSet(viewsets.ViewSet):
     @check_authentication()
     def create(self, request):
         """Add a call record to a lead"""
+        target_lead = Lead.objects.filter(id=request.data.get('lead'), is_active=True).first()
+        if target_lead and not can_access_lead(request.user, target_lead):
+            return _forbidden_lead_response()
         serializer = LeadCallRecordSerializer(data=request.data)
         if serializer.is_valid():
             record = serializer.save(created_by=request.user)
@@ -2902,6 +2924,8 @@ class LeadCallRecordViewSet(viewsets.ViewSet):
         """Update call record and sync lead status / next follow-up"""
         try:
             record = LeadCallRecord.objects.get(id=pk, is_active=True)
+            if not can_access_lead(request.user, record.lead):
+                return _forbidden_lead_response()
             serializer = LeadCallRecordSerializer(record, data=request.data, partial=True)
             if serializer.is_valid():
                 record = serializer.save()
@@ -2951,6 +2975,8 @@ class LeadCallRecordViewSet(viewsets.ViewSet):
         """Delete call record"""
         try:
             record = LeadCallRecord.objects.get(id=pk, is_active=True)
+            if not can_access_lead(request.user, record.lead):
+                return _forbidden_lead_response()
             record.is_active = False
             record.save()
             return Response({
@@ -3005,11 +3031,15 @@ class TransferLeadViewSet(viewsets.ViewSet):
                 "error": "Lead not found"
             }, status=404)
         
+        if not can_manage_lead(request.user, lead):
+            return _forbidden_lead_response()
+
         lead.created_by = new_user
         lead.forwarded_to = request.user.name  # Store the username of the user who transferred the lead
         lead.save()
-    
-    
+        # The new owner no longer needs a separate collaborator entry
+        lead.collaborators.remove(new_user)
+
         return Response({
             "success": True,
             "user_not_logged_in": False,
@@ -3017,7 +3047,121 @@ class TransferLeadViewSet(viewsets.ViewSet):
             "data": "Lead transferred successfully",
             "error": None
         }, status=201)
-        
+
+
+class LeadCollaboratorViewSet(viewsets.ViewSet):
+    """
+    Share a lead with other users. Collaborators see the lead, update it,
+    add call records and follow-ups — only the owner / admin / owner's
+    supervisor can add or remove collaborators (a collaborator may leave).
+    """
+
+    @staticmethod
+    def _payload(lead, request):
+        return {
+            "lead_id": lead.id,
+            "owner": {"id": lead.created_by_id, "name": lead.created_by.name if lead.created_by else ""},
+            "collaborators": [
+                {"id": u.id, "name": u.name, "email": u.email}
+                for u in lead.collaborators.all().order_by('name')
+            ],
+            "can_manage": can_manage_lead(request.user, lead),
+            "candidates": [
+                {"id": u.id, "name": u.name, "email": u.email}
+                for u in collaborator_candidates(lead)
+            ],
+        }
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        """GET ?lead_id=<id> — owner, collaborators and users that can be added."""
+        lead = Lead.objects.filter(id=request.query_params.get('lead_id'), is_active=True).first()
+        if not lead:
+            return Response({
+                "success": False, "user_not_logged_in": False, "user_unauthorized": False,
+                "data": None, "error": "Lead not found"
+            }, status=404)
+        if not can_access_lead(request.user, lead):
+            return _forbidden_lead_response()
+        return Response({
+            "success": True, "user_not_logged_in": False, "user_unauthorized": False,
+            "data": self._payload(lead, request), "error": None
+        }, status=200)
+
+    @handle_exceptions
+    @check_authentication()
+    def create(self, request):
+        """POST {lead_id, user_ids: [..]} — add collaborators."""
+        lead = Lead.objects.filter(id=request.data.get('lead_id'), is_active=True).first()
+        if not lead:
+            return Response({
+                "success": False, "user_not_logged_in": False, "user_unauthorized": False,
+                "data": None, "error": "Lead not found"
+            }, status=404)
+        if not can_manage_lead(request.user, lead):
+            return _forbidden_lead_response()
+
+        user_ids = request.data.get('user_ids') or []
+        if not isinstance(user_ids, list) or not user_ids:
+            return Response({
+                "success": False, "user_not_logged_in": False, "user_unauthorized": False,
+                "data": None, "error": "Select at least one user"
+            }, status=400)
+
+        users = User.objects.filter(id__in=user_ids, is_active=True).exclude(id=lead.created_by_id)
+        if not users.exists():
+            return Response({
+                "success": False, "user_not_logged_in": False, "user_unauthorized": False,
+                "data": None, "error": "No valid users selected"
+            }, status=400)
+
+        lead.collaborators.add(*users)
+        ActivityLog.objects.create(
+            user=request.user, action="UPDATE", model_name="Lead",
+            record_id=str(lead.lead_id),
+            description=f"Shared lead {lead.lead_id} with {', '.join(u.name for u in users)}"
+        )
+        return Response({
+            "success": True, "user_not_logged_in": False, "user_unauthorized": False,
+            "data": self._payload(lead, request), "error": None
+        }, status=201)
+
+    @handle_exceptions
+    @check_authentication()
+    def destroy(self, request, pk=None):
+        """DELETE /<lead id>/?user_id=<id> — remove a collaborator."""
+        lead = Lead.objects.filter(id=pk, is_active=True).first()
+        if not lead:
+            return Response({
+                "success": False, "user_not_logged_in": False, "user_unauthorized": False,
+                "data": None, "error": "Lead not found"
+            }, status=404)
+
+        try:
+            target_id = int(request.query_params.get('user_id'))
+        except (TypeError, ValueError):
+            return Response({
+                "success": False, "user_not_logged_in": False, "user_unauthorized": False,
+                "data": None, "error": "user_id is required"
+            }, status=400)
+
+        if target_id != request.user.id and not can_manage_lead(request.user, lead):
+            return _forbidden_lead_response()
+
+        lead.collaborators.remove(target_id)
+        ActivityLog.objects.create(
+            user=request.user, action="UPDATE", model_name="Lead",
+            record_id=str(lead.lead_id),
+            description=f"Removed a collaborator from lead {lead.lead_id}"
+        )
+        return Response({
+            "success": True, "user_not_logged_in": False, "user_unauthorized": False,
+            "data": self._payload(lead, request) if can_access_lead(request.user, lead) else None,
+            "error": None
+        }, status=200)
+
+
 
 
 from datetime import datetime, timedelta
@@ -3043,7 +3187,9 @@ def _collect_daily_logs(start, end, filter_user=None):
     ).select_related("created_by")
 
     if filter_user is not None:
-        leads = leads.filter(created_by=filter_user)
+        leads = leads.filter(
+            Q(created_by=filter_user) | Q(collaborators=filter_user)
+        ).distinct()
 
     logs = []
 
@@ -3095,7 +3241,9 @@ def _collect_pending_followups(start, end, filter_user=None):
     ).select_related("created_by")
 
     if filter_user is not None:
-        pending_leads = pending_leads.filter(created_by=filter_user)
+        pending_leads = pending_leads.filter(
+            Q(created_by=filter_user) | Q(collaborators=filter_user)
+        ).distinct()
 
     result = []
 

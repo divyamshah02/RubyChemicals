@@ -233,14 +233,14 @@
             </div>
         </div>
 
-        {% if is_admin_or_super %}
+        {% if show_user_filter %}
         <div class="filters-bar mb-3">
             <div>
                 <label class="form-label mb-1">Leads Data of</label>
                 <select id="leadUsers" class="form-select" style="min-width: 180px;" onchange="applyLeadFilters()">
-                    <option value="">All</option>
-                    {% for user in all_users_with_leads_permission %}
-                        <option value="{{ user.user_id }}">{{ user.name }}</option>
+                    <option value="">{% if is_admin_or_super %}All{% else %}Me &amp; my team{% endif %}</option>
+                    {% for user in filter_users %}
+                        <option value="{{ user.user_id }}">{{ user.name }}{% if user.level %} (L{{ user.level }}){% endif %}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -601,6 +601,9 @@
                     <button type="button" class="btn btn-danger" onclick="deleteLead()" style="border-radius:8px;">
                         <i class="fas fa-trash me-1"></i>Delete
                     </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="openCollaborators()" style="border-radius:8px;">
+                        <i class="fas fa-user-friends me-1"></i>Collaborate
+                    </button>
                     <button type="button" class="btn btn-outline-secondary" onclick="openLeadTransfer()" style="border-radius:8px;">
                         Transfer Lead
                     </button>
@@ -892,6 +895,44 @@
     </div>
 
 
+    <!-- ==================== COLLABORATORS MODAL ==================== -->
+    <div class="modal fade" id="collabModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-friends" style="color:#3b82f6; margin-right:0.5rem;"></i>Collaborators
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-2" style="font-size:0.85rem;">
+                        Collaborators can view this lead, update it, add call records and follow-ups.
+                    </p>
+                    <div class="mb-3">
+                        <div class="fw-semibold mb-1">Owner</div>
+                        <div id="collabOwner"></div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="fw-semibold mb-1">Shared with</div>
+                        <ul id="collabList" class="list-group"></ul>
+                    </div>
+                    <div id="collabAddSection">
+                        <label class="form-label fw-semibold" for="collabSelect">Add collaborators</label>
+                        <select id="collabSelect" class="form-select" multiple size="6"></select>
+                        <div class="form-text">Hold Ctrl / Cmd to select more than one user.</div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:8px;">Close</button>
+                    <button id="collabAddBtn" class="btn btn-primary" onclick="addCollaborators()" style="border-radius:8px;">
+                        <i class="fas fa-plus me-1"></i>Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== TRANSFER LEAD MODAL ==================== -->
     <div class="modal fade" id="transferLeadModal">
         <div class="modal-dialog modal-lg">
@@ -1179,6 +1220,7 @@
             leads:          "{% url 'lead-api-list' %}",
             callRecords:    "{% url 'lead-call-record-api-list' %}",
             transferLeads:  "{% url 'transfer-lead-api-list' %}",
+            collaborators:  "{% url 'lead-collaborator-api-list' %}",
             deptLeads:      "{% url 'leads-dept-lead-list' %}",
             stockItems:     "{% url 'leads-stock-item-list' %}",
             quotations:     "{% url 'leads-quotation-list' %}",

@@ -214,12 +214,32 @@ class LeadCallRecordSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_by', 'created_at']
 
 
-class LeadSerializer(serializers.ModelSerializer):
+class LeadCollaborationMixin:
+    """Collaborator info + a per-request `can_manage` flag for lead serializers."""
+
+    def get_collaborator_ids(self, obj):
+        return [u.id for u in obj.collaborators.all()]
+
+    def get_collaborator_names(self, obj):
+        return [u.name for u in obj.collaborators.all()]
+
+    def get_can_manage(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        from utils.lead_access import can_manage_lead
+        return can_manage_lead(request.user, obj)
+
+
+class LeadSerializer(LeadCollaborationMixin, serializers.ModelSerializer):
     call_records = LeadCallRecordSerializer(many=True, read_only=True)
     party_type_display = serializers.CharField(source='get_party_type_display', read_only=True)
     lead_status_display = serializers.CharField(source='get_lead_status_display', read_only=True)
     created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     call_count = serializers.SerializerMethodField()
+    collaborator_ids = serializers.SerializerMethodField()
+    collaborator_names = serializers.SerializerMethodField()
+    can_manage = serializers.SerializerMethodField()
 
     class Meta:
         model = Lead
@@ -231,7 +251,8 @@ class LeadSerializer(serializers.ModelSerializer):
             'lead_status', 'lead_status_display', 'remarks',
             'next_followup', 'forwarded_to',
             'created_by', 'created_by_name', 'created_at', 'updated_at',
-            'call_records', 'call_count'
+            'call_records', 'call_count',
+            'collaborator_ids', 'collaborator_names', 'can_manage',
         ]
         extra_kwargs = {
             f: {'required': False, 'allow_blank': True}
@@ -243,13 +264,16 @@ class LeadSerializer(serializers.ModelSerializer):
         return obj.call_records.filter(is_active=True).count()
 
 
-class LeadListSerializer(serializers.ModelSerializer):
+class LeadListSerializer(LeadCollaborationMixin, serializers.ModelSerializer):
     """Lightweight serializer for list views (no nested call records)"""
     party_type_display = serializers.CharField(source='get_party_type_display', read_only=True)
     lead_status_display = serializers.CharField(source='get_lead_status_display', read_only=True)
     # sub_department_id = serializers.CharField(source='sub_department.id')
     created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     call_count = serializers.SerializerMethodField()
+    collaborator_ids = serializers.SerializerMethodField()
+    collaborator_names = serializers.SerializerMethodField()
+    can_manage = serializers.SerializerMethodField()
 
     class Meta:
         model = Lead
@@ -260,7 +284,8 @@ class LeadListSerializer(serializers.ModelSerializer):
             'contact_person', 'mobile_number', 'email',
             'lead_status', 'lead_status_display', 'remarks',
             'next_followup', 'forwarded_to',
-            'created_by_name', 'created_at', 'call_count', 'sub_department'
+            'created_by', 'created_by_name', 'created_at', 'call_count', 'sub_department',
+            'collaborator_ids', 'collaborator_names', 'can_manage',
         ]
 
     def get_call_count(self, obj):
@@ -587,7 +612,7 @@ class ApplicationAreaListSerializer(serializers.ModelSerializer):
         return obj.fixed_items.filter(is_active=True).count()
 
 
-# ── ApplicationLead ───────────────────────────────────────────────────────────
+# ── ApplicationLead ────────────────────────────────────────────��──────────────
 
 class ApplicationLeadSerializer(serializers.ModelSerializer):
     application_area_name = serializers.CharField(

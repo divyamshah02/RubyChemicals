@@ -219,6 +219,7 @@
                         <th><i class="fas fa-user"></i> Name</th>
                         <th><i class="fas fa-envelope"></i> Email</th>
                         <th><i class="fas fa-tag"></i> Role</th>
+                        <th><i class="fas fa-sitemap"></i> Level</th>
                         <th><i class="fas fa-shield-alt"></i> Permissions</th>
                         <th><i class="fas fa-circle"></i> Status</th>
                         <th><i class="fas fa-calendar"></i> Created</th>
@@ -226,7 +227,7 @@
                     </tr>
                 </thead>
                 <tbody id="usersBody">
-                    <tr><td colspan="8" class="text-center text-muted py-5">
+                    <tr><td colspan="9" class="text-center text-muted py-5">
                         <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i>
                     </td></tr>
                 </tbody>
@@ -261,6 +262,18 @@
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
                         <input id="createPassword" class="form-control" type="password" placeholder="Min. 6 characters" autocomplete="new-password">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Hierarchy Level</label>
+                        <input id="createLevel" class="form-control" type="number" min="1" placeholder="1 = top (admin). Leave empty for none" oninput="refreshReportsTo('create')">
+                        <div class="form-text">Higher number = lower rank. Needed to take part in the leads hierarchy.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Reports To</label>
+                        <select id="createReportsTo" class="form-select" disabled>
+                            <option value="">None (visible to all upper levels)</option>
+                        </select>
+                        <div class="form-text">Only that supervisor, and the people above them, will see this user&apos;s leads. Set a level first.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
@@ -336,6 +349,18 @@
                             <option value="accountant">Accountant</option>
                             <option value="office">Office</option>
                         </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Hierarchy Level</label>
+                        <input id="editLevel" class="form-control" type="number" min="1" placeholder="1 = top (admin). Leave empty for none" oninput="refreshReportsTo('edit')">
+                        <div class="form-text">Higher number = lower rank. Needed to take part in the leads hierarchy.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Reports To</label>
+                        <select id="editReportsTo" class="form-select" disabled>
+                            <option value="">None (visible to all upper levels)</option>
+                        </select>
+                        <div class="form-text">Only that supervisor, and the people above them, will see this user&apos;s leads. Set a level first.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Status</label>

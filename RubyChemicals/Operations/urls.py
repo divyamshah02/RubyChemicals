@@ -52,6 +52,7 @@ router.register(r'vendor-inward-api', VendorInwardViewSet, basename='vendor-inwa
 router.register(r'lead-api', LeadViewSet, basename='lead-api')
 router.register(r'lead-call-record-api', LeadCallRecordViewSet, basename='lead-call-record-api')
 router.register(r'transfer-lead-api', TransferLeadViewSet, basename='transfer-lead-api')
+router.register(r'lead-collaborator-api', LeadCollaboratorViewSet, basename='lead-collaborator-api')
 
 
 # ── views ──────────────────────────────────────────────────────────────────
@@ -133,7 +134,7 @@ leads_patterns = [
         name='leads-sr-mark-sent'
     ),
 
-    # ── ApplicationArea ───────────────────────────────────────────────────
+    # ── ApplicationArea ─────────────────────────────────────────────────��─
     path(
         'leads/application-areas/',
         _app_area({'get': 'list', 'post': 'create'}),
@@ -145,7 +146,7 @@ leads_patterns = [
         name='leads-app-area-detail'
     ),
 
-    # ── ApplicationSystemProduct ──���───────────────────────────────────────
+    # ── ApplicationSystemProduct ──�����───────────────────────────────────────
     path(
         'leads/system-products/',
         _system_prod({'get': 'list', 'post': 'create'}),
@@ -193,6 +194,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path("lead/export-daily-log/", export_daily_log, name="export_daily_log"),
     path("lead/export-all-users-report/", export_all_users_leads_report, name="export_all_users_leads_report"),
+
 ]
 urlpatterns += leads_patterns
 

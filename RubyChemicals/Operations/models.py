@@ -637,6 +637,12 @@ class Lead(models.Model):
         blank=True,
         related_name='leads_created'
     )
+    collaborators = models.ManyToManyField(
+        'UserDetail.User',
+        blank=True,
+        related_name='leads_collaborating',
+        help_text="Users who share this lead with the owner and can update / follow it up."
+    )
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -714,7 +720,7 @@ class LeadCallRecord(models.Model):
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. LeadSubDepartment
-# ─────────────────────────────────────────────────────────────────────────────
+# ────────────────────────────���────────────────────────────────────────────────
 
 class LeadSubDepartment(models.Model):
     """

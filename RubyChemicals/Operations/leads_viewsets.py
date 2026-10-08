@@ -27,6 +27,10 @@ from .serializers import (
 )
 from UserDetail.models import ActivityLog
 from utils.decorators import handle_exceptions, check_authentication
+from utils.lead_access import (
+    visible_leads, apply_user_filter, can_access_lead, can_manage_lead,
+)
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -219,19 +223,14 @@ class DeptLeadViewSet(viewsets.ViewSet):
     """
 
     def _scoped_qs(self, user):
-        """Return queryset scoped to user's sub-department unless admin."""
+        """
+        Leads the user may see: everything for admins; otherwise own leads,
+        leads shared with them, and (for supervisors) their subordinates' leads.
+        """
         qs = Lead.objects.filter(is_active=True).select_related(
             'sub_department', 'created_by'
-        )
-        if _is_admin(user):
-            return qs
-        sub_dept = _user_sub_dept(user)
-        if sub_dept:
-            return qs.filter(sub_department=sub_dept, created_by=user)
-        # If user has no sub-dept assigned, fall back to showing all leads
-        # that have a sub_department (i.e. the new-style leads)
-        
-        return qs.filter(sub_department__isnull=False, created_by=user)
+        ).prefetch_related('collaborators')
+        return visible_leads(user, qs)
 
     @handle_exceptions
     @check_authentication()
@@ -260,9 +259,11 @@ class DeptLeadViewSet(viewsets.ViewSet):
                 Q(pincode__icontains=q)
             )
         if user_id_val:
-            qs = qs.filter(created_by__user_id=user_id_val)
+            qs = apply_user_filter(request.user, qs, user_id_val)
 
-        return _std_response(True, LeadListSerializer(qs, many=True).data)
+        return _std_response(
+            True, LeadListSerializer(qs, many=True, context={'request': request}).data
+        )
 
     @handle_exceptions
     @check_authentication()
@@ -273,7 +274,9 @@ class DeptLeadViewSet(viewsets.ViewSet):
             lead = Lead.objects.select_related(
                 'sub_department', 'created_by'
             ).get(pk=pk, is_active=True)
-            return _std_response(True, LeadSerializer(lead).data)
+            if not can_access_lead(request.user, lead):
+                return _std_response(False, error="You do not have access to this lead", http_status=403)
+            return _std_response(True, LeadSerializer(lead, context={'request': request}).data)
         except Lead.DoesNotExist:
             return _std_response(False, error="Lead not found", http_status=404)
 
@@ -313,6 +316,9 @@ class DeptLeadViewSet(viewsets.ViewSet):
         except Lead.DoesNotExist:
             return _std_response(False, error="Lead not found", http_status=404)
 
+        if not can_access_lead(request.user, lead):
+            return _std_response(False, error="You do not have access to this lead", http_status=403)
+
         serializer = LeadSerializer(lead, data=request.data, partial=True)
         if not serializer.is_valid():
             return _std_response(False, error=serializer.errors, http_status=400)
@@ -322,7 +328,7 @@ class DeptLeadViewSet(viewsets.ViewSet):
             model_name="Lead", record_id=str(lead.lead_id),
             description=f"Updated lead {lead.lead_id}"
         )
-        return _std_response(True, LeadSerializer(lead).data)
+        return _std_response(True, LeadSerializer(lead, context={'request': request}).data)
 
     @handle_exceptions
     @check_authentication()
@@ -331,6 +337,12 @@ class DeptLeadViewSet(viewsets.ViewSet):
             return _std_response(False, error="Unauthorized", http_status=403)
         try:
             lead = Lead.objects.get(pk=pk, is_active=True)
+            if not can_manage_lead(request.user, lead):
+                return _std_response(
+                    False,
+                    error="Only the lead owner or a supervisor can delete this lead",
+                    http_status=403,
+                )
             lead.is_active = False
             lead.save()
             ActivityLog.objects.create(
@@ -361,8 +373,11 @@ class QuotationViewSet(viewsets.ViewSet):
 
         if not _is_admin(request.user):
             sub_dept = _user_sub_dept(request.user)
+            shared = visible_leads(request.user).values('pk')
             if sub_dept:
-                qs = qs.filter(lead__sub_department=sub_dept)
+                qs = qs.filter(Q(lead__sub_department=sub_dept) | Q(lead__in=shared))
+            else:
+                qs = qs.filter(lead__in=shared)
 
         lead_id = request.query_params.get('lead')
         if lead_id:
@@ -610,8 +625,11 @@ class SampleRequisiteViewSet(viewsets.ViewSet):
 
         if not _is_admin(request.user):
             sub_dept = _user_sub_dept(request.user)
+            shared = visible_leads(request.user).values('pk')
             if sub_dept:
-                qs = qs.filter(lead__sub_department=sub_dept)
+                qs = qs.filter(Q(lead__sub_department=sub_dept) | Q(lead__in=shared))
+            else:
+                qs = qs.filter(lead__in=shared)
 
         lead_id   = request.query_params.get('lead')
         sr_status = request.query_params.get('status')

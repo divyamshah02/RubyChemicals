@@ -66,7 +66,7 @@ function populateSubDeptFilter() {
 async function loadLeads() {
   let params = []
 
-  if (leadIsAdmin) {
+  if (leadIsAdmin || document.getElementById("leadUsers")) {
     const userSel = document.getElementById("leadUsers")
     const sdSel   = document.getElementById("subDeptFilter")
     if (userSel && userSel.value) params.push(`user_id=${userSel.value}`)
@@ -155,7 +155,11 @@ function renderLeadsTable(leads) {
   tbody.innerHTML = leads.map(lead => `
     <tr style="cursor:pointer;" onclick="viewLead(${lead.id})">
       <td><span class="lead-id-badge">${lead.lead_id || ("#" + lead.id)}</span></td>    
-      <td><strong>${lead.party_name}</strong></td>
+      <td><strong>${lead.party_name}</strong>${
+        (lead.collaborator_names || []).length
+          ? ` <span class="badge bg-info text-dark" title="Shared with: ${lead.collaborator_names.join(", ")}"><i class="fas fa-user-friends"></i> Shared</span>`
+          : ""
+      }</td>
       <td><small>${PARTY_LABELS[lead.party_type] || lead.party_type}</small></td>
       <td>${lead.contact_person || "—"}</td>
       <td>${lead.mobile_number  || "—"}</td>
@@ -1329,6 +1333,73 @@ async function submitTransferLead() {
 }
 
 // ─────────────────────────────────────────────
+// COLLABORATORS
+// ─────────────────────────────────────────────
+
+function collabEsc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
+}
+
+function renderCollaborators(data) {
+  document.getElementById("collabOwner").innerHTML =
+    `<span class="badge bg-dark">${collabEsc(data.owner.name)}</span>`
+
+  const list = document.getElementById("collabList")
+  if (!data.collaborators.length) {
+    list.innerHTML = '<li class="list-group-item text-muted">Not shared with anyone yet</li>'
+  } else {
+    list.innerHTML = data.collaborators.map(u => `
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>${collabEsc(u.name)} <small class="text-muted">${collabEsc(u.email)}</small></span>
+        <button class="btn btn-sm btn-outline-danger" onclick="removeCollaborator(${u.id})" title="Remove">
+          <i class="fas fa-times"></i>
+        </button>
+      </li>`).join("")
+  }
+
+  const sel = document.getElementById("collabSelect")
+  sel.innerHTML = data.candidates.map(u => `<option value="${u.id}">${collabEsc(u.name)} (${collabEsc(u.email)})</option>`).join("")
+
+  const canManage = !!data.can_manage
+  document.getElementById("collabAddSection").style.display = canManage ? "" : "none"
+  document.getElementById("collabAddBtn").style.display = canManage ? "" : "none"
+}
+
+async function openCollaborators() {
+  if (!currentLeadId) return
+  const [ok, res] = await callApi("GET", `${leadEndpoints.collaborators}?lead_id=${currentLeadId}`)
+  if (!ok || !res.success) {
+    alert("Error: " + (res && res.error ? JSON.stringify(res.error) : "Failed to load collaborators"))
+    return
+  }
+  renderCollaborators(res.data)
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("collabModal")).show()
+}
+
+async function addCollaborators() {
+  const ids = Array.from(document.getElementById("collabSelect").selectedOptions).map(o => parseInt(o.value, 10))
+  if (!ids.length) { alert("Please select at least one user."); return }
+  const [ok, res] = await callApi("POST", leadEndpoints.collaborators, { lead_id: currentLeadId, user_ids: ids }, leadCsrf)
+  if (ok && res.success) {
+    renderCollaborators(res.data)
+    await loadLeads()
+  } else {
+    alert("Error: " + (res && res.error ? JSON.stringify(res.error) : "Failed to add collaborators"))
+  }
+}
+
+async function removeCollaborator(userId) {
+  if (!confirm("Remove this collaborator from the lead?")) return
+  const [ok, res] = await callApi("DELETE", `${leadEndpoints.collaborators}${currentLeadId}/?user_id=${userId}`, null, leadCsrf)
+  if (ok && res.success) {
+    renderCollaborators(res.data)
+    await loadLeads()
+  } else {
+    alert("Error: " + (res && res.error ? JSON.stringify(res.error) : "Failed to remove collaborator"))
+  }
+}
+
+// ���────────────────────────────────────────────
 // GENERATE REPORT (PDF / EXCEL / ALL USERS)
 // ─────────────────────────────────────────────
 

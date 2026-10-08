@@ -25,6 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
     leads_sub_department_name = serializers.CharField(
         source='leads_sub_department.name', read_only=True
     )
+    reports_to_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -38,17 +39,77 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "leads_sub_department",
             "leads_sub_department_name",
+            "level",
+            "reports_to",
+            "reports_to_name",
         ] + PERMISSION_FIELDS
 
+    def get_reports_to_name(self, obj):
+        return obj.reports_to.name if obj.reports_to_id else None
 
-class CreateUserSerializer(serializers.ModelSerializer):
+
+class HierarchyValidationMixin:
+    """Keeps `level` and `reports_to` consistent on create and update."""
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        instance = getattr(self, 'instance', None)
+
+        level = attrs['level'] if 'level' in attrs else getattr(instance, 'level', None)
+        role = attrs['role'] if 'role' in attrs else getattr(instance, 'role', None)
+        is_super = (
+            attrs['is_super_admin'] if 'is_super_admin' in attrs
+            else getattr(instance, 'is_super_admin', False)
+        )
+        supervisor = (
+            attrs['reports_to'] if 'reports_to' in attrs
+            else getattr(instance, 'reports_to', None)
+        )
+
+        # Admins see everything, so they never sit under a supervisor.
+        if role == 'admin' or is_super:
+            if supervisor is not None:
+                attrs['reports_to'] = None
+            supervisor = None
+
+        if level is None:
+            if supervisor is not None:
+                attrs['reports_to'] = None
+            if instance and instance.direct_reports.exists():
+                raise serializers.ValidationError({
+                    "level": "This user has people reporting to them. Reassign them before removing the level."
+                })
+            return attrs
+
+        if supervisor is not None:
+            if instance and supervisor.pk == instance.pk:
+                raise serializers.ValidationError({"reports_to": "A user cannot report to themselves."})
+            if supervisor.role == 'admin' or supervisor.is_super_admin:
+                raise serializers.ValidationError({
+                    "reports_to": "Admins already see everything. Choose an Office-level supervisor instead."
+                })
+            if not supervisor.active_user:
+                raise serializers.ValidationError({"reports_to": "The selected supervisor is inactive."})
+            if supervisor.level is None or supervisor.level >= level:
+                raise serializers.ValidationError({
+                    "reports_to": f"The supervisor must have a level lower than {level}."
+                })
+
+        if instance and instance.direct_reports.filter(level__lte=level).exists():
+            raise serializers.ValidationError({
+                "level": "People reporting to this user must stay at a higher level number than theirs."
+            })
+        return attrs
+
+
+class CreateUserSerializer(HierarchyValidationMixin, serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
         fields = [
             "name", "email", "role", "password",
-            "leads_sub_department",
+            "leads_sub_department", "level", "reports_to",
         ] + PERMISSION_FIELDS
 
     def validate_email(self, value):
@@ -64,14 +125,14 @@ class CreateUserSerializer(serializers.ModelSerializer):
         return user
 
 
-class UpdateUserSerializer(serializers.ModelSerializer):
+class UpdateUserSerializer(HierarchyValidationMixin, serializers.ModelSerializer):
     """Used for PUT/PATCH — does NOT change password."""
 
     class Meta:
         model = User
         fields = [
             "name", "email", "role", "active_user",
-            "leads_sub_department",
+            "leads_sub_department", "level", "reports_to",
         ] + PERMISSION_FIELDS
 
     def validate_email(self, value):
