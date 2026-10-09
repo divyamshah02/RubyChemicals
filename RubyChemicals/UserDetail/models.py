@@ -8,11 +8,28 @@ Changes vs original:
 """
 
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
+import os
 import random
 import string
+import uuid
+
+
+MAX_DOCUMENT_SIZE_MB = 5
+ALLOWED_DOCUMENT_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp']
+
+
+def employee_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return f"employees/{instance.user.user_id}/{uuid.uuid4().hex}{ext}"
+
+
+def validate_document_size(file):
+    if file.size > MAX_DOCUMENT_SIZE_MB * 1024 * 1024:
+        raise ValidationError(f"File size must be {MAX_DOCUMENT_SIZE_MB} MB or less.")
 
 
 def generate_user_id(role):
@@ -22,7 +39,8 @@ def generate_user_id(role):
         'factory':    'FC',
         'accountant': 'AN',
         'office':     'OF',
-        'sales':      'SL',   # ← NEW
+        'sales':      'SL',
+        'hr':         'HR',
     }.get(role, 'US')
 
     while True:
@@ -39,7 +57,8 @@ class User(AbstractUser):
         ('factory',    'Factory'),
         ('accountant', 'Accountant'),
         ('office',     'Office'),
-        ('sales',      'Sales'),   # ← NEW
+        ('sales',      'Sales'),
+        ('hr',         'HR'),
     ]
 
     email = models.EmailField(unique=True)
@@ -63,6 +82,8 @@ class User(AbstractUser):
     can_client_management  = models.BooleanField(default=False, verbose_name="Client Management")
     can_petty_cash         = models.BooleanField(default=False, verbose_name="Petty Cash")
     can_leads              = models.BooleanField(default=False, verbose_name="Leads")
+    can_hr                 = models.BooleanField(default=False, verbose_name="HR")
+
 
     # ── Leads Sub-Department assignment ──────────────────────────────────
     # Set for 'sales' role users OR any user with can_leads=True
@@ -113,6 +134,7 @@ class User(AbstractUser):
         if not self.email:
             self.email = self.username
         super().save(*args, **kwargs)
+        EmployeeDetail.objects.get_or_create(user=self, defaults={'full_name': self.name})
 
     def __str__(self):
         return f"{self.name} ({self.role})"
@@ -149,3 +171,128 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.user.name} - {self.date}"
+
+
+def _document_field(help_text=""):
+    return models.FileField(
+        upload_to=employee_upload_path,
+        null=True,
+        blank=True,
+        validators=[
+            FileExtensionValidator(ALLOWED_DOCUMENT_EXTENSIONS),
+            validate_document_size,
+        ],
+        help_text=help_text,
+    )
+
+
+class EmployeeDetail(models.Model):
+    """HR profile. Exactly one per user, created automatically with the user."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee_detail')
+
+    full_name = models.CharField(max_length=255, blank=True)
+    joining_date = models.DateField(null=True, blank=True)
+    department = models.CharField(max_length=100, blank=True)
+    position = models.CharField(max_length=100, blank=True)
+    # Employment reporting line (HR record only). Separate from User.reports_to,
+    # which drives lead visibility.
+    reporting_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='employee_reports',
+    )
+
+    current_address = models.TextField(blank=True)
+    permanent_address = models.TextField(blank=True)
+    personal_mobile = models.CharField(max_length=15, blank=True)
+
+    aadhar_number = models.CharField(max_length=12, blank=True)
+    aadhar_file = _document_field("Aadhar card (PDF/Image)")
+    pan_number = models.CharField(max_length=10, blank=True)
+    pan_file = _document_field("PAN card (PDF/Image)")
+
+    bank_name = models.CharField(max_length=150, blank=True)
+    bank_account_no = models.CharField(max_length=30, blank=True)
+    bank_branch = models.CharField(max_length=150, blank=True)
+    bank_ifsc = models.CharField(max_length=11, blank=True)
+    bank_proof_file = _document_field("Cancelled cheque / passbook (PDF/Image)")
+
+    photo = _document_field("Employee photo (PDF/Image)")
+
+    office_mobile = models.CharField(max_length=15, blank=True)
+    device_details = models.CharField(max_length=255, blank=True, help_text="Office mobile make / model")
+    imei_1 = models.CharField(max_length=20, blank=True)
+    imei_2 = models.CharField(max_length=20, blank=True)
+    sim_card_in_name_of = models.CharField(max_length=150, blank=True)
+
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Employee: {self.full_name or self.user.name}"
+
+
+class EmergencyContact(models.Model):
+    employee = models.ForeignKey(
+        EmployeeDetail,
+        on_delete=models.CASCADE,
+        related_name='emergency_contacts',
+    )
+    name = models.CharField(max_length=150)
+    relation = models.CharField(max_length=100)
+    mobile = models.CharField(max_length=15)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.name} ({self.relation})"
+
+
+class UniversalLeave(models.Model):
+    """A day off that applies to every employee (holiday, company shutdown...)."""
+
+    date = models.DateField(unique=True)
+    title = models.CharField(max_length=150)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['date']
+
+    def __str__(self):
+        return f"{self.date} - {self.title}"
+
+
+class Leave(models.Model):
+    """A leave granted to one employee for one day. HR adds these manually."""
+
+    LEAVE_TYPE_CHOICES = [
+        ('casual', 'Casual'),
+        ('sick',   'Sick'),
+        ('earned', 'Earned / Paid'),
+        ('unpaid', 'Unpaid'),
+        ('other',  'Other'),
+    ]
+    DAY_TYPE_CHOICES = [
+        ('full', 'Full Day'),
+        ('half', 'Half Day'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leaves')
+    date = models.DateField()
+    leave_type = models.CharField(max_length=10, choices=LEAVE_TYPE_CHOICES, default='casual')
+    day_type = models.CharField(max_length=4, choices=DAY_TYPE_CHOICES, default='full')
+    reason = models.CharField(max_length=255, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-date']
+        unique_together = ('user', 'date')
+
+    def __str__(self):
+        return f"{self.user.name} - {self.date} ({self.day_type})"

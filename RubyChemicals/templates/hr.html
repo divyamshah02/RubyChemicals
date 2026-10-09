@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>HR Management - CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body { background: #f8fafc; }
+        .container-fluid { margin: 0 auto; }
+
+        .page-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0;
+        }
+        .page-title { font-size: 1.75rem; font-weight: 700; color: #1e293b; margin: 0; }
+
+        .btn-primary-custom {
+            background: #3b82f6; color: white; border: none;
+            padding: 0.625rem 1.25rem; border-radius: 8px; cursor: pointer;
+            font-weight: 500; transition: all 0.3s;
+        }
+        .btn-primary-custom:hover { background: #2563eb; color: white; transform: translateY(-2px); }
+        .btn-info        { background: #06b6d4; color: white; border: none; }
+        .btn-info:hover  { background: #0891b2; color: white; }
+        .btn-warning     { background: #f59e0b; color: white; border: none; }
+        .btn-warning:hover { background: #d97706; color: white; }
+        .btn-danger      { background: #ef4444; color: white; border: none; }
+        .btn-danger:hover { background: #dc2626; color: white; }
+        .btn-success-custom { background: #10b981; color: white; border: none; border-radius: 8px; }
+        .btn-success-custom:hover { background: #059669; color: white; }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 1.25rem 1.5rem;
+            border: 1px solid #e2e8f0; display: flex; align-items: center;
+            gap: 1rem; transition: all 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
+        .stat-icon { font-size: 2rem; opacity: 0.75; }
+        .stat-content h3 { margin: 0; font-size: 1.6rem; font-weight: 700; color: #1e293b; }
+        .stat-content p  { margin: 0.2rem 0 0; color: #64748b; font-size: 0.82rem; }
+
+        .hr-tabs { border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; }
+        .hr-tabs .nav-link {
+            color: #64748b; font-weight: 600; border: none; border-bottom: 3px solid transparent;
+            padding: 0.75rem 1.25rem; background: none;
+        }
+        .hr-tabs .nav-link:hover { color: #1e293b; }
+        .hr-tabs .nav-link.active { color: #2563eb; border-bottom-color: #2563eb; background: none; }
+
+        .table-container {
+            background: white; border-radius: 12px; border: 1px solid #e2e8f0;
+            overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .table { margin: 0; }
+        .table thead { background: #f1f5f9; border-bottom: 2px solid #e2e8f0; }
+        .table thead th {
+            color: #475569; font-weight: 600; padding: 0.9rem 1rem; border: none;
+            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+        }
+        .table thead th.sortable { cursor: pointer; user-select: none; }
+        .table thead th.sortable:hover { color: #1e293b; }
+        .table thead th .sort-icon { margin-left: 0.3rem; opacity: 0.35; font-size: 0.7rem; }
+        .table thead th.sorted .sort-icon { opacity: 1; color: #2563eb; }
+        .table tbody td {
+            padding: 0.85rem 1rem; border-color: #e2e8f0;
+            vertical-align: middle; color: #475569; font-size: 0.875rem;
+        }
+        .table tbody tr { transition: all 0.2s; border-bottom: 1px solid #e2e8f0; }
+        .table tbody tr:hover { background-color: #f8fafc; }
+        .table tbody tr.row-forgot { background: #fef2f2; }
+        .table tbody tr.row-forgot:hover { background: #fee2e2; }
+        .table tbody tr.row-muted td { color: #94a3b8; }
+
+        .action-buttons { display: flex; gap: 0.4rem; }
+        .action-buttons .btn { padding: 0.3rem 0.65rem; font-size: 0.8rem; border-radius: 6px; transition: all 0.2s; }
+
+        .filters-bar {
+            background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+            padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+            display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;
+        }
+        .filters-bar .form-control, .filters-bar .form-select { font-size: 0.875rem; }
+
+        .modal-content   { border-radius: 12px; border: 1px solid #e2e8f0; }
+        .modal-header    { background: #f1f5f9; border-bottom: 1px solid #e2e8f0; border-radius: 12px 12px 0 0; }
+        .modal-title     { font-weight: 700; color: #1e293b; }
+        .form-section {
+            background: #f0f9ff; padding: 1.25rem 1.5rem; border-radius: 10px;
+            margin-bottom: 1.5rem; border: 1px solid #bfdbfe;
+        }
+        .form-section-title { color: #1e40af; font-weight: 700; margin-bottom: 1rem; font-size: 0.95rem; }
+        .form-label { font-weight: 600; color: #475569; font-size: 0.875rem; }
+        .form-control, .form-select { border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.875rem; }
+        .form-control:focus, .form-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .file-current { font-size: 0.78rem; margin-top: 0.3rem; }
+        .file-current a { color: #2563eb; text-decoration: none; font-weight: 600; }
+
+        .emergency-row {
+            background: white; border: 1px solid #e2e8f0; border-radius: 10px;
+            padding: 0.75rem; margin-bottom: 0.75rem;
+        }
+
+        .avatar {
+            width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
+            background: #e2e8f0; color: #475569; font-weight: 700; font-size: 0.85rem;
+            display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .emp-cell { display: flex; align-items: center; gap: 0.75rem; }
+        .emp-name { font-weight: 700; color: #1e293b; }
+        .emp-sub  { font-size: 0.75rem; color: #94a3b8; }
+
+        .pill { padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; display: inline-block; }
+        .pill-present   { background: #dcfce7; color: #166534; }
+        .pill-half      { background: #fef3c7; color: #92400e; }
+        .pill-leave     { background: #dbeafe; color: #1d4ed8; }
+        .pill-holiday   { background: #ede9fe; color: #5b21b6; }
+        .pill-off       { background: #f1f5f9; color: #64748b; }
+        .pill-absent    { background: #fee2e2; color: #991b1b; }
+        .pill-pending   { background: #f3f4f6; color: #374151; }
+        .pill-complete  { background: #dcfce7; color: #166534; }
+        .pill-incomplete{ background: #fef3c7; color: #92400e; }
+
+        .forgot-flag { color: #dc2626; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+        .in-progress-flag { color: #0369a1; font-weight: 600; font-size: 0.8rem; }
+
+        .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem 1.5rem; }
+        .detail-item .k { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+        .detail-item .v { color: #1e293b; font-size: 0.9rem; word-break: break-word; }
+
+        .empty-state { padding: 2.5rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+
+        #toastWrap { position: fixed; top: 1rem; right: 1rem; z-index: 2000; display: flex; flex-direction: column; gap: 0.5rem; }
+        .hr-toast {
+            min-width: 260px; max-width: 380px; padding: 0.75rem 1rem; border-radius: 10px;
+            color: white; font-size: 0.875rem; box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+        }
+        .hr-toast.ok  { background: #10b981; }
+        .hr-toast.err { background: #ef4444; }
+
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .filters-bar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include 'header.html' %}
+
+    <div id="toastWrap" aria-live="polite"></div>
+
+    <div class="container-fluid">
+
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-id-card" style="margin-right: 0.75rem; color: #3b82f6;"></i>HR Management
+            </h1>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary-custom" onclick="openLeaveModal()">
+                    <i class="fas fa-calendar-plus me-1"></i>Add Leave
+                </button>
+                <button class="btn btn-success-custom px-3" onclick="openHolidayModal()">
+                    <i class="fas fa-umbrella-beach me-1"></i>Add Universal Leave
+                </button>
+            </div>
+        </div>
+
+        <ul class="nav hr-tabs" id="hrTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#paneEmployees" type="button" role="tab">
+                    <i class="fas fa-users me-1"></i>Employees
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paneAttendance" type="button" role="tab">
+                    <i class="fas fa-clock me-1"></i>Attendance
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paneLeaves" type="button" role="tab">
+                    <i class="fas fa-calendar-minus me-1"></i>Leaves
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paneHolidays" type="button" role="tab">
+                    <i class="fas fa-umbrella-beach me-1"></i>Universal Leaves
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+
+            <!-- ═════════ EMPLOYEES ═════════ -->
+            <div class="tab-pane fade show active" id="paneEmployees" role="tabpanel">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#3b82f6;"><i class="fas fa-users"></i></div>
+                        <div class="stat-content"><h3 id="kpiEmpTotal">--</h3><p>Employees</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#10b981;"><i class="fas fa-circle-check"></i></div>
+                        <div class="stat-content"><h3 id="kpiEmpComplete">--</h3><p>Profiles Complete</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#f59e0b;"><i class="fas fa-triangle-exclamation"></i></div>
+                        <div class="stat-content"><h3 id="kpiEmpIncomplete">--</h3><p>Profiles Incomplete</p></div>
+                    </div>
+                </div>
+
+                <div class="filters-bar">
+                    <div>
+                        <label class="form-label mb-1" for="empSearch">Search</label>
+                        <input type="text" id="empSearch" class="form-control" placeholder="Name, email, mobile, ID..." style="min-width: 240px;" oninput="renderEmployees()">
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="empDept">Department</label>
+                        <select id="empDept" class="form-select" style="min-width: 170px;" onchange="renderEmployees()">
+                            <option value="">All</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="empRole">Role</label>
+                        <select id="empRole" class="form-select" style="min-width: 150px;" onchange="renderEmployees()">
+                            <option value="">All</option>
+                            <option value="accounts">Accounts</option>
+                            <option value="factory">Factory</option>
+                            <option value="accountant">Accountant</option>
+                            <option value="office">Office</option>
+                            <option value="hr">HR</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="empComplete">Profile</label>
+                        <select id="empComplete" class="form-select" style="min-width: 150px;" onchange="renderEmployees()">
+                            <option value="">All</option>
+                            <option value="complete">Complete</option>
+                            <option value="incomplete">Incomplete</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-secondary" onclick="resetEmployeeFilters()"><i class="fas fa-rotate-left me-1"></i>Reset</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort="user_name" onclick="sortEmployees('user_name')">Employee<i class="fas fa-sort sort-icon"></i></th>
+                                    <th class="sortable" data-sort="department" onclick="sortEmployees('department')">Department / Position<i class="fas fa-sort sort-icon"></i></th>
+                                    <th class="sortable" data-sort="role" onclick="sortEmployees('role')">Role<i class="fas fa-sort sort-icon"></i></th>
+                                    <th class="sortable" data-sort="joining_date" onclick="sortEmployees('joining_date')">Joining Date<i class="fas fa-sort sort-icon"></i></th>
+                                    <th>Reporting To</th>
+                                    <th>Mobile</th>
+                                    <th class="sortable" data-sort="missing" onclick="sortEmployees('missing')">Profile<i class="fas fa-sort sort-icon"></i></th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═════════ ATTENDANCE ═════════ -->
+            <div class="tab-pane fade" id="paneAttendance" role="tabpanel">
+                <div class="filters-bar">
+                    <div>
+                        <label class="form-label mb-1" for="attUser">Employee</label>
+                        <select id="attUser" class="form-select" style="min-width: 220px;" onchange="loadAttendance()">
+                            <option value="">Select employee</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="attFrom">From</label>
+                        <input type="date" id="attFrom" class="form-control" onchange="loadAttendance()">
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="attTo">To</label>
+                        <input type="date" id="attTo" class="form-control" onchange="loadAttendance()">
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="attStatus">Show</label>
+                        <select id="attStatus" class="form-select" style="min-width: 170px;" onchange="renderAttendance()">
+                            <option value="">All days</option>
+                            <option value="present">Present</option>
+                            <option value="half_day">Half day</option>
+                            <option value="forgot">Forgot check-out</option>
+                            <option value="absent">Absent</option>
+                            <option value="leave">On leave</option>
+                            <option value="holiday">Holiday</option>
+                            <option value="weekly_off">Weekly off</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="attSort">Sort</label>
+                        <select id="attSort" class="form-select" style="min-width: 190px;" onchange="onAttendanceSortChange()">
+                            <option value="date_desc">Date: newest first</option>
+                            <option value="date_asc">Date: oldest first</option>
+                            <option value="in_asc">Check-in: earliest</option>
+                            <option value="in_desc">Check-in: latest</option>
+                            <option value="hours_desc">Hours: most</option>
+                            <option value="hours_asc">Hours: least</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="stats-grid" id="attKpis" style="display:none;">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#10b981;"><i class="fas fa-user-check"></i></div>
+                        <div class="stat-content"><h3 id="kpiPresent">0</h3><p>Present</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#f59e0b;"><i class="fas fa-adjust"></i></div>
+                        <div class="stat-content"><h3 id="kpiHalf">0</h3><p>Half Days</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#ef4444;"><i class="fas fa-user-xmark"></i></div>
+                        <div class="stat-content"><h3 id="kpiAbsent">0</h3><p>Absent</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#3b82f6;"><i class="fas fa-calendar-minus"></i></div>
+                        <div class="stat-content"><h3 id="kpiLeave">0</h3><p>Leave Days</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#dc2626;"><i class="fas fa-right-from-bracket"></i></div>
+                        <div class="stat-content"><h3 id="kpiForgot">0</h3><p>Forgot Check-out</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#6366f1;"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="stat-content"><h3 id="kpiHours">0h</h3><p>Hours Worked</p></div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-att-sort="date" onclick="sortAttendanceBy('date')">Date<i class="fas fa-sort sort-icon"></i></th>
+                                    <th>Day</th>
+                                    <th class="sortable" data-att-sort="in" onclick="sortAttendanceBy('in')">Check In<i class="fas fa-sort sort-icon"></i></th>
+                                    <th>Check Out</th>
+                                    <th class="sortable" data-att-sort="hours" onclick="sortAttendanceBy('hours')">Hours<i class="fas fa-sort sort-icon"></i></th>
+                                    <th>Status</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceBody">
+                                <tr><td colspan="7" class="empty-state">Select an employee to view attendance.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═════════ LEAVES ═════════ -->
+            <div class="tab-pane fade" id="paneLeaves" role="tabpanel">
+                <div class="filters-bar">
+                    <div>
+                        <label class="form-label mb-1" for="leaveUserFilter">Employee</label>
+                        <select id="leaveUserFilter" class="form-select" style="min-width: 220px;" onchange="loadLeaves()">
+                            <option value="">All employees</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="leaveTypeFilter">Type</label>
+                        <select id="leaveTypeFilter" class="form-select" style="min-width: 160px;" onchange="loadLeaves()">
+                            <option value="">All types</option>
+                            <option value="casual">Casual</option>
+                            <option value="sick">Sick</option>
+                            <option value="earned">Earned / Paid</option>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="leaveFromFilter">From</label>
+                        <input type="date" id="leaveFromFilter" class="form-control" onchange="loadLeaves()">
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="leaveToFilter">To</label>
+                        <input type="date" id="leaveToFilter" class="form-control" onchange="loadLeaves()">
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-secondary" onclick="resetLeaveFilters()"><i class="fas fa-rotate-left me-1"></i>Reset</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-leave-sort="date" onclick="sortLeavesBy('date')">Date<i class="fas fa-sort sort-icon"></i></th>
+                                    <th class="sortable" data-leave-sort="user_name" onclick="sortLeavesBy('user_name')">Employee<i class="fas fa-sort sort-icon"></i></th>
+                                    <th class="sortable" data-leave-sort="leave_type" onclick="sortLeavesBy('leave_type')">Type<i class="fas fa-sort sort-icon"></i></th>
+                                    <th>Duration</th>
+                                    <th>Reason</th>
+                                    <th>Added By</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leavesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═════════ UNIVERSAL LEAVES ��════════ -->
+            <div class="tab-pane fade" id="paneHolidays" role="tabpanel">
+                <p class="text-muted" style="font-size:0.875rem;">
+                    Universal leaves are company-wide holidays. They apply to every employee and are shown as holidays in attendance.
+                </p>
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Day</th>
+                                    <th>Title</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="holidaysBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════ EMPLOYEE MODAL ═════════ -->
+    <div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="employeeModalTitle">Employee</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="employeeViewBody"></div>
+
+                    <form id="employeeForm" onsubmit="return false;" style="display:none;" novalidate>
+                        <input type="hidden" id="empUserId">
+
+                        <div class="form-section">
+                            <div class="form-section-title"><i class="fas fa-user me-2"></i>Basic Details</div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_full_name">Name</label>
+                                    <input type="text" class="form-control" id="f_full_name" maxlength="255">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_joining_date">Joining Date</label>
+                                    <input type="date" class="form-control" id="f_joining_date">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_reporting_to">Reporting To</label>
+                                    <select class="form-select" id="f_reporting_to"><option value="">None</option></select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_department">Department</label>
+                                    <input type="text" class="form-control" id="f_department" maxlength="100" list="deptList">
+                                    <datalist id="deptList"></datalist>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_position">Position</label>
+                                    <input type="text" class="form-control" id="f_position" maxlength="100">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_personal_mobile">Personal Mobile Number</label>
+                                    <input type="tel" class="form-control" id="f_personal_mobile" maxlength="15">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="f_current_address">Current Residence Address</label>
+                                    <textarea class="form-control" id="f_current_address" rows="2"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="form-label" for="f_permanent_address">Permanent Residence Address</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0" onclick="copyCurrentAddress()">Same as current</button>
+                                    </div>
+                                    <textarea class="form-control" id="f_permanent_address" rows="2"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="f_photo">Photo <span class="text-danger">*</span> (PDF / Image)</label>
+                                    <input type="file" class="form-control" id="f_photo" accept="image/*,application/pdf">
+                                    <div class="file-current" id="cur_photo"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-section-title"><i class="fas fa-id-badge me-2"></i>Identity Documents</div>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_aadhar_number">Aadhar Number</label>
+                                    <input type="text" class="form-control" id="f_aadhar_number" maxlength="12" inputmode="numeric">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_aadhar_file">Aadhar <span class="text-danger">*</span> (PDF / Image)</label>
+                                    <input type="file" class="form-control" id="f_aadhar_file" accept="image/*,application/pdf">
+                                    <div class="file-current" id="cur_aadhar_file"></div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_pan_number">PAN Number</label>
+                                    <input type="text" class="form-control" id="f_pan_number" maxlength="10" style="text-transform:uppercase;">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_pan_file">PAN <span class="text-danger">*</span> (PDF / Image)</label>
+                                    <input type="file" class="form-control" id="f_pan_file" accept="image/*,application/pdf">
+                                    <div class="file-current" id="cur_pan_file"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-section-title"><i class="fas fa-building-columns me-2"></i>Bank Details</div>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_bank_name">Bank Name</label>
+                                    <input type="text" class="form-control" id="f_bank_name" maxlength="150">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_bank_account_no">Account No.</label>
+                                    <input type="text" class="form-control" id="f_bank_account_no" maxlength="30" inputmode="numeric">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_bank_branch">Branch Name</label>
+                                    <input type="text" class="form-control" id="f_bank_branch" maxlength="150">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_bank_ifsc">IFSC</label>
+                                    <input type="text" class="form-control" id="f_bank_ifsc" maxlength="11" style="text-transform:uppercase;">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="f_bank_proof_file">Bank Proof <span class="text-danger">*</span> (PDF / Image)</label>
+                                    <input type="file" class="form-control" id="f_bank_proof_file" accept="image/*,application/pdf">
+                                    <div class="file-current" id="cur_bank_proof_file"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="form-section-title mb-0"><i class="fas fa-phone-volume me-2"></i>Emergency Contacts</div>
+                                <button type="button" class="btn btn-sm btn-primary-custom" onclick="addEmergencyRow()">
+                                    <i class="fas fa-plus me-1"></i>Add Contact
+                                </button>
+                            </div>
+                            <div id="emergencyRows"></div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-section-title"><i class="fas fa-mobile-screen me-2"></i>Office Device &amp; SIM</div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_office_mobile">Office Mobile Number</label>
+                                    <input type="tel" class="form-control" id="f_office_mobile" maxlength="15">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_device_details">Mobile Details</label>
+                                    <input type="text" class="form-control" id="f_device_details" maxlength="255" placeholder="Make / model">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_sim_card_in_name_of">SIM Card In Name Of</label>
+                                    <input type="text" class="form-control" id="f_sim_card_in_name_of" maxlength="150">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="f_imei_1">IMEI 1</label>
+                                    <input type="text" class="form-control" id="f_imei_1" maxlength="15" inputmode="numeric">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="f_imei_2">IMEI 2</label>
+                                    <input type="text" class="form-control" id="f_imei_2" maxlength="15" inputmode="numeric">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" id="employeeEditBtn" onclick="showEmployeeForm()">
+                        <i class="fas fa-pen me-1"></i>Edit
+                    </button>
+                    <button type="button" class="btn btn-primary-custom" id="employeeSaveBtn" style="display:none;" onclick="saveEmployee()">
+                        <i class="fas fa-save me-1"></i>Save Details
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════ LEAVE MODAL ═════════ -->
+    <div class="modal fade" id="leaveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Leave</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="leaveForm" onsubmit="return false;">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label" for="leaveUser">Employee <span class="text-danger">*</span></label>
+                                <select id="leaveUser" class="form-select"><option value="">Select employee</option></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="leaveFrom">From <span class="text-danger">*</span></label>
+                                <input type="date" id="leaveFrom" class="form-control" onchange="syncLeaveDates()">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="leaveTo">To</label>
+                                <input type="date" id="leaveTo" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="leaveType">Leave Type</label>
+                                <select id="leaveType" class="form-select">
+                                    <option value="casual">Casual</option>
+                                    <option value="sick">Sick</option>
+                                    <option value="earned">Earned / Paid</option>
+                                    <option value="unpaid">Unpaid</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="leaveDayType">Duration</label>
+                                <select id="leaveDayType" class="form-select" onchange="syncLeaveDates()">
+                                    <option value="full">Full day</option>
+                                    <option value="half">Half day (single date)</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="leaveReason">Reason</label>
+                                <input type="text" id="leaveReason" class="form-control" maxlength="255">
+                            </div>
+                        </div>
+                        <p class="text-muted mt-3 mb-0" style="font-size:0.8rem;">
+                            Weekly offs (Sunday), company holidays and dates that already have a leave are skipped.
+                        </p>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary-custom" id="leaveSaveBtn" onclick="saveLeave()">Add Leave</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════ UNIVERSAL LEAVE MODAL ═════════ -->
+    <div class="modal fade" id="holidayModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Universal Leave</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="holidayForm" onsubmit="return false;">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label" for="holidayTitle">Title <span class="text-danger">*</span></label>
+                                <input type="text" id="holidayTitle" class="form-control" maxlength="150" placeholder="e.g. Diwali">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="holidayFrom">From <span class="text-danger">*</span></label>
+                                <input type="date" id="holidayFrom" class="form-control" onchange="syncHolidayDates()">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="holidayTo">To</label>
+                                <input type="date" id="holidayTo" class="form-control">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success-custom px-3" id="holidaySaveBtn" onclick="saveHoliday()">Add Holiday</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    {{ reporting_users|json_script:"reportingUsersData" }}
+    <script>
+        const REPORTING_USERS = JSON.parse(document.getElementById("reportingUsersData").textContent)
+        window.REPORTING_USERS = REPORTING_USERS
+        const CSRF = "{{ csrf_token }}"
+        const ENDPOINTS = {
+            employees:      "{% url 'hr-employee-api-list' %}",
+            attendance:     "{% url 'hr-attendance-api-list' %}",
+            leaves:         "{% url 'hr-leave-api-list' %}",
+            universalLeaves: "{% url 'hr-universal-leave-api-list' %}",
+        }
+    </script>
+    <script src="/static/js/api_caller.js"></script>
+    <script src="/static/js/hr.js"></script>
+    <script>
+        initHR(CSRF, ENDPOINTS)
+    </script>
+
+</body>
+</html>

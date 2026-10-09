@@ -18,6 +18,7 @@ PERMISSION_FIELDS = [
     "can_client_management",
     "can_petty_cash",
     "can_leads",
+    "can_hr",
 ]
 
 
@@ -65,6 +66,10 @@ class HierarchyValidationMixin:
             attrs['reports_to'] if 'reports_to' in attrs
             else getattr(instance, 'reports_to', None)
         )
+
+        # The HR role always gets the HR page.
+        if role == 'hr':
+            attrs['can_hr'] = True
 
         # Admins see everything, so they never sit under a supervisor.
         if role == 'admin' or is_super:

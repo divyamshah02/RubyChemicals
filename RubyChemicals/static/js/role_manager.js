@@ -15,6 +15,7 @@ const PLUGINS = [
     { key: "can_client_management", label: "Client Management" },
     { key: "can_petty_cash",        label: "Petty Cash" },
     { key: "can_leads",             label: "Leads" },
+    { key: "can_hr",                label: "HR" },
 ];
 
 // ── Module state ──────────────────────────────────────────────────────────────
@@ -94,7 +95,7 @@ function renderTable(users) {
     }
 
     tbody.innerHTML = users.map(u => {
-        const validRoles = ['admin', 'accounts', 'factory', 'accountant', 'office'];
+        const validRoles = ['admin', 'accounts', 'factory', 'accountant', 'office', 'hr'];
         const roleCls  = `role-badge role-${validRoles.includes(u.role) ? u.role : 'admin'}`;
         const statusBadge = u.active_user
             ? '<span class="badge bg-success">Active</span>'

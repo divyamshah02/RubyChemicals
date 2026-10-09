@@ -113,7 +113,10 @@ def apply_user_filter(user, qs, target_user_id):
     public `user_id`). Non-admins may only pick themselves or a subordinate.
     """
     from UserDetail.models import User
-    target = User.objects.filter(user_id=target_user_id).first()
+    if str(target_user_id) == 'me':
+        target = user
+    else:
+        target = User.objects.filter(user_id=target_user_id).first()
     if not target:
         return qs.none()
     if (

@@ -175,7 +175,28 @@ async function loadBatches() {
     if (window.renderKPIStats) {
       window.renderKPIStats()
     }
+
+    filterProductionCards()
   }
+}
+
+// Hides rows instead of re-rendering so the KPI cards (which count table rows) stay accurate.
+function filterProductionCards() {
+  const input = document.getElementById("productionSearch")
+  const query = (input ? input.value : "").trim().toLowerCase()
+  const rows = document.querySelectorAll("#batchTable tbody tr")
+  let visible = 0
+
+  rows.forEach(row => {
+    if (row.cells.length < 4) return
+    const haystack = [0, 1, 3].map(i => row.cells[i].textContent.trim().toLowerCase())
+    const match = !query || haystack.some(text => text.includes(query))
+    row.style.display = match ? "" : "none"
+    if (match) visible++
+  })
+
+  const noResults = document.getElementById("productionNoResults")
+  if (noResults) noResults.style.display = query && rows.length && visible === 0 ? "" : "none"
 }
 
 async function viewProductionCard(cardId) {

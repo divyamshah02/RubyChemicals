@@ -258,6 +258,18 @@
             <h2 class="section-title"><i class="fas fa-list" style="margin-right: 0.75rem;"></i>Production Cards</h2>
         </div>
 
+        <div class="mb-3" style="max-width: 480px;">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="search" id="productionSearch" class="form-control"
+                    placeholder="Search production card no., batch no. or product name"
+                    aria-label="Search production cards" autocomplete="off" oninput="filterProductionCards()">
+            </div>
+        </div>
+        <div id="productionNoResults" class="text-center text-muted py-3" style="display: none;">
+            No production cards match your search
+        </div>
+
         <div class="table-container">
             <table class="table table-hover" id="batchTable">
                 <thead>

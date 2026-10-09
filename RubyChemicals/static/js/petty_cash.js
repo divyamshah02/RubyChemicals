@@ -61,7 +61,10 @@ async function loadAllTransactions() {
 function renderAllTransactionsTab() {
   const table = document.getElementById("allTransactionsTable");
 
-  const filteredTransactions = allTransactions.filter(t => t.cash_type === currentCashType);
+  const typeFilter = document.getElementById("transactionTypeFilter")?.value || "";
+  const filteredTransactions = allTransactions.filter(t =>
+    t.cash_type === currentCashType && (!typeFilter || t.transaction_type === typeFilter)
+  );
 
   if (filteredTransactions.length === 0) {
     table.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No transactions</td></tr>';

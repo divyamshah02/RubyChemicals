@@ -84,6 +84,17 @@
     <div class="tab-content">
         <!-- All Transactions Tab -->
         <div id="allTransactions" class="tab-pane fade show active">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <label for="transactionTypeFilter" class="mb-0" style="font-weight: 600; color: #475569;">
+                    <i class="fas fa-filter" style="margin-right: 0.25rem;"></i>Transaction Type
+                </label>
+                <select id="transactionTypeFilter" class="form-select" style="width: auto; min-width: 160px;"
+                    onchange="renderAllTransactionsTab()">
+                    <option value="">All</option>
+                    <option value="credit">Credit</option>
+                    <option value="debit">Debit</option>
+                </select>
+            </div>
             <div
                 style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 600px; overflow-y: auto;">
                 <table class="table mb-0">

@@ -34,6 +34,7 @@ def get_first_permitted_url(user):
         ('can_client_management', 'client-management-list'),
         ('can_petty_cash',        'petty-cash-list'),
         ('can_leads',             'leads-list'),
+        ('can_hr',                'hr-list'),
     ]
 
     for field, url_name in PLUGIN_URLS:
@@ -242,6 +243,17 @@ class LeadsViewSet(viewsets.ViewSet):
         })
 
 
+class HRViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication(required_permission='can_hr')
+    def list(self, request):
+        reporting_users = list(
+            User.objects.filter(active_user=True).order_by('name').values('id', 'name', 'role')
+        )
+        return render(request, 'hr.html', {'reporting_users': reporting_users})
+
+
 class LeadSubDeptMngmtViewSet(viewsets.ViewSet):
 
     @handle_exceptions
@@ -250,7 +262,7 @@ class LeadSubDeptMngmtViewSet(viewsets.ViewSet):
         return render(request, 'lead_sub_dept_mgmt.html')
 
 
-# ── Role Manager page ─────────────────────────────────────────────────────────
+# ── Role Manager page ───────────────────────────────────────��─────────────────
 
 class RoleManagerViewSet(viewsets.ViewSet):
     """

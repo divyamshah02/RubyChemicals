@@ -77,6 +77,13 @@
     </a>
     {% endif %}
 
+    {# ── HR ── #}
+    {% if request.user.is_super_admin or request.user.role == 'admin' or request.user.can_hr %}
+    <a href="/hr/" class="d-block mb-2 text-decoration-none">
+      <i class="fas fa-id-card"></i> HR
+    </a>
+    {% endif %}
+
     {# ── Role Manager: admin role or super-admin only ── #}
     {% if request.user.role == 'admin' or request.user.is_super_admin %}
     <hr class="mt-3 mb-2">

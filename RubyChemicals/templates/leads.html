@@ -238,6 +238,7 @@
             <div>
                 <label class="form-label mb-1">Leads Data of</label>
                 <select id="leadUsers" class="form-select" style="min-width: 180px;" onchange="applyLeadFilters()">
+                    <option value="me" selected>My Leads</option>
                     <option value="">{% if is_admin_or_super %}All{% else %}Me &amp; my team{% endif %}</option>
                     {% for user in filter_users %}
                         <option value="{{ user.user_id }}">{{ user.name }}{% if user.level %} (L{{ user.level }}){% endif %}</option>
