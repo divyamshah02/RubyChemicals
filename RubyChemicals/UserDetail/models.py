@@ -228,6 +228,16 @@ class EmployeeDetail(models.Model):
     imei_2 = models.CharField(max_length=20, blank=True)
     sim_card_in_name_of = models.CharField(max_length=150, blank=True)
 
+    # Leaves granted every month. Editable by HR / admin. Half days count as 0.5.
+    monthly_casual_leaves = models.DecimalField(
+        max_digits=4, decimal_places=1, default=1, validators=[MinValueValidator(0)],
+        help_text="Casual leaves granted per month",
+    )
+    monthly_sick_leaves = models.DecimalField(
+        max_digits=4, decimal_places=1, default=1, validators=[MinValueValidator(0)],
+        help_text="Sick leaves granted per month",
+    )
+
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -296,3 +306,40 @@ class Leave(models.Model):
 
     def __str__(self):
         return f"{self.user.name} - {self.date} ({self.day_type})"
+
+
+class LeaveApplication(models.Model):
+    """A leave request raised by an employee. Approving it creates `Leave` rows."""
+
+    TYPE_CHOICES = [
+        ('casual', 'Casual'),
+        ('sick',   'Sick'),
+        ('unpaid', 'Unpaid'),
+    ]
+    DAY_TYPE_CHOICES = Leave.DAY_TYPE_CHOICES
+    STATUS_CHOICES = [
+        ('pending',   'Pending'),
+        ('approved',  'Approved'),
+        ('rejected',  'Rejected'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leave_applications')
+    from_date = models.DateField()
+    to_date = models.DateField()
+    leave_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='casual')
+    day_type = models.CharField(max_length=4, choices=DAY_TYPE_CHOICES, default='full')
+    reason = models.CharField(max_length=255)
+    days = models.DecimalField(max_digits=5, decimal_places=1, default=0)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.name}: {self.from_date} to {self.to_date} ({self.status})"

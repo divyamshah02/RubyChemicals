@@ -22,6 +22,7 @@ router.register(r'petty-cash', PettyCashViewSet, basename='petty-cash')
 router.register(r'leads', LeadsViewSet, basename='leads')
 router.register(r'lead-sub-dept-mgmt', LeadSubDeptMngmtViewSet, basename='lead-sub-dept-mgmt')
 router.register(r'hr', HRViewSet, basename='hr')
+router.register(r'my-hr', MyHRViewSet, basename='my-hr')
 
 # Role Manager — accessible to admin role only
 router.register(r'role-manager', RoleManagerViewSet, basename='role-manager')

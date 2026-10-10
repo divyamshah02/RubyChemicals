@@ -254,6 +254,15 @@ class HRViewSet(viewsets.ViewSet):
         return render(request, 'hr.html', {'reporting_users': reporting_users})
 
 
+class MyHRViewSet(viewsets.ViewSet):
+    """Every signed-in employee's own HR profile: details, attendance, leaves."""
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        return render(request, 'my_hr.html')
+
+
 class LeadSubDeptMngmtViewSet(viewsets.ViewSet):
 
     @handle_exceptions
@@ -262,7 +271,7 @@ class LeadSubDeptMngmtViewSet(viewsets.ViewSet):
         return render(request, 'lead_sub_dept_mgmt.html')
 
 
-# ── Role Manager page ───────────────────────────────────────��─────────────────
+# ── Role Manager page ─────────────────────────────────────────────────────────
 
 class RoleManagerViewSet(viewsets.ViewSet):
     """

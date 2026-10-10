@@ -6,6 +6,11 @@ from .hr_views import (
     HRAttendanceViewSet,
     HRLeaveViewSet,
     HRUniversalLeaveViewSet,
+    HRLeaveApplicationViewSet,
+    HRLeaveQuotaViewSet,
+    MyProfileViewSet,
+    MyAttendanceViewSet,
+    MyLeaveViewSet,
 )
 
 
@@ -23,6 +28,13 @@ router.register(r'hr-employee-api', HREmployeeViewSet, basename='hr-employee-api
 router.register(r'hr-attendance-api', HRAttendanceViewSet, basename='hr-attendance-api')
 router.register(r'hr-leave-api', HRLeaveViewSet, basename='hr-leave-api')
 router.register(r'hr-universal-leave-api', HRUniversalLeaveViewSet, basename='hr-universal-leave-api')
+router.register(r'hr-leave-application-api', HRLeaveApplicationViewSet, basename='hr-leave-application-api')
+router.register(r'hr-leave-quota-api', HRLeaveQuotaViewSet, basename='hr-leave-quota-api')
+
+# Employee self-service (profile page)
+router.register(r'my-profile-api', MyProfileViewSet, basename='my-profile-api')
+router.register(r'my-attendance-api', MyAttendanceViewSet, basename='my-attendance-api')
+router.register(r'my-leave-api', MyLeaveViewSet, basename='my-leave-api')
 
 
 urlpatterns = [

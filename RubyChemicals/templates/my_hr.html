@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My HR - CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body { background: #f8fafc; }
+        .container-fluid { margin: 0 auto; }
+
+        .page-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0;
+        }
+        .page-title { font-size: 1.75rem; font-weight: 700; color: #1e293b; margin: 0; }
+        .page-sub { color: #64748b; font-size: 0.9rem; margin: 0.2rem 0 0; }
+
+        .btn-primary-custom {
+            background: #3b82f6; color: white; border: none;
+            padding: 0.625rem 1.25rem; border-radius: 8px; cursor: pointer;
+            font-weight: 500; transition: all 0.3s;
+        }
+        .btn-primary-custom:hover { background: #2563eb; color: white; transform: translateY(-2px); }
+        .btn-primary-custom:disabled { opacity: 0.6; transform: none; }
+        .btn-success-custom { background: #10b981; color: white; border: none; border-radius: 8px; padding: 0.625rem 1.25rem; font-weight: 500; }
+        .btn-success-custom:hover { background: #059669; color: white; }
+        .btn-success-custom:disabled { opacity: 0.5; }
+        .btn-danger-custom { background: #ef4444; color: white; border: none; border-radius: 8px; padding: 0.625rem 1.25rem; font-weight: 500; }
+        .btn-danger-custom:hover { background: #dc2626; color: white; }
+        .btn-danger-custom:disabled { opacity: 0.5; }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 1.25rem 1.5rem;
+            border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 1rem;
+        }
+        .stat-icon { font-size: 2rem; opacity: 0.75; }
+        .stat-content h3 { margin: 0; font-size: 1.6rem; font-weight: 700; color: #1e293b; }
+        .stat-content p  { margin: 0.2rem 0 0; color: #64748b; font-size: 0.82rem; }
+        .stat-content small { color: #94a3b8; font-size: 0.75rem; }
+
+        .hr-tabs { border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; }
+        .hr-tabs .nav-link {
+            color: #64748b; font-weight: 600; border: none; border-bottom: 3px solid transparent;
+            padding: 0.75rem 1.25rem; background: none;
+        }
+        .hr-tabs .nav-link:hover { color: #1e293b; }
+        .hr-tabs .nav-link.active { color: #2563eb; border-bottom-color: #2563eb; background: none; }
+
+        .panel {
+            background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+            padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+        }
+        .panel-title { font-weight: 700; color: #1e293b; margin-bottom: 0.75rem; font-size: 1rem; }
+
+        .checkin-card { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+        .checkin-clock { font-size: 2rem; font-weight: 700; color: #1e293b; line-height: 1.1; }
+        .checkin-date { color: #64748b; font-size: 0.85rem; }
+        .checkin-status { color: #475569; font-size: 0.9rem; margin-top: 0.5rem; }
+        .checkin-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+        .table-container {
+            background: white; border-radius: 12px; border: 1px solid #e2e8f0;
+            overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem;
+        }
+        .table { margin: 0; }
+        .table thead { background: #f1f5f9; border-bottom: 2px solid #e2e8f0; }
+        .table thead th {
+            color: #475569; font-weight: 600; padding: 0.9rem 1rem; border: none;
+            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+        }
+        .table tbody td {
+            padding: 0.85rem 1rem; border-color: #e2e8f0;
+            vertical-align: middle; color: #475569; font-size: 0.875rem;
+        }
+        .table tbody tr:hover { background-color: #f8fafc; }
+        .table tbody tr.row-forgot { background: #fef2f2; }
+        .table tbody tr.row-muted td { color: #94a3b8; }
+        .section-heading { font-weight: 700; color: #1e293b; margin: 0 0 0.75rem; font-size: 1rem; }
+
+        .filters-bar {
+            background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+            padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+            display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;
+        }
+        .filters-bar .form-control, .filters-bar .form-select { font-size: 0.875rem; }
+
+        .modal-content   { border-radius: 12px; border: 1px solid #e2e8f0; }
+        .modal-header    { background: #f1f5f9; border-bottom: 1px solid #e2e8f0; border-radius: 12px 12px 0 0; }
+        .modal-title     { font-weight: 700; color: #1e293b; }
+        .form-section {
+            background: #f0f9ff; padding: 1.25rem 1.5rem; border-radius: 10px;
+            margin-bottom: 1.5rem; border: 1px solid #bfdbfe;
+        }
+        .form-section-title { color: #1e40af; font-weight: 700; margin-bottom: 1rem; font-size: 0.95rem; }
+        .form-label { font-weight: 600; color: #475569; font-size: 0.875rem; }
+        .form-control, .form-select { border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.875rem; }
+        .form-control:focus, .form-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+        .pill { padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; display: inline-block; }
+        .pill-present   { background: #dcfce7; color: #166534; }
+        .pill-half      { background: #fef3c7; color: #92400e; }
+        .pill-leave     { background: #dbeafe; color: #1d4ed8; }
+        .pill-holiday   { background: #ede9fe; color: #5b21b6; }
+        .pill-off       { background: #f1f5f9; color: #64748b; }
+        .pill-absent    { background: #fee2e2; color: #991b1b; }
+        .pill-pending   { background: #fef3c7; color: #92400e; }
+        .pill-approved  { background: #dcfce7; color: #166534; }
+        .pill-rejected  { background: #fee2e2; color: #991b1b; }
+        .pill-cancelled { background: #f1f5f9; color: #64748b; }
+
+        .forgot-flag { color: #dc2626; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+        .in-progress-flag { color: #0369a1; font-weight: 600; font-size: 0.8rem; }
+
+        .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem 1.5rem; }
+        .detail-item .k { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+        .detail-item .v { color: #1e293b; font-size: 0.9rem; word-break: break-word; }
+        .profile-top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+        .profile-avatar {
+            width: 72px; height: 72px; border-radius: 16px; object-fit: cover; background: #e2e8f0;
+            color: #475569; font-weight: 700; font-size: 1.4rem; border: 1px solid #e2e8f0;
+            display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .file-link a { color: #2563eb; text-decoration: none; font-weight: 600; }
+
+        .empty-state { padding: 2.5rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+
+        #toastWrap { position: fixed; top: 1rem; right: 1rem; z-index: 2000; display: flex; flex-direction: column; gap: 0.5rem; }
+        .hr-toast {
+            min-width: 260px; max-width: 380px; padding: 0.75rem 1rem; border-radius: 10px;
+            color: white; font-size: 0.875rem; box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+        }
+        .hr-toast.ok  { background: #10b981; }
+        .hr-toast.err { background: #ef4444; }
+
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .filters-bar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include 'header.html' %}
+
+    <div id="toastWrap" aria-live="polite"></div>
+
+    <div class="container-fluid">
+
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">My HR</h1>
+                <p class="page-sub" id="pageSub">Loading your profile...</p>
+            </div>
+            <button type="button" class="btn-primary-custom" id="btnApplyLeave">
+                <i class="fas fa-plane-departure me-1"></i> Apply for Leave
+            </button>
+        </div>
+
+        <ul class="nav hr-tabs" role="tablist">
+            <li class="nav-item"><button type="button" class="nav-link active" data-tab="overview" role="tab"><i class="fas fa-gauge me-1"></i> Overview</button></li>
+            <li class="nav-item"><button type="button" class="nav-link" data-tab="details" role="tab"><i class="fas fa-id-card me-1"></i> My Details</button></li>
+            <li class="nav-item"><button type="button" class="nav-link" data-tab="attendance" role="tab"><i class="fas fa-calendar-check me-1"></i> Attendance</button></li>
+            <li class="nav-item"><button type="button" class="nav-link" data-tab="leaves" role="tab"><i class="fas fa-umbrella-beach me-1"></i> Leaves</button></li>
+        </ul>
+
+        <!-- Overview -->
+        <section id="pane-overview" data-pane="overview">
+            <div class="panel">
+                <div class="checkin-card">
+                    <div>
+                        <div class="checkin-clock" id="liveClock">--:--</div>
+                        <div class="checkin-date" id="liveDate"></div>
+                        <div class="checkin-status" id="checkStatus">Loading today&apos;s status...</div>
+                    </div>
+                    <div class="checkin-actions">
+                        <button type="button" class="btn-success-custom" id="btnCheckIn" disabled>
+                            <i class="fas fa-right-to-bracket me-1"></i> Check In
+                        </button>
+                        <button type="button" class="btn-danger-custom" id="btnCheckOut" disabled>
+                            <i class="fas fa-right-from-bracket me-1"></i> Check Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="section-heading">Leave balance <span class="text-muted fw-normal" id="balanceMonth"></span></h2>
+            <div class="stats-grid" id="balanceCards"></div>
+
+            <h2 class="section-heading">Attendance this month</h2>
+            <div class="stats-grid" id="monthSummary"></div>
+        </section>
+
+        <!-- My Details -->
+        <section id="pane-details" data-pane="details" hidden>
+            <div id="detailsBody"></div>
+            <p class="text-muted small"><i class="fas fa-circle-info me-1"></i>To update any of these details, please contact HR.</p>
+        </section>
+
+        <!-- Attendance -->
+        <section id="pane-attendance" data-pane="attendance" hidden>
+            <div class="filters-bar">
+                <div>
+                    <label class="form-label mb-1" for="attFrom">From</label>
+                    <input type="date" class="form-control" id="attFrom">
+                </div>
+                <div>
+                    <label class="form-label mb-1" for="attTo">To</label>
+                    <input type="date" class="form-control" id="attTo">
+                </div>
+                <div>
+                    <button type="button" class="btn-primary-custom" id="btnAttLoad"><i class="fas fa-magnifying-glass me-1"></i> Show</button>
+                </div>
+                <div class="ms-auto d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAttThisMonth">This month</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAttLastMonth">Last month</button>
+                </div>
+            </div>
+            <div class="stats-grid" id="attSummary"></div>
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th><th>Day</th><th>Check In</th><th>Check Out</th>
+                                <th>Hours</th><th>Status</th><th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaves -->
+        <section id="pane-leaves" data-pane="leaves" hidden>
+            <div class="stats-grid" id="leaveBalanceCards"></div>
+
+            <h2 class="section-heading">My applications</h2>
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Applied</th><th>Dates</th><th>Type</th><th>Days</th>
+                                <th>Reason</th><th>Status</th><th>HR note</th><th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="applicationsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h2 class="section-heading">Leave days taken</h2>
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr><th>Date</th><th>Day</th><th>Type</th><th>Length</th><th>Reason</th></tr>
+                        </thead>
+                        <tbody id="leavesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Apply for leave -->
+    <div class="modal fade" id="applyModal" tabindex="-1" aria-labelledby="applyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <form class="modal-content" id="applyForm" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="applyModalLabel">Apply for Leave</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-section">
+                        <div class="form-section-title">Your balance this month</div>
+                        <div id="applyBalance" class="small"></div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label" for="applyFrom">From</label>
+                            <input type="date" class="form-control" id="applyFrom" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="applyTo">To</label>
+                            <input type="date" class="form-control" id="applyTo">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="applyType">Leave type</label>
+                            <select class="form-select" id="applyType">
+                                <option value="casual">Casual</option>
+                                <option value="sick">Sick</option>
+                                <option value="unpaid">Unpaid</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="applyDayType">Length</label>
+                            <select class="form-select" id="applyDayType">
+                                <option value="full">Full day</option>
+                                <option value="half">Half day (single date)</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="applyReason">Reason</label>
+                            <textarea class="form-control" id="applyReason" rows="3" maxlength="255" required></textarea>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger py-2 mt-3 mb-0" id="applyError" hidden></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-primary-custom" id="applySubmit">Submit application</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const CSRF = "{{ csrf_token }}"
+        const ENDPOINTS = {
+            profile: "{% url 'my-profile-api-list' %}",
+            attendance: "{% url 'my-attendance-api-list' %}",
+            leave: "{% url 'my-leave-api-list' %}",
+            checkStatus: "/user-api/attendance-api/",
+            checkIn: "/user-api/attendance-api/check-in/",
+            checkOut: "/user-api/attendance-api/check-out/",
+        }
+    </script>
+    <script src="/static/js/api_caller.js"></script>
+    <script src="/static/js/my_hr.js"></script>
+    <script>
+        initMyHR(CSRF, ENDPOINTS)
+    </script>
+
+</body>
+
+</html>

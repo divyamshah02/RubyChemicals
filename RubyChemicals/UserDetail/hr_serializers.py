@@ -8,7 +8,7 @@ import re
 
 from rest_framework import serializers
 
-from .models import EmergencyContact, EmployeeDetail, Leave, UniversalLeave, User
+from .models import EmergencyContact, EmployeeDetail, Leave, LeaveApplication, UniversalLeave, User
 
 # Documents HR must upload before a profile can be saved.
 # Remove an entry here to make that document optional.
@@ -86,6 +86,11 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
     emergency_contacts = EmergencyContactSerializer(many=True, read_only=True)
     missing_fields = serializers.SerializerMethodField()
     is_complete = serializers.SerializerMethodField()
+    # Edited through the dedicated leave-quota endpoint, never through the profile form.
+    monthly_casual_leaves = serializers.DecimalField(
+        max_digits=4, decimal_places=1, read_only=True, coerce_to_string=False)
+    monthly_sick_leaves = serializers.DecimalField(
+        max_digits=4, decimal_places=1, read_only=True, coerce_to_string=False)
 
     class Meta:
         model = EmployeeDetail
@@ -99,6 +104,7 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
             'photo',
             'office_mobile', 'device_details', 'imei_1', 'imei_2', 'sim_card_in_name_of',
             'emergency_contacts', 'missing_fields', 'is_complete',
+            'monthly_casual_leaves', 'monthly_sick_leaves',
             'updated_at',
         ]
         read_only_fields = ['id', 'updated_at']
@@ -191,3 +197,24 @@ class UniversalLeaveSerializer(serializers.ModelSerializer):
     class Meta:
         model = UniversalLeave
         fields = ['id', 'date', 'title', 'created_at']
+
+
+class LeaveApplicationSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.name', read_only=True)
+    user_code = serializers.CharField(source='user.user_id', read_only=True)
+    leave_type_display = serializers.CharField(source='get_leave_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    days = serializers.DecimalField(max_digits=5, decimal_places=1, read_only=True, coerce_to_string=False)
+    reviewed_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LeaveApplication
+        fields = [
+            'id', 'user', 'user_name', 'user_code',
+            'from_date', 'to_date', 'leave_type', 'leave_type_display',
+            'day_type', 'reason', 'days', 'status', 'status_display',
+            'reviewed_by_name', 'reviewed_at', 'review_note', 'created_at',
+        ]
+
+    def get_reviewed_by_name(self, obj):
+        return obj.reviewed_by.name if obj.reviewed_by_id else None

@@ -8,9 +8,11 @@ let employees = []
 let attendanceData = null
 let leaves = []
 let holidays = []
+let applications = []
+let quotas = []
 
 let empSort = { key: 'user_name', dir: 'asc' }
-let attSort = 'date_desc'
+let attSort = 'date_asc'
 let leaveSort = { key: 'date', dir: 'desc' }
 
 const DOC_FIELDS = ['photo', 'aadhar_file', 'pan_file', 'bank_proof_file']
@@ -131,14 +133,16 @@ async function initHR(csrf, endpoints) {
     HR_ENDPOINTS = endpoints
 
     const today = new Date()
+    el('attDate').value = toISODate(today)
     el('attFrom').value = toISODate(new Date(today.getFullYear(), today.getMonth(), 1))
     el('attTo').value = toISODate(today)
+    el('attSort').value = attSort
 
     setSortIcons('th[data-sort]', 'data-sort', empSort.key, empSort.dir)
     setSortIcons('th[data-leave-sort]', 'data-leave-sort', leaveSort.key, leaveSort.dir)
-    setSortIcons('th[data-att-sort]', 'data-att-sort', 'date', 'desc')
+    setSortIcons('th[data-att-sort]', 'data-att-sort', 'date', 'asc')
 
-    await Promise.all([loadEmployees(), loadLeaves(), loadHolidays()])
+    await Promise.all([loadEmployees(), loadLeaves(), loadHolidays(), loadApplications(), loadQuotas(), loadAttendance()])
 }
 
 /* ── Employees ───────────────────────────────────────────────────────────── */
@@ -161,11 +165,14 @@ function populateEmployeeSelects() {
 
     const keep = id => el(id).value
     const attValue = keep('attUser'), leaveFilterValue = keep('leaveUserFilter'), leaveValue = keep('leaveUser')
-    el('attUser').innerHTML = `<option value="">Select employee</option>${options}`
+    const appFilterValue = keep('appUserFilter')
+    el('attUser').innerHTML = `<option value="">All employees</option>${options}`
     el('leaveUserFilter').innerHTML = `<option value="">All employees</option>${options}`
+    el('appUserFilter').innerHTML = `<option value="">All employees</option>${options}`
     el('leaveUser').innerHTML = `<option value="">Select employee</option>${options}`
     el('attUser').value = attValue
     el('leaveUserFilter').value = leaveFilterValue
+    el('appUserFilter').value = appFilterValue
     el('leaveUser').value = leaveValue
 
     const departments = [...new Set(employees.map(e => (e.department || '').trim()).filter(Boolean))].sort()
@@ -454,26 +461,60 @@ async function saveEmployee() {
 function openAttendanceFor(userPk) {
     el('attUser').value = userPk
     bootstrap.Tab.getOrCreateInstance(document.querySelector('[data-bs-target="#paneAttendance"]')).show()
+    onAttendanceUserChange()
+}
+
+// 'day' = every employee on one date (default); 'user' = one employee across a date range.
+function attendanceMode() {
+    return el('attUser').value ? 'user' : 'day'
+}
+
+function applyAttendanceMode() {
+    const day = attendanceMode() === 'day'
+    el('attDateGroup').style.display = day ? '' : 'none'
+    el('attFromGroup').style.display = day ? 'none' : ''
+    el('attToGroup').style.display = day ? 'none' : ''
+    el('attFirstTh').textContent = day ? 'Employee' : 'Date'
+    el('attDayTh').textContent = day ? 'Department' : 'Day'
+
+    const options = el('attSort').options
+    for (const option of options) {
+        if (option.value === 'date_desc') option.textContent = day ? 'Name: Z to A' : 'Date: newest first'
+        if (option.value === 'date_asc') option.textContent = day ? 'Name: A to Z' : 'Date: oldest first'
+    }
+}
+
+function onAttendanceUserChange() {
+    attSort = attendanceMode() === 'day' ? 'date_asc' : 'date_desc'
+    el('attSort').value = attSort
+    applyAttendanceMode()
+    loadAttendance()
+}
+
+function setAttendanceToday() {
+    el('attDate').value = toISODate(new Date())
     loadAttendance()
 }
 
 async function loadAttendance() {
-    const user = el('attUser').value
-    if (!user) {
-        attendanceData = null
-        el('attKpis').style.display = 'none'
-        el('attendanceBody').innerHTML = `<tr><td colspan="7" class="empty-state">Select an employee to view attendance.</td></tr>`
-        return
+    applyAttendanceMode()
+    const day = attendanceMode() === 'day'
+    const params = {}
+    if (day) {
+        params.user_id = 'all'
+        if (el('attDate').value) params.date = el('attDate').value
+    } else {
+        params.user_id = el('attUser').value
+        if (el('attFrom').value) params.from_date = el('attFrom').value
+        if (el('attTo').value) params.to_date = el('attTo').value
     }
-    const params = { user_id: user }
-    if (el('attFrom').value) params.from_date = el('attFrom').value
-    if (el('attTo').value) params.to_date = el('attTo').value
 
     el('attendanceBody').innerHTML = `<tr><td colspan="7" class="empty-state">Loading...</td></tr>`
     const res = await api('GET', `${HR_ENDPOINTS.attendance}?${toQueryString(params)}`)
     if (!res.success) {
         attendanceData = null
         el('attKpis').style.display = 'none'
+        el('attDayKpis').style.display = 'none'
         el('attendanceBody').innerHTML = `<tr><td colspan="7" class="empty-state text-danger">${esc(res.error || 'Could not load attendance.')}</td></tr>`
         return
     }
@@ -490,6 +531,8 @@ const ATT_STATUS = {
     weekly_off:     ['Weekly Off', 'pill-off'],
     absent:         ['Absent', 'pill-absent'],
     not_checked_in: ['Not in yet', 'pill-pending'],
+    upcoming:       ['Upcoming', 'pill-pending'],
+    not_joined:     ['Not joined', 'pill-off'],
 }
 
 function attendanceRemarks(row) {
@@ -516,26 +559,39 @@ function matchesAttendanceFilter(row, filter) {
 
 function renderAttendance() {
     if (!attendanceData) return
-    const { rows, summary } = attendanceData
+    const day = attendanceData.mode === 'day'
+    const { rows } = attendanceData
     const filter = el('attStatus').value
     const [key, dir] = attSort.split('_')
 
-    const value = r => key === 'date' ? r.date : key === 'in' ? r.check_in : r.worked_minutes
+    const value = r => key === 'date' ? (day ? r.user.name : r.date) : key === 'in' ? r.check_in : r.worked_minutes
     const visible = rows
         .filter(r => matchesAttendanceFilter(r, filter))
         .sort((a, b) => compare(value(a), value(b), dir))
 
-    el('attKpis').style.display = ''
-    el('kpiPresent').textContent = summary.present
-    el('kpiHalf').textContent = summary.half_day
-    el('kpiAbsent').textContent = summary.absent
-    el('kpiLeave').textContent = summary.leave_days
-    el('kpiForgot').textContent = summary.forgot_checkout
-    el('kpiHours').textContent = fmtMinutes(summary.worked_minutes)
+    el('attKpis').style.display = day ? 'none' : ''
+    el('attDayKpis').style.display = day ? '' : 'none'
+    if (day) {
+        const c = attendanceData.counts
+        el('dayPresent').textContent = c.present
+        el('dayHalf').textContent = c.half_day
+        el('dayLeave').textContent = c.on_leave
+        el('dayAbsent').textContent = c.absent
+        el('dayNotIn').textContent = c.not_checked_in
+        el('dayForgot').textContent = c.forgot_checkout
+    } else {
+        const s = attendanceData.summary
+        el('kpiPresent').textContent = s.present
+        el('kpiHalf').textContent = s.half_day
+        el('kpiAbsent').textContent = s.absent
+        el('kpiLeave').textContent = s.leave_days
+        el('kpiForgot').textContent = s.forgot_checkout
+        el('kpiHours').textContent = fmtMinutes(s.worked_minutes)
+    }
     setSortIcons('th[data-att-sort]', 'data-att-sort', key, dir)
 
     if (!visible.length) {
-        el('attendanceBody').innerHTML = `<tr><td colspan="7" class="empty-state">No days match the filter.</td></tr>`
+        el('attendanceBody').innerHTML = `<tr><td colspan="7" class="empty-state">${day ? 'No employees match the filter.' : 'No days match the filter.'}</td></tr>`
         return
     }
 
@@ -545,10 +601,16 @@ function renderAttendance() {
         const checkOut = r.check_out
             ? fmtTime(r.check_out)
             : (r.forgot_checkout ? '<span class="forgot-flag">Missing</span>' : '-')
+        const firstCell = day
+            ? `<div class="emp-name">${esc(r.user.name)}</div><div class="emp-sub">${esc(r.user.user_code)}</div>`
+            : `<strong>${fmtDate(r.date)}</strong>`
+        const secondCell = day
+            ? `${esc(r.user.department) || '-'}${r.user.position ? `<div class="emp-sub">${esc(r.user.position)}</div>` : ''}`
+            : esc(r.weekday)
         return `
         <tr class="${r.forgot_checkout ? 'row-forgot' : ''} ${muted ? 'row-muted' : ''}">
-            <td><strong>${fmtDate(r.date)}</strong></td>
-            <td>${esc(r.weekday)}</td>
+            <td>${firstCell}</td>
+            <td>${secondCell}</td>
             <td>${fmtTime(r.check_in)}</td>
             <td>${checkOut}</td>
             <td>${fmtMinutes(r.worked_minutes)}</td>
@@ -658,7 +720,8 @@ async function saveLeave() {
     toast(`Added ${res.data.created} leave day(s)${skipped ? `, skipped ${skipped}` : ''}.`)
     bootstrap.Modal.getOrCreateInstance(el('leaveModal')).hide()
     await loadLeaves()
-    if (el('attUser').value) loadAttendance()
+    loadAttendance()
+    loadQuotas()
 }
 
 async function deleteLeave(id) {
@@ -667,7 +730,133 @@ async function deleteLeave(id) {
     if (!res.success) { toast(res.error || 'Could not remove leave.', 'err'); return }
     toast('Leave removed.')
     await loadLeaves()
-    if (el('attUser').value) loadAttendance()
+    loadAttendance()
+    loadQuotas()
+}
+
+/* ── Leave applications ──────────────────────────────────────────────────── */
+
+const APPLICATION_STATUS = {
+    pending:   'pill-pending',
+    approved:  'pill-present',
+    rejected:  'pill-absent',
+    cancelled: 'pill-off',
+}
+
+function fmtRange(from, to) {
+    return from === to ? fmtDate(from) : `${fmtDate(from)} - ${fmtDate(to)}`
+}
+
+function setPendingBadge(count) {
+    const badge = el('pendingBadge')
+    badge.textContent = count
+    badge.style.display = count ? '' : 'none'
+}
+
+async function loadApplications() {
+    const params = {}
+    if (el('appStatusFilter').value) params.status = el('appStatusFilter').value
+    if (el('appUserFilter').value) params.user_id = el('appUserFilter').value
+
+    const res = await api('GET', `${HR_ENDPOINTS.applications}?${toQueryString(params)}`)
+    if (!res.success) {
+        toast(res.error || 'Could not load leave applications.', 'err')
+        el('applicationsBody').innerHTML = `<tr><td colspan="8" class="empty-state">Could not load leave applications.</td></tr>`
+        return
+    }
+    applications = res.data || []
+    setPendingBadge(res.pending_count || 0)
+    renderApplications()
+}
+
+function renderApplications() {
+    if (!applications.length) {
+        const pendingOnly = el('appStatusFilter').value === 'pending'
+        el('applicationsBody').innerHTML = `<tr><td colspan="8" class="empty-state">${pendingOnly ? 'No pending leave applications.' : 'No leave applications found.'}</td></tr>`
+        return
+    }
+    el('applicationsBody').innerHTML = applications.map(a => {
+        const pending = a.status === 'pending'
+        const left = a.left_after_approval
+        const leftCell = pending && left !== null
+            ? `${left} ${esc(a.leave_type_display.toLowerCase())} left this month`
+            : '-'
+        const reviewed = a.reviewed_by_name
+            ? `<div class="emp-sub">by ${esc(a.reviewed_by_name)}${a.review_note ? `: ${esc(a.review_note)}` : ''}</div>`
+            : ''
+        const actions = pending
+            ? `<div class="action-buttons">
+                    <button class="btn btn-success" aria-label="Approve application" onclick="reviewApplication(${a.id}, 'approve')"><i class="fas fa-check"></i></button>
+                    <button class="btn btn-danger" aria-label="Reject application" onclick="reviewApplication(${a.id}, 'reject')"><i class="fas fa-xmark"></i></button>
+               </div>`
+            : '-'
+        return `
+        <tr>
+            <td><div class="emp-name">${esc(a.user_name)}</div><div class="emp-sub">${esc(a.user_code)}</div></td>
+            <td><strong>${fmtRange(a.from_date, a.to_date)}</strong><div class="emp-sub">${a.day_type === 'half' ? 'Half day' : 'Full day'}</div></td>
+            <td><span class="pill pill-leave">${esc(a.leave_type_display)}</span></td>
+            <td>${a.days}</td>
+            <td>${esc(a.reason) || '-'}</td>
+            <td>${leftCell}</td>
+            <td><span class="pill ${APPLICATION_STATUS[a.status] || 'pill-pending'}">${esc(a.status_display)}</span>${reviewed}</td>
+            <td>${actions}</td>
+        </tr>`
+    }).join('')
+}
+
+async function reviewApplication(id, decision) {
+    let note = ''
+    if (decision === 'reject') {
+        note = prompt('Reason for rejecting (optional):')
+        if (note === null) return
+    } else if (!confirm('Approve this leave application?')) {
+        return
+    }
+
+    const res = await api('POST', `${HR_ENDPOINTS.applications}${id}/${decision}/`, { note: note.trim() })
+    if (!res.success) { toast(res.error || 'Could not update the application.', 'err'); return }
+    toast(decision === 'approve' ? 'Leave approved.' : 'Leave rejected.')
+    await Promise.all([loadApplications(), loadLeaves(), loadAttendance(), loadQuotas()])
+}
+
+/* ── Leave quotas ────────────────────────────────────────────────────────── */
+
+async function loadQuotas() {
+    const res = await api('GET', HR_ENDPOINTS.quotas)
+    if (!res.success) {
+        toast(res.error || 'Could not load leave quotas.', 'err')
+        el('quotasBody').innerHTML = `<tr><td colspan="5" class="empty-state">Could not load leave quotas.</td></tr>`
+        return
+    }
+    quotas = res.data || []
+    el('quotaMonthTh').textContent = `Used in ${res.month_label || 'This Month'}`
+    renderQuotas()
+}
+
+function renderQuotas() {
+    if (!quotas.length) {
+        el('quotasBody').innerHTML = `<tr><td colspan="5" class="empty-state">No employees found.</td></tr>`
+        return
+    }
+    el('quotasBody').innerHTML = quotas.map(q => `
+        <tr>
+            <td><div class="emp-name">${esc(q.name)}</div><div class="emp-sub">${esc(q.user_code)}${q.department ? ' · ' + esc(q.department) : ''}</div></td>
+            <td><input type="number" class="form-control" style="max-width:110px;" id="quotaCasual${q.user_id}" min="0" max="31" step="0.5" value="${q.casual_quota}" aria-label="Casual leaves per month for ${esc(q.name)}"></td>
+            <td><input type="number" class="form-control" style="max-width:110px;" id="quotaSick${q.user_id}" min="0" max="31" step="0.5" value="${q.sick_quota}" aria-label="Sick leaves per month for ${esc(q.name)}"></td>
+            <td>Casual ${q.balance.casual.used} of ${q.balance.casual.quota}<div class="emp-sub">Sick ${q.balance.sick.used} of ${q.balance.sick.quota}</div></td>
+            <td><div class="action-buttons"><button class="btn btn-primary" aria-label="Save quota for ${esc(q.name)}" onclick="saveQuota(${q.user_id})"><i class="fas fa-floppy-disk"></i></button></div></td>
+        </tr>`).join('')
+}
+
+async function saveQuota(userPk) {
+    const body = {
+        casual: el(`quotaCasual${userPk}`).value,
+        sick: el(`quotaSick${userPk}`).value,
+    }
+    const res = await api('PATCH', `${HR_ENDPOINTS.quotas}${userPk}/`, body)
+    if (!res.success) { toast(res.error || 'Could not save leave quota.', 'err'); return }
+    toast('Leave quota saved.')
+    await loadQuotas()
 }
 
 /* ── Universal leaves ────────────────────────────────────────────────────── */
@@ -721,7 +910,8 @@ async function saveHoliday() {
     toast(`Added ${res.data.created} holiday day(s).`)
     bootstrap.Modal.getOrCreateInstance(el('holidayModal')).hide()
     await loadHolidays()
-    if (el('attUser').value) loadAttendance()
+    loadAttendance()
+    loadQuotas()
 }
 
 async function deleteHoliday(id) {
@@ -730,5 +920,6 @@ async function deleteHoliday(id) {
     if (!res.success) { toast(res.error || 'Could not remove holiday.', 'err'); return }
     toast('Universal leave removed.')
     await loadHolidays()
-    if (el('attUser').value) loadAttendance()
+    loadAttendance()
+    loadQuotas()
 }

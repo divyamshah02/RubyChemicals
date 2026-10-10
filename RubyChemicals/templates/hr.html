@@ -190,6 +190,17 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paneApplications" type="button" role="tab">
+                    <i class="fas fa-inbox me-1"></i>Leave Applications
+                    <span class="badge rounded-pill bg-danger ms-1" id="pendingBadge" style="display:none;">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paneQuotas" type="button" role="tab">
+                    <i class="fas fa-sliders me-1"></i>Leave Quotas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paneHolidays" type="button" role="tab">
                     <i class="fas fa-umbrella-beach me-1"></i>Universal Leaves
                 </button>
@@ -276,15 +287,22 @@
                 <div class="filters-bar">
                     <div>
                         <label class="form-label mb-1" for="attUser">Employee</label>
-                        <select id="attUser" class="form-select" style="min-width: 220px;" onchange="loadAttendance()">
-                            <option value="">Select employee</option>
+                        <select id="attUser" class="form-select" style="min-width: 220px;" onchange="onAttendanceUserChange()">
+                            <option value="">All employees</option>
                         </select>
                     </div>
-                    <div>
+                    <div id="attDateGroup" class="d-flex align-items-end gap-2">
+                        <div>
+                            <label class="form-label mb-1" for="attDate">Date</label>
+                            <input type="date" id="attDate" class="form-control" onchange="loadAttendance()">
+                        </div>
+                        <button class="btn btn-outline-secondary" type="button" onclick="setAttendanceToday()">Today</button>
+                    </div>
+                    <div id="attFromGroup" style="display:none;">
                         <label class="form-label mb-1" for="attFrom">From</label>
                         <input type="date" id="attFrom" class="form-control" onchange="loadAttendance()">
                     </div>
-                    <div>
+                    <div id="attToGroup" style="display:none;">
                         <label class="form-label mb-1" for="attTo">To</label>
                         <input type="date" id="attTo" class="form-control" onchange="loadAttendance()">
                     </div>
@@ -295,6 +313,7 @@
                             <option value="present">Present</option>
                             <option value="half_day">Half day</option>
                             <option value="forgot">Forgot check-out</option>
+                            <option value="not_checked_in">Not in yet</option>
                             <option value="absent">Absent</option>
                             <option value="leave">On leave</option>
                             <option value="holiday">Holiday</option>
@@ -311,6 +330,33 @@
                             <option value="hours_desc">Hours: most</option>
                             <option value="hours_asc">Hours: least</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="stats-grid" id="attDayKpis" style="display:none;">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#10b981;"><i class="fas fa-user-check"></i></div>
+                        <div class="stat-content"><h3 id="dayPresent">0</h3><p>Present</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#f59e0b;"><i class="fas fa-adjust"></i></div>
+                        <div class="stat-content"><h3 id="dayHalf">0</h3><p>Half Days</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#3b82f6;"><i class="fas fa-calendar-minus"></i></div>
+                        <div class="stat-content"><h3 id="dayLeave">0</h3><p>On Leave</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#ef4444;"><i class="fas fa-user-xmark"></i></div>
+                        <div class="stat-content"><h3 id="dayAbsent">0</h3><p>Absent</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#64748b;"><i class="fas fa-user-clock"></i></div>
+                        <div class="stat-content"><h3 id="dayNotIn">0</h3><p>Not In Yet</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color:#dc2626;"><i class="fas fa-right-from-bracket"></i></div>
+                        <div class="stat-content"><h3 id="dayForgot">0</h3><p>Forgot Check-out</p></div>
                     </div>
                 </div>
 
@@ -346,8 +392,8 @@
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th class="sortable" data-att-sort="date" onclick="sortAttendanceBy('date')">Date<i class="fas fa-sort sort-icon"></i></th>
-                                    <th>Day</th>
+                                    <th class="sortable" data-att-sort="date" onclick="sortAttendanceBy('date')"><span id="attFirstTh">Employee</span><i class="fas fa-sort sort-icon"></i></th>
+                                    <th id="attDayTh">Day</th>
                                     <th class="sortable" data-att-sort="in" onclick="sortAttendanceBy('in')">Check In<i class="fas fa-sort sort-icon"></i></th>
                                     <th>Check Out</th>
                                     <th class="sortable" data-att-sort="hours" onclick="sortAttendanceBy('hours')">Hours<i class="fas fa-sort sort-icon"></i></th>
@@ -356,7 +402,7 @@
                                 </tr>
                             </thead>
                             <tbody id="attendanceBody">
-                                <tr><td colspan="7" class="empty-state">Select an employee to view attendance.</td></tr>
+                                <tr><td colspan="7" class="empty-state">Loading...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -416,7 +462,73 @@
                 </div>
             </div>
 
-            <!-- ═════════ UNIVERSAL LEAVES ��════════ -->
+            <!-- ═════════ LEAVE APPLICATIONS ═════════ -->
+            <div class="tab-pane fade" id="paneApplications" role="tabpanel">
+                <div class="filters-bar">
+                    <div>
+                        <label class="form-label mb-1" for="appStatusFilter">Status</label>
+                        <select id="appStatusFilter" class="form-select" style="min-width: 170px;" onchange="loadApplications()">
+                            <option value="pending" selected>Pending</option>
+                            <option value="">All</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="cancelled">Withdrawn</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label mb-1" for="appUserFilter">Employee</label>
+                        <select id="appUserFilter" class="form-select" style="min-width: 220px;" onchange="loadApplications()">
+                            <option value="">All employees</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Dates</th>
+                                    <th>Type</th>
+                                    <th>Days</th>
+                                    <th>Reason</th>
+                                    <th>Left If Approved</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="applicationsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═════════ LEAVE QUOTAS ═════════ -->
+            <div class="tab-pane fade" id="paneQuotas" role="tabpanel">
+                <p class="text-muted" style="font-size:0.875rem;">
+                    Every employee gets this many casual and sick leaves each month (default 1 each, in steps of 0.5).
+                    Unused leaves do not carry over. Changes apply to the current and future months.
+                </p>
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Casual / Month</th>
+                                    <th>Sick / Month</th>
+                                    <th id="quotaMonthTh">Used This Month</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quotasBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═════════ UNIVERSAL LEAVES ═════════ -->
             <div class="tab-pane fade" id="paneHolidays" role="tabpanel">
                 <p class="text-muted" style="font-size:0.875rem;">
                     Universal leaves are company-wide holidays. They apply to every employee and are shown as holidays in attendance.
@@ -706,6 +818,8 @@
             attendance:     "{% url 'hr-attendance-api-list' %}",
             leaves:         "{% url 'hr-leave-api-list' %}",
             universalLeaves: "{% url 'hr-universal-leave-api-list' %}",
+            applications:   "{% url 'hr-leave-application-api-list' %}",
+            quotas:         "{% url 'hr-leave-quota-api-list' %}",
         }
     </script>
     <script src="/static/js/api_caller.js"></script>

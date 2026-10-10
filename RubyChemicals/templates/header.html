@@ -77,6 +77,11 @@
     </a>
     {% endif %}
 
+    {# ── My HR profile: every signed-in user ── #}
+    <a href="/my-hr/" class="d-block mb-2 text-decoration-none">
+      <i class="fas fa-user-clock"></i> My HR
+    </a>
+
     {# ── HR ── #}
     {% if request.user.is_super_admin or request.user.role == 'admin' or request.user.can_hr %}
     <a href="/hr/" class="d-block mb-2 text-decoration-none">
