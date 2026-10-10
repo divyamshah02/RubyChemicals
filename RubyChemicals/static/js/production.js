@@ -159,6 +159,7 @@ async function loadBatches() {
         <td>
           <div class="action-buttons">
             <button class="btn btn-info" onclick="viewProductionCard(${b.production_card_id})"><i class="fas fa-eye"></i> View</button>            
+            <button class="btn btn-success" onclick="generateCOA(${b.id}, this)" title="Generate Certificate of Analysis"><i class="fas fa-file-medical"></i> COA</button>
             
           </div>
         </td>
@@ -583,6 +584,49 @@ async function generatePDF_old() {
     pdf.save("report.pdf");
 
     document.body.removeChild(container);
+}
+
+
+async function generateCOA(batchId, button) {
+  const originalHtml = button ? button.innerHTML : ""
+  if (button) {
+    button.disabled = true
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> COA'
+  }
+
+  try {
+    const response = await fetch(`/operation-api/download-coa-api/${batchId}/`, { credentials: "same-origin" })
+
+    if (!response.ok) {
+      let message = "Failed to generate COA"
+      try {
+        const body = await response.json()
+        if (body && body.error) message = body.error
+      } catch (e) {}
+      alert(message)
+      return
+    }
+
+    const disposition = response.headers.get("Content-Disposition") || ""
+    const match = disposition.match(/filename="?([^"]+)"?/)
+    const filename = match ? match[1] : `COA_${batchId}.pdf`
+
+    const url = URL.createObjectURL(await response.blob())
+    const link = document.createElement("a")
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    alert("Failed to generate COA")
+  } finally {
+    if (button) {
+      button.disabled = false
+      button.innerHTML = originalHtml
+    }
+  }
 }
 
 

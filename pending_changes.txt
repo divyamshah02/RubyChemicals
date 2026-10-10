@@ -1,0 +1,33 @@
+- COA basically for every batch a pdf needs to be generated in the attached doc with info like 
+- quotation
+
+- all attendance of today
+
+- dispatch accounted
+invoice date
+invocie due date
+invoice number
+invoice amount
+invocie pdf
+e-way bill pdf
+bill to site - if selected than no other data needed
+
+
+- inward accounted
+invoice date
+invocie due date
+invoice number
+invoice amount
+invocie pdf
+e-way bill pdf
+
+
+- inward creation 
+bill to expense - than no stock item would be added but create an inward
+
+
+leads - multiple contact perosn proepr dynamic
+
+
+HR - ever user will have a page for HR where they will mark attendace - apply for leave - see thier info & see their attendace and salary info as well
+

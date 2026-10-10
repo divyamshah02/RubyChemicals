@@ -9,13 +9,23 @@ class StockGroupSerializer(serializers.ModelSerializer):
 
 class StockItemSerializer(serializers.ModelSerializer):
     group_name = serializers.CharField(source="group.name", read_only=True)
+    parameter_count = serializers.SerializerMethodField()
 
     class Meta:
         model = StockItem
         fields = [
             "id", "name", "group", "group_name", "hsn_code", "gst",
-            "unit", "current_quantity", "rate", "is_active"
+            "unit", "current_quantity", "rate", "is_active", "parameter_count"
         ]
+
+    def get_parameter_count(self, obj):
+        return obj.parameters.count()
+
+
+class StockItemParameterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StockItemParameter
+        fields = ["id", "stock_item", "particulars", "parameter", "result", "sort_order"]
 
 class StockInwardSerializer(serializers.ModelSerializer):
     stock_item_name = serializers.CharField(source="stock_item.name", read_only=True)
@@ -391,7 +401,7 @@ class SubDeptStockItemListSerializer(serializers.ModelSerializer):
 #         return hasattr(obj, 'application_detail')
 
 
-# ── Quotation ─────────────────────────────────────────────────────────────────
+# ── Quotation ─��───────────────────────────────────────────────────────────────
 
 class QuotationItemSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()

@@ -7,6 +7,8 @@ from .vendor_viewsets import VendorProfileViewSet, VendorAddressViewSet
 from .vendor_inward_viewsets import VendorInwardViewSet
 from .leads_viewsets import *
 from .quotation_pdf_viewset import QuotationPDFViewSet
+from .coa_viewsets import StockItemParameterViewSet, DownloadCOAViewSet
+
 
 router = DefaultRouter()
 
@@ -21,6 +23,9 @@ router.register(r'today-stock-log-api', TodayStockLogViewSet, basename='today-st
 router.register(r'production-card-api', ProductionCardViewSet, basename='production-card-api')
 router.register(r'download-production-card-api', DownloadProductionCardViewSet, basename='download-production-card-api')
 router.register(r'production-batch-api', ProductionBatchViewSet, basename='production-batch-api')
+router.register(r'stock-item-parameter-api', StockItemParameterViewSet, basename='stock-item-parameter-api')
+router.register(r'download-coa-api', DownloadCOAViewSet, basename='download-coa-api')
+
 
 router.register(r'dispatch-api', DispatchViewSet, basename='dispatch-api')
 router.register(r'download-dispatch-api', DownloadDispatchViewSet, basename='download-dispatch-api')
@@ -134,7 +139,7 @@ leads_patterns = [
         name='leads-sr-mark-sent'
     ),
 
-    # ── ApplicationArea ─────────────────────────────────────────────────��─
+    # ── ApplicationArea ───────────────────────────────────────────────────
     path(
         'leads/application-areas/',
         _app_area({'get': 'list', 'post': 'create'}),

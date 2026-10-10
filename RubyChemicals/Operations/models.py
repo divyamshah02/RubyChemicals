@@ -1130,3 +1130,25 @@ class ApplicationLead(models.Model):
 
     def __str__(self):
         return f"AppLead for {self.lead}"
+
+
+class StockItemParameter(models.Model):
+    """A quality parameter (row of the COA table) defined for a stock item."""
+    stock_item = models.ForeignKey(
+        StockItem,
+        on_delete=models.CASCADE,
+        related_name='parameters'
+    )
+    particulars = models.CharField(max_length=255)
+    parameter = models.CharField(max_length=255, blank=True)
+    result = models.CharField(max_length=255, default='PASSES')
+    sort_order = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f"{self.stock_item.name} - {self.particulars}"
