@@ -169,6 +169,7 @@
             <li class="nav-item"><button type="button" class="nav-link" data-tab="details" role="tab"><i class="fas fa-id-card me-1"></i> My Details</button></li>
             <li class="nav-item"><button type="button" class="nav-link" data-tab="attendance" role="tab"><i class="fas fa-calendar-check me-1"></i> Attendance</button></li>
             <li class="nav-item"><button type="button" class="nav-link" data-tab="leaves" role="tab"><i class="fas fa-umbrella-beach me-1"></i> Leaves</button></li>
+            <li class="nav-item"><button type="button" class="nav-link" data-tab="pay" role="tab"><i class="fas fa-wallet me-1"></i> Pay &amp; Reimbursements</button></li>
         </ul>
 
         <!-- Overview -->
@@ -271,6 +272,79 @@
             </div>
         </section>
 
+        <!-- Pay & Reimbursements -->
+        <section id="pane-pay" data-pane="pay" hidden>
+            <h2 class="section-heading">My salary slips</h2>
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Month</th><th>Total salary</th><th>Leave deduction</th><th>TDS</th>
+                                <th>Reimbursements</th><th>Net paid</th><th>Paid on</th><th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="payslipsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                <h2 class="section-heading mb-0">My reimbursement claims</h2>
+                <button type="button" class="btn-primary-custom" id="btnNewClaim">
+                    <i class="fas fa-plus me-1"></i> New claim
+                </button>
+            </div>
+            <p class="text-muted small mb-2" id="claimSummary"></p>
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr><th>Expense date</th><th>Description</th><th>Amount</th><th>Receipt</th><th>Status</th><th></th></tr>
+                        </thead>
+                        <tbody id="claimsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- New reimbursement claim -->
+    <div class="modal fade" id="claimModal" tabindex="-1" aria-labelledby="claimModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <form class="modal-content" id="claimForm" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="claimModalLabel">New Reimbursement Claim</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label" for="claimDate">Expense date</label>
+                            <input type="date" class="form-control" id="claimDate" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="claimAmount">Amount</label>
+                            <input type="number" class="form-control" id="claimAmount" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="claimDesc">What was it for?</label>
+                            <textarea class="form-control" id="claimDesc" rows="3" maxlength="255" required></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="claimReceipt">Photo of receipt</label>
+                            <input type="file" class="form-control" id="claimReceipt" accept="image/*,application/pdf" required>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger py-2 mt-3 mb-0" id="claimError" hidden></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-primary-custom" id="claimSubmit">Submit claim</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Apply for leave -->
@@ -332,6 +406,8 @@
             profile: "{% url 'my-profile-api-list' %}",
             attendance: "{% url 'my-attendance-api-list' %}",
             leave: "{% url 'my-leave-api-list' %}",
+            reimbursements: "{% url 'my-reimbursement-api-list' %}",
+            payslips: "{% url 'my-payroll-api-list' %}",
             checkStatus: "/user-api/attendance-api/",
             checkIn: "/user-api/attendance-api/check-in/",
             checkOut: "/user-api/attendance-api/check-out/",

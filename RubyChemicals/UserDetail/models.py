@@ -238,8 +238,62 @@ class EmployeeDetail(models.Model):
         help_text="Sick leaves granted per month",
     )
 
+    # ── Personal details ─────────────────────────────────────────────────
+    MARITAL_STATUS_CHOICES = [
+        ('single',   'Single'),
+        ('married',  'Married'),
+        ('divorced', 'Divorced'),
+        ('widowed',  'Widowed'),
+    ]
+    BLOOD_GROUP_CHOICES = [(g, g) for g in ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-')]
+
+    marital_status = models.CharField(max_length=10, choices=MARITAL_STATUS_CHOICES, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    anniversary_date = models.DateField(null=True, blank=True)
+    blood_group = models.CharField(max_length=3, choices=BLOOD_GROUP_CHOICES, blank=True)
+    mother_name = models.CharField(max_length=150, blank=True)
+    father_name = models.CharField(max_length=150, blank=True)
+    spouse_name = models.CharField(max_length=150, blank=True)
+
+    # ── Monthly salary structure (all amounts in INR per month) ──────────
+    tds_applicable = models.BooleanField(default=False)
+    tds_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)],
+        help_text="TDS deducted every month when applicable",
+    )
+    basic_pay = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    da = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    hra = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    lta = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    epf = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    gratuity = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    esic = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+
+    # ── Exit ─────────────────────────────────────────────────────────────
+    EXIT_INTENT_CHOICES = [
+        ('resignation',  'Resignation'),
+        ('termination',  'Termination'),
+        ('retirement',   'Retirement'),
+        ('contract_end', 'End of contract'),
+        ('absconding',   'Absconding'),
+        ('other',        'Other'),
+    ]
+
+    is_exited = models.BooleanField(default=False)
+    last_working_day = models.DateField(null=True, blank=True)
+    exit_intent = models.CharField(max_length=15, choices=EXIT_INTENT_CHOICES, blank=True)
+    exit_remarks = models.TextField(blank=True)
+    exited_at = models.DateTimeField(null=True, blank=True)
+    exited_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+
+    SALARY_COMPONENTS = ('basic_pay', 'da', 'hra', 'lta', 'epf', 'gratuity', 'esic')
+
+    @property
+    def total_salary(self):
+        return sum((getattr(self, name) or 0 for name in self.SALARY_COMPONENTS), 0)
 
     def __str__(self):
         return f"Employee: {self.full_name or self.user.name}"
@@ -343,3 +397,116 @@ class LeaveApplication(models.Model):
 
     def __str__(self):
         return f"{self.user.name}: {self.from_date} to {self.to_date} ({self.status})"
+
+
+def reimbursement_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return f"reimbursements/{instance.user.user_id}/{uuid.uuid4().hex}{ext}"
+
+
+class Payroll(models.Model):
+    """
+    One salary run for one employee and one calendar month.
+
+    Every figure is a snapshot taken when HR generated the payroll, so changing the
+    salary structure later never alters a slip that was already issued.
+    """
+
+    STATUS_CHOICES = [
+        ('generated', 'Generated'),
+        ('paid',      'Paid'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payrolls')
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+
+    # Salary structure snapshot
+    basic_pay = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    da = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    hra = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    lta = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    epf = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    gratuity = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    esic = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_salary = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    # Deductions
+    per_day_rate = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    leave_days_deducted = models.DecimalField(max_digits=5, decimal_places=1, default=0)
+    leave_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tds_applicable = models.BooleanField(default=False)
+    tds_deducted = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    # Result
+    salary_for_month = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    reimbursement_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    adjustment_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Manual correction added to (or, if negative, subtracted from) the payable amount",
+    )
+    adjustment_note = models.CharField(max_length=255, blank=True)
+    net_payable = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='generated')
+    paid_on = models.DateField(null=True, blank=True)
+    notes = models.CharField(max_length=255, blank=True)
+
+    generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    generated_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-year', '-month', 'user__name']
+        unique_together = ('user', 'year', 'month')
+
+    def __str__(self):
+        return f"{self.user.name} - {self.year}-{self.month:02d} ({self.status})"
+
+
+class PayrollLeaveLine(models.Model):
+    """A leave that fell in the payroll month, and whether money was cut for it."""
+
+    payroll = models.ForeignKey(Payroll, on_delete=models.CASCADE, related_name='leave_lines')
+    leave = models.ForeignKey(Leave, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    date = models.DateField()
+    leave_type = models.CharField(max_length=10)
+    day_type = models.CharField(max_length=4, default='full')
+    days = models.DecimalField(max_digits=3, decimal_places=1, default=1)
+    reason = models.CharField(max_length=255, blank=True)
+    deduct = models.BooleanField(default=False)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ['date']
+
+    def __str__(self):
+        return f"{self.payroll} - {self.date} ({'deducted' if self.deduct else 'waived'})"
+
+
+class Reimbursement(models.Model):
+    """
+    An expense an employee wants paid back. It stays unpaid until HR includes it
+    in a payroll, at which point `payroll` is set.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reimbursements')
+    expense_date = models.DateField(default=timezone.localdate)
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0.01)])
+    receipt = models.FileField(
+        upload_to=reimbursement_upload_path,
+        validators=[
+            FileExtensionValidator(ALLOWED_DOCUMENT_EXTENSIONS),
+            validate_document_size,
+        ],
+        help_text="Receipt photo or PDF",
+    )
+    payroll = models.ForeignKey(Payroll, on_delete=models.SET_NULL, null=True, blank=True, related_name='reimbursements')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-expense_date', '-created_at']
+
+    def __str__(self):
+        return f"{self.user.name}: {self.amount} ({self.description[:30]})"

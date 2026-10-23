@@ -13,7 +13,8 @@ from decimal import Decimal, InvalidOperation
 from functools import wraps
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
+from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework import status, viewsets
@@ -26,6 +27,8 @@ from .hr_serializers import (
     EmployeeDetailSerializer,
     LeaveApplicationSerializer,
     LeaveSerializer,
+    PayrollSerializer,
+    ReimbursementSerializer,
     UniversalLeaveSerializer,
 )
 from .leave_utils import (
@@ -46,9 +49,14 @@ from .models import (
     EmployeeDetail,
     Leave,
     LeaveApplication,
+    Payroll,
+    Reimbursement,
     UniversalLeave,
     User,
 )
+from . import payroll_utils
+from .payroll_utils import PayrollError
+from utils.create_salary_slip_pdf import generate_salary_slip
 
 HALF_DAY_CUTOFF = time(12, 0)   # first check-in after this time is a half day
 MAX_RANGE_DAYS = 366
@@ -90,7 +98,7 @@ def has_hr_access(user):
 def hr_access_required(view_func):
     @wraps(view_func)
     def wrapped(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
+        if not request.user.is_authenticated or not request.user.active_user:
             return fail("Authentication required.", status.HTTP_401_UNAUTHORIZED)
         if not has_hr_access(request.user):
             return fail("You do not have access to the HR module.", status.HTTP_403_FORBIDDEN)
@@ -278,6 +286,9 @@ class HREmployeeViewSet(viewsets.ViewSet):
         detail = employee_queryset().filter(user_id=pk).first()
         if not detail:
             return fail("Employee not found.", status.HTTP_404_NOT_FOUND)
+        locked = exited_lock(request, detail.user)
+        if locked:
+            return locked
 
         contacts = None
         raw_contacts = request.data.get('emergency_contacts')
@@ -315,6 +326,83 @@ class HREmployeeViewSet(viewsets.ViewSet):
         return ok(self._serialize(request, refreshed))
 
     update = partial_update
+
+    @action(detail=True, methods=['post'], url_path='exit')
+    @hr_access_required
+    def mark_exit(self, request, pk=None):
+        """
+        POST {last_working_day, exit_intent, remarks?}
+        Marks the employee as exited and deactivates the login. After this only an admin
+        can change the employee's records.
+        """
+        ensure_employee_details()
+        detail = employee_queryset().filter(user_id=pk).first()
+        if not detail:
+            return fail("Employee not found.", status.HTTP_404_NOT_FOUND)
+        if detail.user_id == request.user.pk:
+            return fail("You cannot mark your own account as exited.", status.HTTP_403_FORBIDDEN)
+        if detail.is_exited:
+            return fail("This employee has already exited.")
+
+        last_day = parse_date(str(request.data.get('last_working_day') or ''))
+        if not last_day:
+            return fail("Last working day is required.")
+        if detail.joining_date and last_day < detail.joining_date:
+            return fail("Last working day cannot be before the joining date.")
+        if (last_day - timezone.localdate()).days > 366:
+            return fail("Last working day is too far in the future.")
+
+        intent = (request.data.get('exit_intent') or '').strip()
+        if intent not in dict(EmployeeDetail.EXIT_INTENT_CHOICES):
+            return fail("Choose a valid exit intent.")
+        remarks = (request.data.get('remarks') or '').strip()
+        if intent == 'other' and not remarks:
+            return fail("Please add remarks when the exit intent is Other.")
+
+        with transaction.atomic():
+            detail.is_exited = True
+            detail.last_working_day = last_day
+            detail.exit_intent = intent
+            detail.exit_remarks = remarks[:1000]
+            detail.exited_at = timezone.now()
+            detail.exited_by = request.user
+            detail.save()
+            detail.user.active_user = False
+            detail.user.save(update_fields=['active_user'])
+
+        log_action(
+            request, 'Marked employee exited', detail.user_id,
+            f"{detail.user.name} exited ({detail.get_exit_intent_display()}), last working day {last_day}",
+        )
+        refreshed = employee_queryset().get(pk=detail.pk)
+        return ok(self._serialize(request, refreshed))
+
+    @action(detail=True, methods=['post'], url_path='reactivate')
+    @hr_access_required
+    def reactivate(self, request, pk=None):
+        """POST — admin only. Reverses an exit and restores the login."""
+        if not is_admin_user(request.user):
+            return fail("Only an admin can reverse an exit.", status.HTTP_403_FORBIDDEN)
+        detail = employee_queryset().filter(user_id=pk).first()
+        if not detail:
+            return fail("Employee not found.", status.HTTP_404_NOT_FOUND)
+        if not detail.is_exited:
+            return fail("This employee has not exited.")
+
+        with transaction.atomic():
+            detail.is_exited = False
+            detail.last_working_day = None
+            detail.exit_intent = ''
+            detail.exit_remarks = ''
+            detail.exited_at = None
+            detail.exited_by = None
+            detail.save()
+            detail.user.active_user = True
+            detail.user.save(update_fields=['active_user'])
+
+        log_action(request, 'Reversed employee exit', detail.user_id, f"Reactivated {detail.user.name}")
+        refreshed = employee_queryset().get(pk=detail.pk)
+        return ok(self._serialize(request, refreshed))
 
 
 # ── Attendance report ────────────────────────────────────────────────────────
@@ -409,6 +497,21 @@ class HRAttendanceViewSet(viewsets.ViewSet):
         })
 
 
+def is_admin_user(user):
+    return bool(user.is_super_admin or user.role == 'admin')
+
+
+def exited_lock(request, user):
+    """
+    A 403 response when `user` has exited and the caller is not an admin, else None.
+    Once an employee is marked exited only an admin may change their records.
+    """
+    detail = getattr(user, 'employee_detail', None)
+    if detail is not None and detail.is_exited and not is_admin_user(request.user):
+        return fail("This employee has exited. Only an admin can change their records.", status.HTTP_403_FORBIDDEN)
+    return None
+
+
 # ── Leaves ───────────────────────────────────────────────────────────────────
 
 class HRLeaveViewSet(viewsets.ViewSet):
@@ -443,6 +546,9 @@ class HRLeaveViewSet(viewsets.ViewSet):
         user = employee_users().filter(pk=data.get('user_id')).first()
         if not user:
             return fail("Choose a valid employee.")
+        locked = exited_lock(request, user)
+        if locked:
+            return locked
 
         start = parse_date(str(data.get('from_date') or ''))
         end = parse_date(str(data.get('to_date') or '')) or start
@@ -496,6 +602,9 @@ class HRLeaveViewSet(viewsets.ViewSet):
         leave = Leave.objects.filter(pk=pk, user__in=employee_users()).select_related('user').first()
         if not leave:
             return fail("Leave not found.", status.HTTP_404_NOT_FOUND)
+        locked = exited_lock(request, leave.user)
+        if locked:
+            return locked
         name, day = leave.user.name, leave.date
         leave.delete()
         log_action(request, 'Removed leave', pk, f"Removed leave of {name} on {day}")
@@ -556,7 +665,7 @@ def login_required_api(view_func):
     """Any signed-in user. Everything under it only ever touches request.user."""
     @wraps(view_func)
     def wrapped(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
+        if not request.user.is_authenticated or not request.user.active_user:
             return fail("Authentication required.", status.HTTP_401_UNAUTHORIZED)
         return view_func(self, request, *args, **kwargs)
     return wrapped
@@ -730,6 +839,9 @@ class HRLeaveApplicationViewSet(viewsets.ViewSet):
             return fail(f"This application is already {application.get_status_display().lower()}.")
         if application.user_id == request.user.pk and not (request.user.is_super_admin or request.user.role == 'admin'):
             return fail("You cannot review your own leave application.", status.HTTP_403_FORBIDDEN)
+        locked = exited_lock(request, application.user)
+        if locked:
+            return locked
 
         note = (request.data.get('note') or '').strip()[:255]
         created = 0
@@ -801,6 +913,9 @@ class HRLeaveQuotaViewSet(viewsets.ViewSet):
         user = employee_users().filter(pk=pk).first()
         if not user:
             return fail("Employee not found.", status.HTTP_404_NOT_FOUND)
+        locked = exited_lock(request, user)
+        if locked:
+            return locked
         detail = employee_detail_for(user)
 
         values = {}
@@ -830,3 +945,486 @@ class HRLeaveQuotaViewSet(viewsets.ViewSet):
             'sick_quota': float(detail.monthly_sick_leaves),
             'balance': leave_balance(user, today.year, today.month, detail),
         })
+
+
+# ── Payroll ──────────────────────────────────────────────────────────────────
+
+def _receipt_url(request, reimbursement):
+    if not reimbursement.receipt:
+        return None
+    return request.build_absolute_uri(reimbursement.receipt.url)
+
+
+def serialize_calculation(request, result):
+    """Turns payroll_utils.compute() output into JSON-safe data for the HR preview."""
+    included = result['included_reimbursements']
+    return {
+        'components': {name: float(value) for name, value in result['components'].items()},
+        'total_salary': float(result['total_salary']),
+        'per_day_rate': float(result['per_day_rate']),
+        'lines': [{
+            'leave_id': line['leave_id'],
+            'date': line['date'].isoformat(),
+            'leave_type': line['leave_type'],
+            'leave_type_display': line['leave_type_display'],
+            'day_type': line['day_type'],
+            'days': float(line['days']),
+            'reason': line['reason'],
+            'amount': float(line['amount']),
+            'is_extra': line['is_extra'],
+            'deduct': line['deduct'],
+        } for line in result['lines']],
+        'leave_days_deducted': float(result['leave_days_deducted']),
+        'leave_deduction': float(result['leave_deduction']),
+        'tds_applicable': result['tds_applicable'],
+        'tds_deducted': float(result['tds_deducted']),
+        'salary_for_month': float(result['salary_for_month']),
+        'reimbursements': [{
+            'id': r.pk,
+            'expense_date': r.expense_date.isoformat(),
+            'description': r.description,
+            'amount': float(r.amount),
+            'receipt_url': _receipt_url(request, r),
+            'included': r.pk in included,
+        } for r in result['reimbursements']],
+        'reimbursement_total': float(result['reimbursement_total']),
+        'adjustment': float(result['adjustment']),
+        'net_payable': float(result['net_payable']),
+    }
+
+
+def parse_payroll_inputs(request, existing=None):
+    """
+    Reads {deduct, reimbursement_ids, adjustment, adjustment_note, notes} from the body.
+    Anything the caller leaves out falls back to what was saved on `existing`, so
+    re-opening a generated payroll shows the same decisions HR made before.
+    Returns (inputs, error).
+    """
+    data = request.data
+
+    deduct_map = None
+    raw_deduct = data.get('deduct')
+    if isinstance(raw_deduct, dict):
+        try:
+            deduct_map = {int(k): bool(v) for k, v in raw_deduct.items()}
+        except (TypeError, ValueError):
+            return None, "Invalid leave selection."
+    elif existing is not None:
+        deduct_map = {line.leave_id: line.deduct for line in existing.leave_lines.all() if line.leave_id}
+
+    raw_ids = data.get('reimbursement_ids')
+    if isinstance(raw_ids, list):
+        try:
+            reimbursement_ids = [int(pk) for pk in raw_ids]
+        except (TypeError, ValueError):
+            return None, "Invalid reimbursement selection."
+    elif existing is not None:
+        reimbursement_ids = list(existing.reimbursements.values_list('pk', flat=True))
+    else:
+        reimbursement_ids = None
+
+    raw_adjustment = data.get('adjustment')
+    if raw_adjustment in (None, ''):
+        adjustment = existing.adjustment_amount if existing is not None and 'adjustment' not in data else Decimal('0')
+    else:
+        try:
+            adjustment = Decimal(str(raw_adjustment))
+        except InvalidOperation:
+            return None, "Adjustment must be a number."
+        if abs(adjustment) > Decimal('99999999'):
+            return None, "Adjustment is too large."
+
+    note = data.get('adjustment_note')
+    notes = data.get('notes')
+    return {
+        'deduct_map': deduct_map,
+        'reimbursement_ids': reimbursement_ids,
+        'adjustment': adjustment,
+        'adjustment_note': existing.adjustment_note if note is None and existing is not None else (note or ''),
+        'notes': existing.notes if notes is None and existing is not None else (notes or ''),
+    }, None
+
+
+def payroll_period(request):
+    """(year, month) taken from the body, then the query string, else the current month."""
+    today = timezone.localdate()
+    source = request.data if request.method in ('POST', 'PATCH') else request.query_params
+    try:
+        year = int(source.get('year') or today.year)
+        month = int(source.get('month') or today.month)
+        date(year, month, 1)
+    except (TypeError, ValueError):
+        return None, None
+    return year, month
+
+
+def slip_response(payroll):
+    pdf = generate_salary_slip(payroll)
+    response = HttpResponse(pdf, content_type='application/pdf')
+    filename = f"Salary_Slip_{payroll.user.user_id}_{payroll.year}-{payroll.month:02d}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+class HRPayrollViewSet(viewsets.ViewSet):
+    """Monthly payroll: employee overview, preview, generate, mark paid, salary slip."""
+
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    @hr_access_required
+    def list(self, request):
+        """GET ?year=&month= — every employee with this month's payroll state."""
+        ensure_employee_details()
+        year, month = payroll_period(request)
+        if year is None:
+            return fail("Choose a valid month.")
+        first = date(year, month, 1)
+        last = (first.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+
+        payrolls = {p.user_id: p for p in Payroll.objects.filter(year=year, month=month)}
+        pending = {
+            row['user']: row
+            for row in Reimbursement.objects.filter(payroll__isnull=True)
+            .values('user').annotate(count=Count('id'), total=Sum('amount'))
+        }
+
+        rows = []
+        users = employee_users().select_related('employee_detail').order_by('name')
+        for user in users:
+            detail = user.employee_detail
+            payroll = payrolls.get(user.pk)
+            if detail.joining_date and detail.joining_date > last and not payroll:
+                continue
+            if detail.is_exited and detail.last_working_day and detail.last_working_day < first and not payroll:
+                continue
+            pend = pending.get(user.pk)
+            rows.append({
+                'user_id': user.pk,
+                'name': user.name,
+                'user_code': user.user_id,
+                'department': detail.department,
+                'position': detail.position,
+                'is_exited': detail.is_exited,
+                'total_salary': float(detail.total_salary),
+                'salary_set': detail.total_salary > 0,
+                'payroll': {
+                    'id': payroll.pk,
+                    'status': payroll.status,
+                    'status_display': payroll.get_status_display(),
+                    'net_payable': float(payroll.net_payable),
+                    'paid_on': payroll.paid_on.isoformat() if payroll.paid_on else None,
+                } if payroll else None,
+                'pending_reimbursements': pend['count'] if pend else 0,
+                'pending_reimbursement_total': float(pend['total']) if pend else 0,
+            })
+
+        generated = [r['payroll'] for r in rows if r['payroll']]
+        return ok(rows, month_label=first.strftime('%B %Y'), summary={
+            'employees': len(rows),
+            'generated': len(generated),
+            'paid': sum(1 for p in generated if p['status'] == 'paid'),
+            'net_total': round(sum(p['net_payable'] for p in generated), 2),
+        })
+
+    @hr_access_required
+    def retrieve(self, request, pk=None):
+        payroll = (
+            Payroll.objects.select_related('user', 'generated_by')
+            .prefetch_related('leave_lines', 'reimbursements').filter(pk=pk).first()
+        )
+        if not payroll:
+            return fail("Payroll not found.", status.HTTP_404_NOT_FOUND)
+        return ok(PayrollSerializer(payroll, context={'request': request}).data)
+
+    @action(detail=False, methods=['post'])
+    @hr_access_required
+    def preview(self, request):
+        """POST {user, year, month, deduct?, reimbursement_ids?, adjustment?} — calculates, saves nothing."""
+        user = employee_users().filter(pk=request.data.get('user')).select_related('employee_detail').first()
+        if not user:
+            return fail("Employee not found.", status.HTTP_404_NOT_FOUND)
+        year, month = payroll_period(request)
+        if year is None:
+            return fail("Choose a valid month.")
+
+        existing = Payroll.objects.filter(user=user, year=year, month=month).first()
+        inputs, error = parse_payroll_inputs(request, existing)
+        if error:
+            return fail(error)
+        try:
+            result = payroll_utils.compute(
+                user, year, month, inputs['deduct_map'], inputs['reimbursement_ids'],
+                inputs['adjustment'], existing=existing,
+            )
+        except PayrollError as exc:
+            return fail(str(exc))
+
+        data = serialize_calculation(request, result)
+        data['existing'] = {
+            'id': existing.pk,
+            'status': existing.status,
+            'adjustment_note': existing.adjustment_note,
+            'notes': existing.notes,
+        } if existing else None
+        return ok(data, month_label=date(year, month, 1).strftime('%B %Y'))
+
+    @action(detail=False, methods=['post'])
+    @hr_access_required
+    def generate(self, request):
+        """POST — same body as preview plus {adjustment_note, notes}. Saves the payroll."""
+        user = employee_users().filter(pk=request.data.get('user')).select_related('employee_detail').first()
+        if not user:
+            return fail("Employee not found.", status.HTTP_404_NOT_FOUND)
+        locked = exited_lock(request, user)
+        if locked:
+            return locked
+        year, month = payroll_period(request)
+        if year is None:
+            return fail("Choose a valid month.")
+
+        existing = Payroll.objects.filter(user=user, year=year, month=month).first()
+        inputs, error = parse_payroll_inputs(request, existing)
+        if error:
+            return fail(error)
+        try:
+            payroll = payroll_utils.generate(
+                user, year, month, request.user,
+                deduct_map=inputs['deduct_map'],
+                reimbursement_ids=inputs['reimbursement_ids'],
+                adjustment=inputs['adjustment'],
+                adjustment_note=inputs['adjustment_note'],
+                notes=inputs['notes'],
+            )
+        except PayrollError as exc:
+            return fail(str(exc))
+
+        log_action(
+            request, 'Generated payroll', payroll.pk,
+            f"{user.name} {year}-{month:02d}: net payable {payroll.net_payable}",
+        )
+        payroll = (
+            Payroll.objects.select_related('user', 'generated_by')
+            .prefetch_related('leave_lines', 'reimbursements').get(pk=payroll.pk)
+        )
+        return ok(
+            PayrollSerializer(payroll, context={'request': request}).data,
+            http_status=status.HTTP_200_OK if existing else status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=['get'])
+    @hr_access_required
+    def history(self, request):
+        """GET ?user= — every payroll generated for one employee, newest first."""
+        user = employee_users().filter(pk=request.query_params.get('user')).first()
+        if not user:
+            return fail("Employee not found.", status.HTTP_404_NOT_FOUND)
+        payrolls = Payroll.objects.filter(user=user).select_related('user', 'generated_by')
+        data = [{
+            'id': p.pk,
+            'year': p.year,
+            'month': p.month,
+            'month_label': date(p.year, p.month, 1).strftime('%B %Y'),
+            'total_salary': float(p.total_salary),
+            'net_payable': float(p.net_payable),
+            'status': p.status,
+            'status_display': p.get_status_display(),
+            'paid_on': p.paid_on.isoformat() if p.paid_on else None,
+        } for p in payrolls]
+        return ok(data)
+
+    @action(detail=True, methods=['post'])
+    @hr_access_required
+    def mark_paid(self, request, pk=None):
+        """POST {paid_on?} — locks the payroll. Defaults to today."""
+        payroll = Payroll.objects.select_related('user').filter(pk=pk).first()
+        if not payroll:
+            return fail("Payroll not found.", status.HTTP_404_NOT_FOUND)
+        locked = exited_lock(request, payroll.user)
+        if locked:
+            return locked
+        if payroll.status == 'paid':
+            return fail("This payroll is already marked paid.")
+
+        raw = request.data.get('paid_on')
+        paid_on = parse_date(str(raw)) if raw else timezone.localdate()
+        if not paid_on:
+            return fail("Invalid paid date.")
+        if paid_on > timezone.localdate():
+            return fail("Paid date cannot be in the future.")
+
+        payroll.status = 'paid'
+        payroll.paid_on = paid_on
+        payroll.save(update_fields=['status', 'paid_on', 'updated_at'])
+        log_action(request, 'Marked payroll paid', payroll.pk, f"{payroll.user.name} {payroll.year}-{payroll.month:02d} paid on {paid_on}")
+        return ok({'id': payroll.pk, 'status': payroll.status, 'paid_on': paid_on.isoformat()})
+
+    @action(detail=True, methods=['post'])
+    @hr_access_required
+    def reopen(self, request, pk=None):
+        """POST — admins only. Moves a paid payroll back to generated so it can be corrected."""
+        if not is_admin_user(request.user):
+            return fail("Only an admin can reopen a paid payroll.", status.HTTP_403_FORBIDDEN)
+        payroll = Payroll.objects.select_related('user').filter(pk=pk).first()
+        if not payroll:
+            return fail("Payroll not found.", status.HTTP_404_NOT_FOUND)
+        if payroll.status != 'paid':
+            return fail("This payroll is not marked paid.")
+        payroll.status = 'generated'
+        payroll.paid_on = None
+        payroll.save(update_fields=['status', 'paid_on', 'updated_at'])
+        log_action(request, 'Reopened payroll', payroll.pk, f"{payroll.user.name} {payroll.year}-{payroll.month:02d} reopened")
+        return ok({'id': payroll.pk, 'status': payroll.status})
+
+    @action(detail=True, methods=['get'])
+    @hr_access_required
+    def slip(self, request, pk=None):
+        """GET — the salary slip as a PDF."""
+        payroll = (
+            Payroll.objects.select_related('user', 'user__employee_detail', 'generated_by')
+            .prefetch_related('leave_lines', 'reimbursements').filter(pk=pk).first()
+        )
+        if not payroll:
+            return fail("Payroll not found.", status.HTTP_404_NOT_FOUND)
+        return slip_response(payroll)
+
+    @hr_access_required
+    def destroy(self, request, pk=None):
+        """DELETE — removes an unpaid payroll; its reimbursements become payable again."""
+        payroll = Payroll.objects.select_related('user').filter(pk=pk).first()
+        if not payroll:
+            return fail("Payroll not found.", status.HTTP_404_NOT_FOUND)
+        locked = exited_lock(request, payroll.user)
+        if locked:
+            return locked
+        label = f"{payroll.user.name} {payroll.year}-{payroll.month:02d}"
+        try:
+            payroll_utils.delete_payroll(payroll)
+        except PayrollError as exc:
+            return fail(str(exc))
+        log_action(request, 'Deleted payroll', pk, f"Deleted payroll for {label}")
+        return ok({'deleted': True})
+
+
+class HRReimbursementViewSet(viewsets.ViewSet):
+    """HR view of reimbursement claims, with the option to add one on an employee's behalf."""
+
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    @hr_access_required
+    def list(self, request):
+        """GET ?user=&status=unpaid|paid|all"""
+        queryset = Reimbursement.objects.select_related('user', 'payroll')
+        user_pk = request.query_params.get('user')
+        if user_pk:
+            queryset = queryset.filter(user_id=user_pk)
+        state = request.query_params.get('status', 'unpaid')
+        if state == 'unpaid':
+            queryset = queryset.filter(payroll__isnull=True)
+        elif state == 'paid':
+            queryset = queryset.filter(payroll__isnull=False)
+        data = ReimbursementSerializer(queryset[:300], many=True, context={'request': request}).data
+        return ok(data)
+
+    @hr_access_required
+    def create(self, request):
+        """POST multipart {user, expense_date, description, amount, receipt}"""
+        user = employee_users().filter(pk=request.data.get('user')).select_related('employee_detail').first()
+        if not user:
+            return fail("Employee not found.", status.HTTP_404_NOT_FOUND)
+        locked = exited_lock(request, user)
+        if locked:
+            return locked
+        serializer = ReimbursementSerializer(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            return fail(flatten_errors(serializer.errors), errors=serializer.errors)
+        if not request.FILES.get('receipt'):
+            return fail("Attach the receipt photo.")
+        reimbursement = serializer.save(user=user)
+        log_action(
+            request, 'Added reimbursement', reimbursement.pk,
+            f"{user.name}: {reimbursement.amount} for {reimbursement.description[:60]}",
+        )
+        return ok(ReimbursementSerializer(reimbursement, context={'request': request}).data, status.HTTP_201_CREATED)
+
+    @hr_access_required
+    def destroy(self, request, pk=None):
+        reimbursement = Reimbursement.objects.select_related('user').filter(pk=pk).first()
+        if not reimbursement:
+            return fail("Reimbursement not found.", status.HTTP_404_NOT_FOUND)
+        locked = exited_lock(request, reimbursement.user)
+        if locked:
+            return locked
+        if reimbursement.payroll_id:
+            return fail("This reimbursement is already part of a payroll. Delete or regenerate that payroll first.")
+        reimbursement.receipt.delete(save=False)
+        reimbursement.delete()
+        log_action(request, 'Deleted reimbursement', pk, f"Deleted reimbursement of {reimbursement.user.name}")
+        return ok({'deleted': True})
+
+
+class MyReimbursementViewSet(viewsets.ViewSet):
+    """An employee's own reimbursement claims."""
+
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    @login_required_api
+    def list(self, request):
+        queryset = Reimbursement.objects.filter(user=request.user).select_related('payroll')
+        data = ReimbursementSerializer(queryset[:200], many=True, context={'request': request}).data
+        unpaid = queryset.filter(payroll__isnull=True).aggregate(total=Sum('amount'), count=Count('id'))
+        return ok(data, unpaid_total=float(unpaid['total'] or 0), unpaid_count=unpaid['count'])
+
+    @login_required_api
+    def create(self, request):
+        """POST multipart {expense_date, description, amount, receipt}"""
+        serializer = ReimbursementSerializer(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            return fail(flatten_errors(serializer.errors), errors=serializer.errors)
+        if not request.FILES.get('receipt'):
+            return fail("Attach a photo of the receipt.")
+        reimbursement = serializer.save(user=request.user)
+        return ok(ReimbursementSerializer(reimbursement, context={'request': request}).data, status.HTTP_201_CREATED)
+
+    @login_required_api
+    def destroy(self, request, pk=None):
+        reimbursement = Reimbursement.objects.filter(pk=pk, user=request.user).first()
+        if not reimbursement:
+            return fail("Reimbursement not found.", status.HTTP_404_NOT_FOUND)
+        if reimbursement.payroll_id:
+            return fail("This reimbursement is already part of a payroll and cannot be withdrawn.")
+        reimbursement.receipt.delete(save=False)
+        reimbursement.delete()
+        return ok({'deleted': True})
+
+
+class MyPayrollViewSet(viewsets.ViewSet):
+    """An employee's own salary slips. Only payrolls HR has marked paid are visible."""
+
+    @login_required_api
+    def list(self, request):
+        payrolls = Payroll.objects.filter(user=request.user, status='paid').select_related('user')
+        data = [{
+            'id': p.pk,
+            'year': p.year,
+            'month': p.month,
+            'month_label': date(p.year, p.month, 1).strftime('%B %Y'),
+            'total_salary': float(p.total_salary),
+            'leave_deduction': float(p.leave_deduction),
+            'tds_deducted': float(p.tds_deducted),
+            'reimbursement_total': float(p.reimbursement_total),
+            'net_payable': float(p.net_payable),
+            'paid_on': p.paid_on.isoformat() if p.paid_on else None,
+        } for p in payrolls]
+        return ok(data)
+
+    @action(detail=True, methods=['get'])
+    @login_required_api
+    def slip(self, request, pk=None):
+        payroll = (
+            Payroll.objects.select_related('user', 'user__employee_detail', 'generated_by')
+            .prefetch_related('leave_lines', 'reimbursements')
+            .filter(pk=pk, user=request.user, status='paid').first()
+        )
+        if not payroll:
+            return fail("Salary slip not found.", status.HTTP_404_NOT_FOUND)
+        return slip_response(payroll)

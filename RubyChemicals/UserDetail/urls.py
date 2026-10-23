@@ -8,9 +8,13 @@ from .hr_views import (
     HRUniversalLeaveViewSet,
     HRLeaveApplicationViewSet,
     HRLeaveQuotaViewSet,
+    HRPayrollViewSet,
+    HRReimbursementViewSet,
     MyProfileViewSet,
     MyAttendanceViewSet,
     MyLeaveViewSet,
+    MyReimbursementViewSet,
+    MyPayrollViewSet,
 )
 
 
@@ -30,11 +34,15 @@ router.register(r'hr-leave-api', HRLeaveViewSet, basename='hr-leave-api')
 router.register(r'hr-universal-leave-api', HRUniversalLeaveViewSet, basename='hr-universal-leave-api')
 router.register(r'hr-leave-application-api', HRLeaveApplicationViewSet, basename='hr-leave-application-api')
 router.register(r'hr-leave-quota-api', HRLeaveQuotaViewSet, basename='hr-leave-quota-api')
+router.register(r'hr-payroll-api', HRPayrollViewSet, basename='hr-payroll-api')
+router.register(r'hr-reimbursement-api', HRReimbursementViewSet, basename='hr-reimbursement-api')
 
 # Employee self-service (profile page)
 router.register(r'my-profile-api', MyProfileViewSet, basename='my-profile-api')
 router.register(r'my-attendance-api', MyAttendanceViewSet, basename='my-attendance-api')
 router.register(r'my-leave-api', MyLeaveViewSet, basename='my-leave-api')
+router.register(r'my-reimbursement-api', MyReimbursementViewSet, basename='my-reimbursement-api')
+router.register(r'my-payroll-api', MyPayrollViewSet, basename='my-payroll-api')
 
 
 urlpatterns = [

@@ -73,6 +73,11 @@ def check_authentication(required_role=None, required_permission=None, dashboard
             if not user.is_authenticated:
                 return redirect('login-list')
 
+            # Deactivated or exited employees are signed out on their next request.
+            if not user.active_user:
+                logout(request)
+                return redirect('login-list')
+
             # ── 2. Role check (API endpoints) ────────────────────────────
             if required_role:
                 allowed_roles = (
@@ -251,7 +256,8 @@ class HRViewSet(viewsets.ViewSet):
         reporting_users = list(
             User.objects.filter(active_user=True).order_by('name').values('id', 'name', 'role')
         )
-        return render(request, 'hr.html', {'reporting_users': reporting_users})
+        is_admin = bool(request.user.is_super_admin or request.user.role == 'admin')
+        return render(request, 'hr.html', {'reporting_users': reporting_users, 'is_admin': is_admin})
 
 
 class MyHRViewSet(viewsets.ViewSet):

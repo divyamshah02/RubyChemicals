@@ -22,7 +22,11 @@ const TEXT_FIELDS = [
     'aadhar_number', 'pan_number',
     'bank_name', 'bank_account_no', 'bank_branch', 'bank_ifsc',
     'office_mobile', 'device_details', 'imei_1', 'imei_2', 'sim_card_in_name_of',
+    'marital_status', 'date_of_birth', 'anniversary_date', 'blood_group',
+    'mother_name', 'father_name', 'spouse_name',
 ]
+const SALARY_FIELDS = ['basic_pay', 'da', 'hra', 'lta', 'epf', 'gratuity', 'esic']
+const MARITAL_LABELS = { single: 'Single', married: 'Married', divorced: 'Divorced', widowed: 'Widowed' }
 const ROLE_LABELS = { accounts: 'Accounts', factory: 'Factory', accountant: 'Accountant', office: 'Office', hr: 'HR', admin: 'Admin' }
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -101,6 +105,15 @@ function isImage(url) {
     return /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url || '')
 }
 
+function fmtMoney(value) {
+    const n = Number(value || 0)
+    return '\u20B9' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function canEditEmployee(emp) {
+    return !emp.is_exited || window.HR_IS_ADMIN === true
+}
+
 function fileLink(url, label) {
     if (!url) return '<span class="text-muted">Not uploaded</span>'
     return `<a href="${esc(url)}" target="_blank" rel="noopener"><i class="fas fa-file me-1"></i>${esc(label)}</a>`
@@ -142,7 +155,14 @@ async function initHR(csrf, endpoints) {
     setSortIcons('th[data-leave-sort]', 'data-leave-sort', leaveSort.key, leaveSort.dir)
     setSortIcons('th[data-att-sort]', 'data-att-sort', 'date', 'asc')
 
-    await Promise.all([loadEmployees(), loadLeaves(), loadHolidays(), loadApplications(), loadQuotas(), loadAttendance()])
+    el('payMonth').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+    el('payPaidOn').value = toISODate(today)
+    el('reimbDate').value = toISODate(today)
+
+    await Promise.all([
+        loadEmployees(), loadLeaves(), loadHolidays(), loadApplications(), loadQuotas(), loadAttendance(),
+        loadPayroll(), loadReimbursements(),
+    ])
 }
 
 /* ── Employees ───────────────────────────────────────────────────────────── */
@@ -180,6 +200,15 @@ function populateEmployeeSelects() {
     el('empDept').innerHTML = `<option value="">All</option>${departments.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('')}`
     el('empDept').value = deptValue
     el('deptList').innerHTML = departments.map(d => `<option value="${esc(d)}"></option>`).join('')
+
+    const reimbFilter = el('reimbUser').value
+    el('reimbUser').innerHTML = `<option value="">All employees</option>${options}`
+    el('reimbUser').value = reimbFilter
+    const activeOptions = sorted.filter(e => !e.is_exited)
+        .map(e => `<option value="${e.user}">${esc(e.user_name)} (${esc(e.user_code)})</option>`).join('')
+    const reimbFormValue = el('reimbFormUser').value
+    el('reimbFormUser').innerHTML = `<option value="">Select employee</option>${activeOptions}`
+    el('reimbFormUser').value = reimbFormValue
 }
 
 function filteredEmployees() {
@@ -223,11 +252,14 @@ function renderEmployees() {
         const avatar = e.photo && isImage(e.photo)
             ? `<img class="avatar" src="${esc(e.photo)}" alt="${esc(name)}">`
             : `<span class="avatar" aria-hidden="true">${esc(initials(name))}</span>`
-        const profile = e.is_complete
+        const exited = e.is_exited
+            ? `<span class="pill pill-exited" title="Last working day ${esc(e.last_working_day || '')}">Exited</span> `
+            : ''
+        const profile = exited + (e.is_complete
             ? `<span class="pill pill-complete">Complete</span>`
-            : `<span class="pill pill-incomplete" title="Missing: ${esc(e.missing_fields.join(', '))}">${e.missing_fields.length} missing</span>`
+            : `<span class="pill pill-incomplete" title="Missing: ${esc(e.missing_fields.join(', '))}">${e.missing_fields.length} missing</span>`)
         return `
-        <tr>
+        <tr${e.is_exited ? ' class="row-exited"' : ''}>
             <td><div class="emp-cell">${avatar}<div><div class="emp-name">${esc(name)}</div><div class="emp-sub">${esc(e.user_code)} &middot; ${esc(e.email)}</div></div></div></td>
             <td>${esc(e.department) || '-'}<div class="emp-sub">${esc(e.position) || ''}</div></td>
             <td>${esc(ROLE_LABELS[e.role] || e.role)}</td>
@@ -272,26 +304,62 @@ function openEmployee(userPk, edit) {
     el('empUserId').value = userPk
     el('employeeModalTitle').textContent = emp.full_name || emp.user_name
     renderEmployeeView(emp)
-    if (edit) showEmployeeForm()
-    else showEmployeeView()
+    if (edit && canEditEmployee(emp)) showEmployeeForm()
+    else {
+        showEmployeeView()
+        if (edit) toast('This employee has exited. Only an admin can change their records.', 'err')
+    }
     bootstrap.Modal.getOrCreateInstance(el('employeeModal')).show()
 }
 
+function syncEmployeeFooter(emp, editing) {
+    const admin = window.HR_IS_ADMIN === true
+    el('employeeEditBtn').style.display = !editing && canEditEmployee(emp) ? '' : 'none'
+    el('employeeSaveBtn').style.display = editing ? '' : 'none'
+    el('employeeExitBtn').style.display = !editing && !emp.is_exited ? '' : 'none'
+    el('employeeReactivateBtn').style.display = !editing && emp.is_exited && admin ? '' : 'none'
+}
+
 function showEmployeeView() {
+    const emp = currentEmployee()
     el('employeeViewBody').style.display = ''
     el('employeeForm').style.display = 'none'
-    el('employeeEditBtn').style.display = ''
-    el('employeeSaveBtn').style.display = 'none'
+    if (emp) syncEmployeeFooter(emp, false)
 }
 
 function showEmployeeForm() {
     const emp = currentEmployee()
     if (!emp) return
+    if (!canEditEmployee(emp)) {
+        toast('This employee has exited. Only an admin can change their records.', 'err')
+        return
+    }
     fillEmployeeForm(emp)
     el('employeeViewBody').style.display = 'none'
     el('employeeForm').style.display = ''
-    el('employeeEditBtn').style.display = 'none'
-    el('employeeSaveBtn').style.display = ''
+    syncEmployeeFooter(emp, true)
+}
+
+function syncMaritalFields() {
+    const status = el('f_marital_status').value
+    const married = status === 'married'
+    el('spouseWrap').style.display = married || status === '' ? '' : 'none'
+    el('f_anniversary_date').disabled = !married && status !== ''
+    if (!married && status !== '') {
+        el('f_anniversary_date').value = ''
+        el('f_spouse_name').value = ''
+    }
+}
+
+function syncTdsField() {
+    const on = el('f_tds_applicable').checked
+    el('tdsAmountWrap').style.display = on ? '' : 'none'
+    if (!on) el('f_tds_amount').value = ''
+}
+
+function updateSalaryTotal() {
+    const total = SALARY_FIELDS.reduce((sum, f) => sum + (parseFloat(el(`f_${f}`).value) || 0), 0)
+    el('f_total_salary').value = fmtMoney(total)
 }
 
 function detailItem(label, value) {
@@ -309,7 +377,21 @@ function renderEmployeeView(emp) {
         ? `<img src="${esc(emp.photo)}" alt="${esc(emp.user_name)}" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid #e2e8f0;">`
         : ''
 
+    const exitInfo = emp.is_exited ? `
+        <div class="alert alert-danger py-2" style="font-size:0.85rem;">
+            <div class="fw-semibold mb-1"><i class="fas fa-right-from-bracket me-1"></i>Exited &middot; login disabled</div>
+            <div>Last working day: <strong>${fmtDate(emp.last_working_day)}</strong> &middot; Intent: <strong>${esc(emp.exit_intent_display)}</strong>${emp.exited_by_name ? ` &middot; Marked by ${esc(emp.exited_by_name)}` : ''}</div>
+            ${emp.exit_remarks ? `<div class="mt-1">Remarks: ${esc(emp.exit_remarks)}</div>` : ''}
+            ${window.HR_IS_ADMIN ? '' : '<div class="mt-1">Only an admin can change this employee\'s records.</div>'}
+        </div>` : ''
+
+    const salaryRows = [
+        ['Basic Pay', emp.basic_pay], ['DA', emp.da], ['HRA', emp.hra], ['LTA', emp.lta],
+        ['EPF', emp.epf], ['Gratuity', emp.gratuity], ['ESIC', emp.esic],
+    ].map(([label, value]) => detailItem(label, fmtMoney(value))).join('')
+
     el('employeeViewBody').innerHTML = `
+        ${exitInfo}
         ${missing}
         <div class="form-section">
             <div class="form-section-title">Basic Details</div>
@@ -330,6 +412,18 @@ function renderEmployeeView(emp) {
             </div>
         </div>
         <div class="form-section">
+            <div class="form-section-title">Personal &amp; Family Details</div>
+            <div class="detail-grid">
+                ${detailItem('Marital Status', esc(MARITAL_LABELS[emp.marital_status] || emp.marital_status))}
+                ${detailItem('Date of Birth', emp.date_of_birth ? fmtDate(emp.date_of_birth) : '')}
+                ${detailItem('Date of Anniversary', emp.anniversary_date ? fmtDate(emp.anniversary_date) : '')}
+                ${detailItem('Blood Group', esc(emp.blood_group))}
+                ${detailItem('Mother Name', esc(emp.mother_name))}
+                ${detailItem('Father Name', esc(emp.father_name))}
+                ${detailItem('Spouse Name', esc(emp.spouse_name))}
+            </div>
+        </div>
+        <div class="form-section">
             <div class="form-section-title">Identity Documents</div>
             <div class="detail-grid">
                 ${detailItem('Aadhar Number', esc(emp.aadhar_number))}
@@ -346,6 +440,16 @@ function renderEmployeeView(emp) {
                 ${detailItem('Branch Name', esc(emp.bank_branch))}
                 ${detailItem('IFSC', esc(emp.bank_ifsc))}
                 ${detailItem('Bank Proof', fileLink(emp.bank_proof_file, 'View bank proof'))}
+            </div>
+        </div>
+        <div class="form-section">
+            <div class="form-section-title">Salary Structure (per month)</div>
+            <div class="detail-grid">
+                ${salaryRows}
+                ${detailItem('Total Salary', `<strong>${fmtMoney(emp.total_salary)}</strong>`)}
+                ${detailItem('Per-day rate (Total / 30)', fmtMoney((emp.total_salary || 0) / 30))}
+                ${detailItem('TDS Applicable', emp.tds_applicable ? 'Yes' : 'No')}
+                ${emp.tds_applicable ? detailItem('TDS per month', fmtMoney(emp.tds_amount)) : ''}
             </div>
         </div>
         <div class="form-section">
@@ -379,6 +483,16 @@ function fillEmployeeForm(emp) {
         input.value = emp[field] === null || emp[field] === undefined ? '' : emp[field]
     })
     if (!el('f_full_name').value) el('f_full_name').value = emp.user_name
+
+    SALARY_FIELDS.forEach(field => {
+        const value = Number(emp[field] || 0)
+        el(`f_${field}`).value = value ? value : ''
+    })
+    el('f_tds_applicable').checked = !!emp.tds_applicable
+    el('f_tds_amount').value = Number(emp.tds_amount || 0) || ''
+    syncTdsField()
+    updateSalaryTotal()
+    syncMaritalFields()
 
     DOC_FIELDS.forEach(field => {
         el(`f_${field}`).value = ''
@@ -427,6 +541,10 @@ async function saveEmployee() {
     TEXT_FIELDS.forEach(field => form.append(field, el(`f_${field}`).value.trim()))
     form.set('pan_number', el('f_pan_number').value.trim().toUpperCase())
     form.set('bank_ifsc', el('f_bank_ifsc').value.trim().toUpperCase())
+    SALARY_FIELDS.forEach(field => form.append(field, el(`f_${field}`).value.trim() || '0'))
+    const tdsOn = el('f_tds_applicable').checked
+    form.append('tds_applicable', tdsOn ? 'true' : 'false')
+    form.append('tds_amount', tdsOn ? (el('f_tds_amount').value.trim() || '0') : '0')
     form.append('emergency_contacts', JSON.stringify(collectEmergencyContacts()))
 
     for (const field of DOC_FIELDS) {
@@ -454,6 +572,407 @@ async function saveEmployee() {
     el('employeeModalTitle').textContent = res.data.full_name || res.data.user_name
     showEmployeeView()
     toast('Employee details saved.')
+}
+
+/* ── Payroll ─────────────────────────────────────────────────────────────── */
+
+const COMPONENT_LABELS = {
+    basic_pay: 'Basic Pay', da: 'DA', hra: 'HRA', lta: 'LTA', epf: 'EPF', gratuity: 'Gratuity', esic: 'ESIC',
+}
+let payCtx = null
+
+function payPeriod() {
+    const [year, month] = (el('payMonth').value || '').split('-').map(Number)
+    return { year, month }
+}
+
+async function loadPayroll() {
+    const { year, month } = payPeriod()
+    if (!year || !month) { el('payrollBody').innerHTML = ''; return }
+    const res = await api('GET', `${HR_ENDPOINTS.payroll}?year=${year}&month=${month}`)
+    if (!res.success) {
+        el('paySummary').textContent = res.error || 'Could not load payroll.'
+        return
+    }
+    const s = res.summary || {}
+    el('paySummary').textContent =
+        `${res.month_label}: ${s.generated || 0} of ${s.employees || 0} generated, ${s.paid || 0} paid, net payable ${fmtMoney(s.net_total)}`
+
+    el('payrollBody').innerHTML = res.data.length ? res.data.map(r => {
+        const p = r.payroll
+        const status = p
+            ? `<span class="pill ${p.status === 'paid' ? 'pill-complete' : 'pill-incomplete'}">${esc(p.status_display)}${p.paid_on ? ' &middot; ' + fmtDate(p.paid_on) : ''}</span>`
+            : '<span class="text-muted">Not generated</span>'
+        const salary = r.salary_set
+            ? fmtMoney(r.total_salary)
+            : '<span class="text-danger" title="Set the salary structure in the employee details">Not set</span>'
+        const pending = r.pending_reimbursements
+            ? `${r.pending_reimbursements} &middot; ${fmtMoney(r.pending_reimbursement_total)}`
+            : '<span class="text-muted">None</span>'
+        return `
+        <tr${r.is_exited ? ' class="row-exited"' : ''}>
+            <td><div class="fw-semibold">${esc(r.name)}${r.is_exited ? ' <span class="pill pill-exited">Exited</span>' : ''}</div>
+                <div class="text-muted" style="font-size:0.78rem;">${esc(r.user_code)} &middot; ${esc(r.department || '-')}</div></td>
+            <td>${salary}</td>
+            <td>${pending}</td>
+            <td>${status}</td>
+            <td>${p ? '<strong>' + fmtMoney(p.net_payable) + '</strong>' : '-'}</td>
+            <td class="text-nowrap">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openPayroll(${r.user_id})">
+                    <i class="fas fa-${p ? 'eye' : 'calculator'} me-1"></i>${p ? 'Review' : 'Generate'}
+                </button>
+                ${p ? `<a class="btn btn-sm btn-outline-secondary ms-1" href="${HR_ENDPOINTS.payroll}${p.id}/slip/" aria-label="Download salary slip"><i class="fas fa-file-pdf"></i></a>` : ''}
+            </td>
+        </tr>`
+    }).join('') : '<tr><td colspan="6" class="text-center text-muted py-4">No employees for this month.</td></tr>'
+}
+
+function readPayrollForm() {
+    if (!payCtx) return
+    const adj = el('payAdjustment'), adjNote = el('payAdjustmentNote'), notes = el('payNotes')
+    if (adj) payCtx.adjustment = adj.value.trim()
+    if (adjNote) payCtx.adjustmentNote = adjNote.value
+    if (notes) payCtx.notes = notes.value
+}
+
+function payrollBody(initial) {
+    const body = { user: payCtx.userId, year: payCtx.year, month: payCtx.month }
+    if (!initial) {
+        body.deduct = payCtx.deduct
+        body.reimbursement_ids = payCtx.included
+        body.adjustment = payCtx.adjustment === '' ? '0' : payCtx.adjustment
+        body.adjustment_note = payCtx.adjustmentNote
+        body.notes = payCtx.notes
+    }
+    return body
+}
+
+async function refreshPayrollPreview(initial = false) {
+    readPayrollForm()
+    const res = await api('POST', `${HR_ENDPOINTS.payroll}preview/`, payrollBody(initial))
+    if (!res.success) {
+        toast(res.error || 'Could not calculate payroll.', 'err')
+        if (initial) bootstrap.Modal.getOrCreateInstance(el('payrollModal')).hide()
+        return false
+    }
+    const calc = res.data
+    payCtx.calc = calc
+    payCtx.existing = calc.existing
+    if (initial) {
+        payCtx.deduct = {}
+        calc.lines.forEach(l => { if (l.leave_id) payCtx.deduct[l.leave_id] = l.deduct })
+        payCtx.included = calc.reimbursements.filter(r => r.included).map(r => r.id)
+        payCtx.adjustment = calc.adjustment ? String(calc.adjustment) : ''
+        payCtx.adjustmentNote = calc.existing ? calc.existing.adjustment_note : ''
+        payCtx.notes = calc.existing ? calc.existing.notes : ''
+    }
+    renderPayrollModal()
+    return true
+}
+
+async function openPayroll(userId) {
+    const { year, month } = payPeriod()
+    if (!year || !month) { toast('Choose a month first.', 'err'); return }
+    const emp = employees.find(e => e.user === userId)
+    payCtx = { userId, year, month, deduct: {}, included: [], adjustment: '', adjustmentNote: '', notes: '', calc: null, existing: null }
+    el('payrollModalTitle').textContent = emp ? (emp.full_name || emp.user_name) : 'Payroll'
+    el('payrollModalSub').textContent = new Date(year, month - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+    el('payrollModalBody').innerHTML = '<div class="text-center text-muted py-5">Calculating...</div>'
+    el('payDeleteBtn').style.display = 'none'
+    el('paySlipBtn').style.display = 'none'
+    el('payPaidWrap').style.display = 'none'
+    el('payReopenBtn').style.display = 'none'
+    el('payGenerateBtn').style.display = 'none'
+    bootstrap.Modal.getOrCreateInstance(el('payrollModal')).show()
+    await refreshPayrollPreview(true)
+}
+
+function renderPayrollModal() {
+    const c = payCtx.calc
+    const existing = payCtx.existing
+    const paid = !!existing && existing.status === 'paid'
+    const lock = paid ? 'disabled' : ''
+
+    const components = Object.entries(c.components).map(([key, value]) =>
+        `<tr><td>${esc(COMPONENT_LABELS[key] || key)}</td><td class="text-end">${fmtMoney(value)}</td></tr>`).join('')
+
+    const lines = c.lines.length ? c.lines.map(l => `
+        <tr>
+            <td>${fmtDate(l.date)}</td>
+            <td>${esc(l.leave_type_display)}</td>
+            <td>${l.days === 0.5 ? 'Half day' : 'Full day'}</td>
+            <td>${l.is_extra ? '<span class="pill pill-exited">Extra</span>' : '<span class="pill pill-complete">Within quota</span>'}</td>
+            <td class="text-muted">${esc(l.reason || '')}</td>
+            <td class="text-end">${fmtMoney(l.amount)}</td>
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input" data-leave="${l.leave_id || ''}" ${l.deduct ? 'checked' : ''}
+                    ${lock || !l.leave_id ? 'disabled' : ''} aria-label="Deduct ${esc(fmtDate(l.date))} from salary"
+                    onchange="toggleDeduct(${l.leave_id || 'null'}, this.checked)">
+            </td>
+        </tr>`).join('')
+        : '<tr><td colspan="7" class="text-center text-muted py-3">No leaves this month.</td></tr>'
+
+    const reimbs = c.reimbursements.length ? c.reimbursements.map(r => `
+        <tr>
+            <td>${fmtDate(r.expense_date)}</td>
+            <td>${esc(r.description)}</td>
+            <td>${r.receipt_url ? `<a href="${esc(r.receipt_url)}" target="_blank" rel="noopener"><i class="fas fa-image me-1"></i>Receipt</a>` : '-'}</td>
+            <td class="text-end">${fmtMoney(r.amount)}</td>
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input" ${r.included ? 'checked' : ''} ${lock}
+                    aria-label="Pay ${esc(r.description)}" onchange="toggleReimbursement(${r.id}, this.checked)">
+            </td>
+        </tr>`).join('')
+        : '<tr><td colspan="5" class="text-center text-muted py-3">No pending reimbursements.</td></tr>'
+
+    el('payrollModalBody').innerHTML = `
+        ${paid ? `<div class="alert alert-success py-2" style="font-size:0.85rem;">This payroll is marked paid and locked${window.HR_IS_ADMIN ? '. Reopen it to make changes.' : '. Only an admin can reopen it.'}</div>` : ''}
+        ${c.total_salary > 0 ? '' : '<div class="alert alert-warning py-2" style="font-size:0.85rem;">No salary is set for this employee. Add it in the employee details first.</div>'}
+        <div class="row g-4">
+            <div class="col-lg-5">
+                <div class="form-section-title">Salary Structure</div>
+                <table class="table table-sm mb-3"><tbody>
+                    ${components}
+                    <tr class="fw-semibold"><td>Total Salary</td><td class="text-end">${fmtMoney(c.total_salary)}</td></tr>
+                    <tr class="text-muted"><td>Per-day rate (Total / 30)</td><td class="text-end">${fmtMoney(c.per_day_rate)}</td></tr>
+                </tbody></table>
+
+                <div class="form-section-title">Payable</div>
+                <table class="table table-sm mb-3"><tbody>
+                    <tr><td>Total Salary</td><td class="text-end">${fmtMoney(c.total_salary)}</td></tr>
+                    <tr><td>Less: Leave (${c.leave_days_deducted} day${c.leave_days_deducted === 1 ? '' : 's'} &times; ${fmtMoney(c.per_day_rate)})</td>
+                        <td class="text-end text-danger">&minus; ${fmtMoney(c.leave_deduction)}</td></tr>
+                    <tr><td>Less: TDS${c.tds_applicable ? '' : ' (not applicable)'}</td>
+                        <td class="text-end text-danger">&minus; ${fmtMoney(c.tds_deducted)}</td></tr>
+                    <tr class="fw-semibold"><td>Salary for the Month</td><td class="text-end">${fmtMoney(c.salary_for_month)}</td></tr>
+                    <tr><td>Add: Reimbursements</td><td class="text-end">+ ${fmtMoney(c.reimbursement_total)}</td></tr>
+                    <tr><td>Adjustment</td><td class="text-end">${c.adjustment >= 0 ? '+' : '&minus;'} ${fmtMoney(Math.abs(c.adjustment))}</td></tr>
+                    <tr class="fw-bold table-active"><td>Net Salary Payable</td><td class="text-end">${fmtMoney(c.net_payable)}</td></tr>
+                </tbody></table>
+
+                <div class="row g-2">
+                    <div class="col-5">
+                        <label class="form-label" for="payAdjustment">Adjustment</label>
+                        <input type="number" step="0.01" class="form-control" id="payAdjustment" value="${esc(payCtx.adjustment)}"
+                            placeholder="0.00" ${lock} onchange="refreshPayrollPreview()">
+                    </div>
+                    <div class="col-7">
+                        <label class="form-label" for="payAdjustmentNote">Adjustment note</label>
+                        <input type="text" class="form-control" id="payAdjustmentNote" maxlength="200" value="${esc(payCtx.adjustmentNote)}" ${lock}>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="payNotes">Remarks on slip</label>
+                        <textarea class="form-control" id="payNotes" rows="2" maxlength="500" ${lock}>${esc(payCtx.notes)}</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="form-section-title">Leaves this month</div>
+                <p class="text-muted" style="font-size:0.78rem;">Tick a leave to cut one day of salary for it. Untick it to waive the deduction. Extra leaves (beyond the monthly quota) are ticked by default.</p>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Date</th><th>Type</th><th>Day</th><th>Quota</th><th>Reason</th><th class="text-end">Amount</th><th class="text-center">Deduct</th></tr></thead>
+                        <tbody>${lines}</tbody>
+                    </table>
+                </div>
+                <div class="form-section-title">Reimbursements</div>
+                <p class="text-muted" style="font-size:0.78rem;">Only ticked reimbursements are paid in this payroll. Unticked ones stay pending for a later month.</p>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Date</th><th>Description</th><th>Receipt</th><th class="text-end">Amount</th><th class="text-center">Pay</th></tr></thead>
+                        <tbody>${reimbs}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>`
+
+    const admin = window.HR_IS_ADMIN === true
+    el('payGenerateBtn').style.display = paid ? 'none' : ''
+    el('payGenerateBtn').innerHTML = `<i class="fas fa-calculator me-1"></i>${existing ? 'Update Payroll' : 'Generate Payroll'}`
+    el('paySlipBtn').style.display = existing ? '' : 'none'
+    el('payDeleteBtn').style.display = existing && !paid ? '' : 'none'
+    el('payPaidWrap').style.display = existing && !paid ? '' : 'none'
+    el('payReopenBtn').style.display = paid && admin ? '' : 'none'
+}
+
+function toggleDeduct(leaveId, checked) {
+    if (!leaveId) return
+    payCtx.deduct[leaveId] = checked
+    refreshPayrollPreview()
+}
+
+function toggleReimbursement(id, checked) {
+    const set = new Set(payCtx.included)
+    if (checked) set.add(id)
+    else set.delete(id)
+    payCtx.included = [...set]
+    refreshPayrollPreview()
+}
+
+async function generatePayroll() {
+    readPayrollForm()
+    const button = el('payGenerateBtn')
+    button.disabled = true
+    const res = await api('POST', `${HR_ENDPOINTS.payroll}generate/`, payrollBody(false))
+    button.disabled = false
+    if (!res.success) { toast(res.error || 'Could not generate payroll.', 'err'); return }
+    toast('Payroll saved.')
+    await Promise.all([refreshPayrollPreview(), loadPayroll(), loadReimbursements()])
+}
+
+function downloadSlip() {
+    if (!payCtx || !payCtx.existing) return
+    window.location.href = `${HR_ENDPOINTS.payroll}${payCtx.existing.id}/slip/`
+}
+
+async function markPayrollPaid() {
+    if (!payCtx || !payCtx.existing) return
+    const paidOn = el('payPaidOn').value
+    if (!paidOn) { toast('Choose the paid date.', 'err'); return }
+    const res = await api('POST', `${HR_ENDPOINTS.payroll}${payCtx.existing.id}/mark_paid/`, { paid_on: paidOn })
+    if (!res.success) { toast(res.error || 'Could not mark paid.', 'err'); return }
+    toast('Payroll marked as paid.')
+    await Promise.all([refreshPayrollPreview(), loadPayroll(), loadReimbursements()])
+}
+
+async function reopenPayroll() {
+    if (!payCtx || !payCtx.existing) return
+    if (!confirm('Reopen this paid payroll so it can be corrected?')) return
+    const res = await api('POST', `${HR_ENDPOINTS.payroll}${payCtx.existing.id}/reopen/`)
+    if (!res.success) { toast(res.error || 'Could not reopen.', 'err'); return }
+    toast('Payroll reopened.')
+    await Promise.all([refreshPayrollPreview(), loadPayroll()])
+}
+
+async function deletePayroll() {
+    if (!payCtx || !payCtx.existing) return
+    if (!confirm('Delete this payroll? Its reimbursements become pending again.')) return
+    const res = await api('DELETE', `${HR_ENDPOINTS.payroll}${payCtx.existing.id}/`)
+    if (!res.success) { toast(res.error || 'Could not delete payroll.', 'err'); return }
+    toast('Payroll deleted.')
+    bootstrap.Modal.getOrCreateInstance(el('payrollModal')).hide()
+    await Promise.all([loadPayroll(), loadReimbursements()])
+}
+
+/* ── Reimbursements ──────────────────────────────────────────────────────── */
+
+async function loadReimbursements() {
+    const params = new URLSearchParams({ status: el('reimbStatus').value })
+    if (el('reimbUser').value) params.set('user', el('reimbUser').value)
+    const res = await api('GET', `${HR_ENDPOINTS.reimbursements}?${params}`)
+    if (!res.success) { toast(res.error || 'Could not load reimbursements.', 'err'); return }
+
+    el('reimbBody').innerHTML = res.data.length ? res.data.map(r => `
+        <tr>
+            <td>${fmtDate(r.expense_date)}</td>
+            <td><div class="fw-semibold">${esc(r.user_name)}</div><div class="text-muted" style="font-size:0.78rem;">${esc(r.user_code)}</div></td>
+            <td>${esc(r.description)}</td>
+            <td><strong>${fmtMoney(r.amount)}</strong></td>
+            <td>${r.receipt_url ? `<a href="${esc(r.receipt_url)}" target="_blank" rel="noopener"><i class="fas fa-image me-1"></i>View</a>` : '-'}</td>
+            <td>${r.payroll
+                ? `<span class="pill ${r.is_paid ? 'pill-complete' : 'pill-incomplete'}">${r.is_paid ? 'Paid' : 'In payroll'} ${esc(r.payroll_period || '')}</span>`
+                : '<span class="pill pill-incomplete">Pending</span>'}</td>
+            <td>${r.payroll ? '' : `<button type="button" class="btn btn-sm btn-outline-danger" aria-label="Delete reimbursement" onclick="deleteReimbursement(${r.id})"><i class="fas fa-trash"></i></button>`}</td>
+        </tr>`).join('')
+        : '<tr><td colspan="7" class="text-center text-muted py-4">No reimbursements found.</td></tr>'
+}
+
+function openReimbursementModal() {
+    el('reimbForm').reset()
+    el('reimbDate').value = toISODate(new Date())
+    if (el('reimbUser').value) el('reimbFormUser').value = el('reimbUser').value
+    bootstrap.Modal.getOrCreateInstance(el('reimbModal')).show()
+}
+
+async function saveReimbursement() {
+    const user = el('reimbFormUser').value
+    const amount = el('reimbAmount').value
+    const description = el('reimbDesc').value.trim()
+    const file = el('reimbReceipt').files[0]
+    if (!user) { toast('Select an employee.', 'err'); return }
+    if (!el('reimbDate').value) { toast('Choose the expense date.', 'err'); return }
+    if (!amount || Number(amount) <= 0) { toast('Enter a valid amount.', 'err'); return }
+    if (!description) { toast('Add a description.', 'err'); return }
+    if (!file) { toast('Attach the receipt photo.', 'err'); return }
+
+    const form = new FormData()
+    form.append('user', user)
+    form.append('expense_date', el('reimbDate').value)
+    form.append('amount', amount)
+    form.append('description', description)
+    form.append('receipt', file)
+
+    const button = el('reimbSaveBtn')
+    button.disabled = true
+    const res = await api('POST', HR_ENDPOINTS.reimbursements, form, true)
+    button.disabled = false
+    if (!res.success) { toast(res.error || 'Could not save the reimbursement.', 'err'); return }
+    bootstrap.Modal.getOrCreateInstance(el('reimbModal')).hide()
+    toast('Reimbursement added.')
+    await Promise.all([loadReimbursements(), loadPayroll()])
+}
+
+async function deleteReimbursement(id) {
+    if (!confirm('Delete this reimbursement?')) return
+    const res = await api('DELETE', `${HR_ENDPOINTS.reimbursements}${id}/`)
+    if (!res.success) { toast(res.error || 'Could not delete.', 'err'); return }
+    toast('Reimbursement deleted.')
+    await Promise.all([loadReimbursements(), loadPayroll()])
+}
+
+/* ── Exit ────────────────────────────────────────────────────────────────── */
+
+function openExitModal() {
+    const emp = currentEmployee()
+    if (!emp) return
+    el('exitWarnName').textContent = emp.full_name || emp.user_name
+    el('exitLastDay').value = toISODate(new Date())
+    el('exitIntent').value = ''
+    el('exitRemarks').value = ''
+    bootstrap.Modal.getOrCreateInstance(el('exitModal')).show()
+}
+
+async function confirmExit() {
+    const emp = currentEmployee()
+    if (!emp) return
+    const lastDay = el('exitLastDay').value
+    const intent = el('exitIntent').value
+    const remarks = el('exitRemarks').value.trim()
+    if (!lastDay) { toast('Choose the last working day.', 'err'); return }
+    if (!intent) { toast('Choose the exit intent.', 'err'); return }
+    if (intent === 'other' && !remarks) { toast('Add remarks when the exit intent is Other.', 'err'); return }
+
+    const button = el('exitConfirmBtn')
+    button.disabled = true
+    const res = await api('POST', `${HR_ENDPOINTS.employees}${emp.user}/exit/`, {
+        last_working_day: lastDay, exit_intent: intent, remarks,
+    })
+    button.disabled = false
+
+    if (!res.success) { toast(res.error || 'Could not mark the exit.', 'err'); return }
+    applyEmployeeUpdate(res.data)
+    bootstrap.Modal.getOrCreateInstance(el('exitModal')).hide()
+    toast('Employee marked as exited and login disabled.')
+}
+
+async function reactivateEmployee() {
+    const emp = currentEmployee()
+    if (!emp) return
+    if (!confirm(`Reactivate ${emp.full_name || emp.user_name}? They will be able to sign in again.`)) return
+    const res = await api('POST', `${HR_ENDPOINTS.employees}${emp.user}/reactivate/`)
+    if (!res.success) { toast(res.error || 'Could not reactivate the employee.', 'err'); return }
+    applyEmployeeUpdate(res.data)
+    toast('Employee reactivated.')
+}
+
+function applyEmployeeUpdate(data) {
+    const index = employees.findIndex(e => e.user === data.user)
+    if (index >= 0) employees[index] = data
+    populateEmployeeSelects()
+    renderEmployees()
+    renderEmployeeView(data)
+    el('employeeModalTitle').textContent = data.full_name || data.user_name
+    showEmployeeView()
 }
 
 /* ── Attendance ──────────────────────────────────────────────────────────── */

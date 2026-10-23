@@ -123,6 +123,8 @@
         .pill-off       { background: #f1f5f9; color: #64748b; }
         .pill-absent    { background: #fee2e2; color: #991b1b; }
         .pill-pending   { background: #f3f4f6; color: #374151; }
+        .pill-exited    { background: #fee2e2; color: #991b1b; }
+        .row-exited td  { background: #fafafa; color: #64748b; }
         .pill-complete  { background: #dcfce7; color: #166534; }
         .pill-incomplete{ background: #fef3c7; color: #92400e; }
 
@@ -198,6 +200,16 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paneQuotas" type="button" role="tab">
                     <i class="fas fa-sliders me-1"></i>Leave Quotas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panePayroll" type="button" role="tab">
+                    <i class="fas fa-money-check-dollar me-1"></i>Payroll
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paneReimbursements" type="button" role="tab">
+                    <i class="fas fa-receipt me-1"></i>Reimbursements
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -528,6 +540,78 @@
                 </div>
             </div>
 
+            <!-- ═════════ PAYROLL ═════════ -->
+            <div class="tab-pane fade" id="panePayroll" role="tabpanel">
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                    <div>
+                        <label class="form-label" for="payMonth">Month</label>
+                        <input type="month" class="form-control" id="payMonth" onchange="loadPayroll()">
+                    </div>
+                    <p class="text-muted mb-0 flex-grow-1" style="font-size:0.85rem; min-height: 100%;" id="paySummary">Loading...</p>
+                </div>
+                <p class="text-muted" style="font-size:0.8rem;">
+                    Salary for the month = total salary &minus; leave deduction (total / 30 per day) &minus; TDS. Reimbursements you tick are then added. Open an employee to choose which leaves are cut, which reimbursements are paid, and to generate the salary slip.
+                </p>
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Total Salary</th>
+                                    <th>Pending Reimbursements</th>
+                                    <th>Status</th>
+                                    <th>Net Payable</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payrollBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═════════ REIMBURSEMENTS ═════════ -->
+            <div class="tab-pane fade" id="paneReimbursements" role="tabpanel">
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                    <div>
+                        <label class="form-label" for="reimbUser">Employee</label>
+                        <select class="form-select" id="reimbUser" onchange="loadReimbursements()">
+                            <option value="">All employees</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="reimbStatus">Status</label>
+                        <select class="form-select" id="reimbStatus" onchange="loadReimbursements()">
+                            <option value="unpaid">Not yet paid</option>
+                            <option value="paid">Included in payroll</option>
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary-custom ms-auto" onclick="openReimbursementModal()">
+                        <i class="fas fa-plus me-1"></i>Add Reimbursement
+                    </button>
+                </div>
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Employee</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Receipt</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reimbBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- ═════════ UNIVERSAL LEAVES ═════════ -->
             <div class="tab-pane fade" id="paneHolidays" role="tabpanel">
                 <p class="text-muted" style="font-size:0.875rem;">
@@ -614,6 +698,52 @@
                         </div>
 
                         <div class="form-section">
+                            <div class="form-section-title"><i class="fas fa-heart me-2"></i>Personal &amp; Family Details</div>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_marital_status">Marital Status</label>
+                                    <select class="form-select" id="f_marital_status" onchange="syncMaritalFields()">
+                                        <option value="">Select</option>
+                                        <option value="single">Single</option>
+                                        <option value="married">Married</option>
+                                        <option value="divorced">Divorced</option>
+                                        <option value="widowed">Widowed</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_date_of_birth">Date of Birth</label>
+                                    <input type="date" class="form-control" id="f_date_of_birth">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_anniversary_date">Date of Anniversary</label>
+                                    <input type="date" class="form-control" id="f_anniversary_date">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_blood_group">Blood Group</label>
+                                    <select class="form-select" id="f_blood_group">
+                                        <option value="">Select</option>
+                                        <option>A+</option><option>A-</option>
+                                        <option>B+</option><option>B-</option>
+                                        <option>AB+</option><option>AB-</option>
+                                        <option>O+</option><option>O-</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_mother_name">Mother Name</label>
+                                    <input type="text" class="form-control" id="f_mother_name" maxlength="150">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f_father_name">Father Name</label>
+                                    <input type="text" class="form-control" id="f_father_name" maxlength="150">
+                                </div>
+                                <div class="col-md-4" id="spouseWrap">
+                                    <label class="form-label" for="f_spouse_name">Spouse Name</label>
+                                    <input type="text" class="form-control" id="f_spouse_name" maxlength="150">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
                             <div class="form-section-title"><i class="fas fa-id-badge me-2"></i>Identity Documents</div>
                             <div class="row g-3">
                                 <div class="col-md-3">
@@ -665,6 +795,58 @@
                         </div>
 
                         <div class="form-section">
+                            <div class="form-section-title"><i class="fas fa-indian-rupee-sign me-2"></i>Salary Structure (per month)</div>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_basic_pay">Basic Pay</label>
+                                    <input type="number" class="form-control salary-input" id="f_basic_pay" min="0" step="0.01" inputmode="decimal" oninput="updateSalaryTotal()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_da">DA</label>
+                                    <input type="number" class="form-control salary-input" id="f_da" min="0" step="0.01" inputmode="decimal" oninput="updateSalaryTotal()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_hra">HRA</label>
+                                    <input type="number" class="form-control salary-input" id="f_hra" min="0" step="0.01" inputmode="decimal" oninput="updateSalaryTotal()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_lta">LTA</label>
+                                    <input type="number" class="form-control salary-input" id="f_lta" min="0" step="0.01" inputmode="decimal" oninput="updateSalaryTotal()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_epf">EPF</label>
+                                    <input type="number" class="form-control salary-input" id="f_epf" min="0" step="0.01" inputmode="decimal" oninput="updateSalaryTotal()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_gratuity">Gratuity</label>
+                                    <input type="number" class="form-control salary-input" id="f_gratuity" min="0" step="0.01" inputmode="decimal" oninput="updateSalaryTotal()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_esic">ESIC</label>
+                                    <input type="number" class="form-control salary-input" id="f_esic" min="0" step="0.01" inputmode="decimal" oninput="updateSalaryTotal()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f_total_salary">Total Salary</label>
+                                    <input type="text" class="form-control fw-bold" id="f_total_salary" readonly tabindex="-1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label d-block">TDS Applicable</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="f_tds_applicable" onchange="syncTdsField()">
+                                        <label class="form-check-label" for="f_tds_applicable">Deduct TDS every month</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3" id="tdsAmountWrap">
+                                    <label class="form-label" for="f_tds_amount">TDS Amount (per month)</label>
+                                    <input type="number" class="form-control" id="f_tds_amount" min="0" step="0.01" inputmode="decimal">
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-text">One leave without pay is deducted as Total Salary / 30, whatever the month length. Leave deduction, TDS and reimbursements are applied in the Payroll tab.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div class="form-section-title mb-0"><i class="fas fa-phone-volume me-2"></i>Emergency Contacts</div>
                                 <button type="button" class="btn btn-sm btn-primary-custom" onclick="addEmergencyRow()">
@@ -702,12 +884,147 @@
                     </form>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger me-auto" id="employeeExitBtn" style="display:none;" onclick="openExitModal()">
+                        <i class="fas fa-right-from-bracket me-1"></i>Mark Exit
+                    </button>
+                    <button type="button" class="btn btn-outline-success me-auto" id="employeeReactivateBtn" style="display:none;" onclick="reactivateEmployee()">
+                        <i class="fas fa-rotate-left me-1"></i>Reactivate
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-warning" id="employeeEditBtn" onclick="showEmployeeForm()">
                         <i class="fas fa-pen me-1"></i>Edit
                     </button>
                     <button type="button" class="btn btn-primary-custom" id="employeeSaveBtn" style="display:none;" onclick="saveEmployee()">
                         <i class="fas fa-save me-1"></i>Save Details
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════ PAYROLL MODAL ═════════ -->
+    <div class="modal fade" id="payrollModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="payrollModalTitle">Payroll</h5>
+                        <div class="text-muted" style="font-size:0.8rem;" id="payrollModalSub"></div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="payrollModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger me-auto" id="payDeleteBtn" style="display:none;" onclick="deletePayroll()">
+                        <i class="fas fa-trash me-1"></i>Delete Payroll
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="paySlipBtn" style="display:none;" onclick="downloadSlip()">
+                        <i class="fas fa-file-pdf me-1"></i>Salary Slip
+                    </button>
+                    <div class="input-group" id="payPaidWrap" style="display:none; width:auto;">
+                        <input type="date" class="form-control" id="payPaidOn" aria-label="Paid on">
+                        <button type="button" class="btn btn-success" onclick="markPayrollPaid()">
+                            <i class="fas fa-check me-1"></i>Mark Paid
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-outline-warning" id="payReopenBtn" style="display:none;" onclick="reopenPayroll()">
+                        <i class="fas fa-lock-open me-1"></i>Reopen
+                    </button>
+                    <button type="button" class="btn btn-primary-custom" id="payGenerateBtn" onclick="generatePayroll()">
+                        <i class="fas fa-calculator me-1"></i>Generate Payroll
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════ REIMBURSEMENT MODAL ═════════ -->
+    <div class="modal fade" id="reimbModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Reimbursement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="reimbForm" onsubmit="return false;" novalidate>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label" for="reimbFormUser">Employee <span class="text-danger">*</span></label>
+                                <select class="form-select" id="reimbFormUser"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="reimbDate">Expense Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="reimbDate">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="reimbAmount">Amount <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="reimbAmount" min="0.01" step="0.01" inputmode="decimal">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="reimbDesc">Description <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="reimbDesc" rows="2" maxlength="500"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="reimbReceipt">Receipt photo <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="reimbReceipt" accept="image/*,.pdf">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary-custom" id="reimbSaveBtn" onclick="saveReimbursement()">
+                        <i class="fas fa-save me-1"></i>Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════ EXIT MODAL ═════════ -->
+    <div class="modal fade" id="exitModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Mark Employee Exit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning py-2" style="font-size:0.85rem;">
+                        <i class="fas fa-triangle-exclamation me-1"></i>
+                        <span id="exitWarnName">This employee</span> will be deactivated and can no longer sign in.
+                        After this, only an admin can change their records.
+                    </div>
+                    <form id="exitForm" onsubmit="return false;" novalidate>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="exitLastDay">Last Working Day <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="exitLastDay">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="exitIntent">Exit Intent <span class="text-danger">*</span></label>
+                                <select class="form-select" id="exitIntent">
+                                    <option value="">Select</option>
+                                    <option value="resignation">Resignation</option>
+                                    <option value="termination">Termination</option>
+                                    <option value="retirement">Retirement</option>
+                                    <option value="contract_end">End of contract</option>
+                                    <option value="absconding">Absconding</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="exitRemarks">Remarks</label>
+                                <textarea class="form-control" id="exitRemarks" rows="3" maxlength="1000"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="exitConfirmBtn" onclick="confirmExit()">
+                        <i class="fas fa-right-from-bracket me-1"></i>Confirm Exit
                     </button>
                 </div>
             </div>
@@ -813,7 +1130,10 @@
         const REPORTING_USERS = JSON.parse(document.getElementById("reportingUsersData").textContent)
         window.REPORTING_USERS = REPORTING_USERS
         const CSRF = "{{ csrf_token }}"
+        window.HR_IS_ADMIN = {{ is_admin|yesno:"true,false" }}
         const ENDPOINTS = {
+            payroll:        "{% url 'hr-payroll-api-list' %}",
+            reimbursements: "{% url 'hr-reimbursement-api-list' %}",
             employees:      "{% url 'hr-employee-api-list' %}",
             attendance:     "{% url 'hr-attendance-api-list' %}",
             leaves:         "{% url 'hr-leave-api-list' %}",

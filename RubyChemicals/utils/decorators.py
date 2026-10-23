@@ -1,4 +1,5 @@
 from functools import wraps
+from django.contrib.auth import logout
 from rest_framework.response import Response
 from rest_framework import status
 import logging
@@ -69,6 +70,19 @@ def check_authentication(required_role=None):
                         # "session_info": session_info,
                         "data": None,
                         "error": "User not authenticated"
+                    }, status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            # Deactivated or exited employees lose access immediately, even with a live session.
+            if not user.active_user:
+                logout(request)
+                return Response(
+                    {
+                        "success": False,
+                        "user_not_logged_in": True,
+                        "user_unauthorized": False,
+                        "data": None,
+                        "error": "This account is no longer active."
                     }, status=status.HTTP_401_UNAUTHORIZED
                 )
 

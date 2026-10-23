@@ -8,7 +8,19 @@ import re
 
 from rest_framework import serializers
 
-from .models import EmergencyContact, EmployeeDetail, Leave, LeaveApplication, UniversalLeave, User
+from django.utils import timezone
+
+from .models import (
+    EmergencyContact,
+    EmployeeDetail,
+    Leave,
+    LeaveApplication,
+    Payroll,
+    PayrollLeaveLine,
+    Reimbursement,
+    UniversalLeave,
+    User,
+)
 
 # Documents HR must upload before a profile can be saved.
 # Remove an entry here to make that document optional.
@@ -92,22 +104,58 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
     monthly_sick_leaves = serializers.DecimalField(
         max_digits=4, decimal_places=1, read_only=True, coerce_to_string=False)
 
+    # Salary amounts are sent as numbers so the UI can add them up without parsing strings.
+    tds_amount = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=0, required=False, coerce_to_string=False)
+    basic_pay = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=0, required=False, coerce_to_string=False)
+    da = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=0, required=False, coerce_to_string=False)
+    hra = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=0, required=False, coerce_to_string=False)
+    lta = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=0, required=False, coerce_to_string=False)
+    epf = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=0, required=False, coerce_to_string=False)
+    gratuity = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=0, required=False, coerce_to_string=False)
+    esic = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=0, required=False, coerce_to_string=False)
+    total_salary = serializers.DecimalField(
+        max_digits=14, decimal_places=2, read_only=True, coerce_to_string=False)
+
+    exit_intent_display = serializers.CharField(source='get_exit_intent_display', read_only=True)
+    exited_by_name = serializers.SerializerMethodField()
+
     class Meta:
         model = EmployeeDetail
         fields = [
             'id', 'user', 'user_code', 'user_name', 'email', 'role', 'active_user',
             'full_name', 'joining_date', 'department', 'position',
             'reporting_to', 'reporting_to_name',
+            'marital_status', 'date_of_birth', 'anniversary_date', 'blood_group',
+            'mother_name', 'father_name', 'spouse_name',
             'current_address', 'permanent_address', 'personal_mobile',
             'aadhar_number', 'aadhar_file', 'pan_number', 'pan_file',
             'bank_name', 'bank_account_no', 'bank_branch', 'bank_ifsc', 'bank_proof_file',
             'photo',
             'office_mobile', 'device_details', 'imei_1', 'imei_2', 'sim_card_in_name_of',
+            'tds_applicable', 'tds_amount',
+            'basic_pay', 'da', 'hra', 'lta', 'epf', 'gratuity', 'esic', 'total_salary',
+            'is_exited', 'last_working_day', 'exit_intent', 'exit_intent_display',
+            'exit_remarks', 'exited_at', 'exited_by_name',
             'emergency_contacts', 'missing_fields', 'is_complete',
             'monthly_casual_leaves', 'monthly_sick_leaves',
             'updated_at',
         ]
-        read_only_fields = ['id', 'updated_at']
+        # Exit details are written only through the exit endpoint.
+        read_only_fields = [
+            'id', 'updated_at',
+            'is_exited', 'last_working_day', 'exit_intent', 'exit_remarks', 'exited_at',
+        ]
+
+    def get_exited_by_name(self, obj):
+        return obj.exited_by.name if obj.exited_by_id else None
 
     def get_reporting_to_name(self, obj):
         return obj.reporting_to.name if obj.reporting_to_id else None
@@ -162,9 +210,29 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("An employee cannot report to themselves.")
         return value
 
+    def validate_date_of_birth(self, value):
+        if value and value >= timezone.localdate():
+            raise serializers.ValidationError("Date of birth must be in the past.")
+        return value
+
+    def _effective(self, attrs, field):
+        """New value if it is being changed, otherwise the stored one."""
+        if field in attrs:
+            return attrs[field]
+        return getattr(self.instance, field, None) if self.instance else None
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         errors = {}
+
+        if self._effective(attrs, 'tds_applicable') and not self._effective(attrs, 'tds_amount'):
+            errors['tds_amount'] = "Enter the monthly TDS amount when TDS is applicable."
+
+        dob = self._effective(attrs, 'date_of_birth')
+        anniversary = self._effective(attrs, 'anniversary_date')
+        if dob and anniversary and anniversary <= dob:
+            errors['anniversary_date'] = "Anniversary must be after the date of birth."
+
         for field, label in REQUIRED_DOCUMENTS.items():
             uploaded = attrs.get(field)
             existing = getattr(self.instance, field, None) if self.instance else None
@@ -218,3 +286,98 @@ class LeaveApplicationSerializer(serializers.ModelSerializer):
 
     def get_reviewed_by_name(self, obj):
         return obj.reviewed_by.name if obj.reviewed_by_id else None
+
+
+class ReimbursementSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.name', read_only=True)
+    user_code = serializers.CharField(source='user.user_id', read_only=True)
+    receipt_url = serializers.SerializerMethodField()
+    is_paid = serializers.SerializerMethodField()
+    payroll_period = serializers.SerializerMethodField()
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, coerce_to_string=False)
+
+    class Meta:
+        model = Reimbursement
+        fields = [
+            'id', 'user', 'user_name', 'user_code', 'expense_date', 'description', 'amount',
+            'receipt', 'receipt_url', 'payroll', 'is_paid', 'payroll_period', 'created_at',
+        ]
+        read_only_fields = ['id', 'user', 'payroll', 'created_at']
+        extra_kwargs = {'receipt': {'write_only': True}}
+
+    def get_receipt_url(self, obj):
+        if not obj.receipt:
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.receipt.url) if request else obj.receipt.url
+
+    def get_is_paid(self, obj):
+        return bool(obj.payroll_id and obj.payroll.status == 'paid')
+
+    def get_payroll_period(self, obj):
+        return f"{obj.payroll.year}-{obj.payroll.month:02d}" if obj.payroll_id else None
+
+    def validate_description(self, value):
+        value = (value or '').strip()
+        if len(value) < 3:
+            raise serializers.ValidationError("Describe what the expense was for.")
+        return value
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be greater than zero.")
+        return value
+
+    def validate_expense_date(self, value):
+        if value > timezone.localdate():
+            raise serializers.ValidationError("Expense date cannot be in the future.")
+        return value
+
+
+class PayrollLeaveLineSerializer(serializers.ModelSerializer):
+    leave_type_display = serializers.SerializerMethodField()
+    days = serializers.DecimalField(max_digits=3, decimal_places=1, coerce_to_string=False)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, coerce_to_string=False)
+
+    class Meta:
+        model = PayrollLeaveLine
+        fields = ['id', 'leave', 'date', 'leave_type', 'leave_type_display', 'day_type', 'days',
+                  'reason', 'deduct', 'amount']
+
+    def get_leave_type_display(self, obj):
+        return dict(Leave.LEAVE_TYPE_CHOICES).get(obj.leave_type, obj.leave_type)
+
+
+class PayrollSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.name', read_only=True)
+    user_code = serializers.CharField(source='user.user_id', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    generated_by_name = serializers.SerializerMethodField()
+    leave_lines = PayrollLeaveLineSerializer(many=True, read_only=True)
+    reimbursements = ReimbursementSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Payroll
+        fields = [
+            'id', 'user', 'user_name', 'user_code', 'year', 'month',
+            'basic_pay', 'da', 'hra', 'lta', 'epf', 'gratuity', 'esic', 'total_salary',
+            'per_day_rate', 'leave_days_deducted', 'leave_deduction',
+            'tds_applicable', 'tds_deducted', 'salary_for_month',
+            'reimbursement_total', 'adjustment_amount', 'adjustment_note', 'net_payable',
+            'status', 'status_display', 'paid_on', 'notes',
+            'generated_by_name', 'generated_at', 'leave_lines', 'reimbursements',
+        ]
+        read_only_fields = fields
+
+    def get_generated_by_name(self, obj):
+        return obj.generated_by.name if obj.generated_by_id else None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        for key in (
+            'basic_pay', 'da', 'hra', 'lta', 'epf', 'gratuity', 'esic', 'total_salary',
+            'per_day_rate', 'leave_days_deducted', 'leave_deduction', 'tds_deducted',
+            'salary_for_month', 'reimbursement_total', 'adjustment_amount', 'net_payable',
+        ):
+            data[key] = float(data[key])
+        return data

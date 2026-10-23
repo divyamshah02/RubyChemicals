@@ -7,6 +7,7 @@ let MY_ENDPOINTS = {}
 let profileData = null
 let leaveData = null
 let applyModal = null
+let claimModal = null
 let backdateLimitDays = 7
 
 const ROLE_LABELS = { accounts: 'Accounts', factory: 'Factory', accountant: 'Accountant', office: 'Office', hr: 'HR', admin: 'Admin' }
@@ -51,9 +52,14 @@ function toast(message, type = 'ok') {
     setTimeout(() => node.remove(), 4500)
 }
 
-async function api(method, url, body = null) {
+function fmtMoney(value) {
+    const n = Number(value || 0)
+    return '\u20B9' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+async function api(method, url, body = null, media = false) {
     try {
-        const result = await callApi(method, url, body, MY_CSRF, false)
+        const result = await callApi(method, url, body, MY_CSRF, media)
         if (!result) return { success: false, error: 'Unexpected response from the server.' }
         const [ok, data] = result
         if (!ok) return { success: false, error: String(data) }
@@ -139,6 +145,9 @@ async function initMyHR(csrf, endpoints) {
     MY_CSRF = csrf
     MY_ENDPOINTS = endpoints
     applyModal = new bootstrap.Modal(el('applyModal'))
+    claimModal = new bootstrap.Modal(el('claimModal'))
+    el('btnNewClaim').addEventListener('click', openClaimModal)
+    el('claimForm').addEventListener('submit', submitClaim)
 
     document.querySelectorAll('.hr-tabs [data-tab]').forEach(btn => {
         btn.addEventListener('click', () => showTab(btn.dataset.tab))
@@ -163,10 +172,10 @@ async function initMyHR(csrf, endpoints) {
     setInterval(tickClock, 15000)
 
     const startTab = (location.hash || '').replace('#', '')
-    showTab(['overview', 'details', 'attendance', 'leaves'].includes(startTab) ? startTab : 'overview')
+    showTab(['overview', 'details', 'attendance', 'leaves', 'pay'].includes(startTab) ? startTab : 'overview')
 
     setAttendanceRange(0)
-    await Promise.all([loadProfile(), loadLeaves(), loadCheckStatus(), loadMonthSummary()])
+    await Promise.all([loadProfile(), loadLeaves(), loadCheckStatus(), loadMonthSummary(), loadPayslips(), loadClaims()])
 }
 
 function showTab(name) {
@@ -554,4 +563,108 @@ async function submitApplication(event) {
     toast('Leave application submitted. HR will review it.')
     showTab('leaves')
     await Promise.all([loadLeaves(), loadProfile()])
+}
+
+/* ── Pay & reimbursements ────────────────────────────────────────────────── */
+
+async function loadPayslips() {
+    const res = await api('GET', MY_ENDPOINTS.payslips)
+    if (!res.success) {
+        el('payslipsBody').innerHTML = `<tr><td colspan="8" class="empty-state">${esc(res.error)}</td></tr>`
+        return
+    }
+    el('payslipsBody').innerHTML = res.data.length ? res.data.map(p => `
+        <tr>
+            <td><strong>${esc(p.month_label)}</strong></td>
+            <td>${fmtMoney(p.total_salary)}</td>
+            <td>${p.leave_deduction ? '&minus; ' + fmtMoney(p.leave_deduction) : '-'}</td>
+            <td>${p.tds_deducted ? '&minus; ' + fmtMoney(p.tds_deducted) : '-'}</td>
+            <td>${p.reimbursement_total ? '+ ' + fmtMoney(p.reimbursement_total) : '-'}</td>
+            <td><strong>${fmtMoney(p.net_payable)}</strong></td>
+            <td>${p.paid_on ? fmtDate(p.paid_on) : '-'}</td>
+            <td><a class="btn btn-sm btn-outline-primary" href="${MY_ENDPOINTS.payslips}${p.id}/slip/">
+                <i class="fas fa-file-pdf me-1"></i>Download</a></td>
+        </tr>`).join('')
+        : '<tr><td colspan="8" class="empty-state">No salary slips yet. They appear here once HR marks a month as paid.</td></tr>'
+}
+
+async function loadClaims() {
+    const res = await api('GET', MY_ENDPOINTS.reimbursements)
+    if (!res.success) {
+        el('claimsBody').innerHTML = `<tr><td colspan="6" class="empty-state">${esc(res.error)}</td></tr>`
+        return
+    }
+    el('claimSummary').textContent = res.unpaid_count
+        ? `${res.unpaid_count} claim${res.unpaid_count === 1 ? '' : 's'} not yet paid, totalling ${fmtMoney(res.unpaid_total)}.`
+        : 'No unpaid claims.'
+
+    el('claimsBody').innerHTML = res.data.length ? res.data.map(r => {
+        const status = r.payroll
+            ? `<span class="pill ${r.is_paid ? 'pill-approved' : 'pill-pending'}">${r.is_paid ? 'Paid' : 'In payroll'} ${esc(r.payroll_period || '')}</span>`
+            : '<span class="pill pill-pending">Pending</span>'
+        return `
+        <tr>
+            <td>${fmtDate(r.expense_date)}</td>
+            <td>${esc(r.description)}</td>
+            <td><strong>${fmtMoney(r.amount)}</strong></td>
+            <td>${r.receipt_url ? fileLink(r.receipt_url, 'View') : '-'}</td>
+            <td>${status}</td>
+            <td>${r.payroll ? '' : `<button type="button" class="btn btn-sm btn-outline-danger" aria-label="Withdraw claim" onclick="withdrawClaim(${r.id})">Withdraw</button>`}</td>
+        </tr>`
+    }).join('') : '<tr><td colspan="6" class="empty-state">You have not made any claims.</td></tr>'
+}
+
+function openClaimModal() {
+    el('claimForm').reset()
+    el('claimDate').value = toISODate(new Date())
+    el('claimError').hidden = true
+    claimModal.show()
+}
+
+async function submitClaim(event) {
+    event.preventDefault()
+    const error = el('claimError')
+    error.hidden = true
+
+    const amount = el('claimAmount').value
+    const description = el('claimDesc').value.trim()
+    const file = el('claimReceipt').files[0]
+    const problem = !el('claimDate').value ? 'Choose the expense date.'
+        : !amount || Number(amount) <= 0 ? 'Enter a valid amount.'
+        : !description ? 'Say what the expense was for.'
+        : !file ? 'Attach a photo of the receipt.'
+        : ''
+    if (problem) {
+        error.textContent = problem
+        error.hidden = false
+        return
+    }
+
+    const form = new FormData()
+    form.append('expense_date', el('claimDate').value)
+    form.append('amount', amount)
+    form.append('description', description)
+    form.append('receipt', file)
+
+    const submit = el('claimSubmit')
+    submit.disabled = true
+    const res = await api('POST', MY_ENDPOINTS.reimbursements, form, true)
+    submit.disabled = false
+
+    if (!res.success) {
+        error.textContent = res.error || 'Could not submit the claim.'
+        error.hidden = false
+        return
+    }
+    claimModal.hide()
+    toast('Claim submitted. HR will include it in a payroll.')
+    await loadClaims()
+}
+
+async function withdrawClaim(id) {
+    if (!confirm('Withdraw this claim?')) return
+    const res = await api('DELETE', `${MY_ENDPOINTS.reimbursements}${id}/`)
+    if (!res.success) { toast(res.error || 'Could not withdraw the claim.', 'err'); return }
+    toast('Claim withdrawn.')
+    await loadClaims()
 }
