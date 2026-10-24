@@ -202,12 +202,12 @@
                     <i class="fas fa-sliders me-1"></i>Leave Quotas
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li class="nav-item" role="presentation" style="display: none;">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panePayroll" type="button" role="tab">
                     <i class="fas fa-money-check-dollar me-1"></i>Payroll
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li class="nav-item" role="presentation" style="display: none;">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paneReimbursements" type="button" role="tab">
                     <i class="fas fa-receipt me-1"></i>Reimbursements
                 </button>
@@ -658,6 +658,10 @@
                                     <input type="text" class="form-control" id="f_full_name" maxlength="255">
                                 </div>
                                 <div class="col-md-4">
+                                    <label class="form-label" for="f_employee_code">Employee Code</label>
+                                    <input type="text" class="form-control" id="f_employee_code" maxlength="30" autocomplete="off">
+                                </div>
+                                <div class="col-md-4">
                                     <label class="form-label" for="f_joining_date">Joining Date</label>
                                     <input type="date" class="form-control" id="f_joining_date">
                                 </div>
@@ -693,6 +697,11 @@
                                     <label class="form-label" for="f_photo">Photo <span class="text-danger">*</span> (PDF / Image)</label>
                                     <input type="file" class="form-control" id="f_photo" accept="image/*,application/pdf">
                                     <div class="file-current" id="cur_photo"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="f_cv_file">CV / Resume (PDF / Image)</label>
+                                    <input type="file" class="form-control" id="f_cv_file" accept="image/*,application/pdf">
+                                    <div class="file-current" id="cur_cv_file"></div>
                                 </div>
                             </div>
                         </div>

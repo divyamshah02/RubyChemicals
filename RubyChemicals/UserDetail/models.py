@@ -192,6 +192,8 @@ class EmployeeDetail(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee_detail')
 
     full_name = models.CharField(max_length=255, blank=True)
+    # Entered manually by HR. Separate from User.user_id, which is auto-generated.
+    employee_code = models.CharField(max_length=30, blank=True)
     joining_date = models.DateField(null=True, blank=True)
     department = models.CharField(max_length=100, blank=True)
     position = models.CharField(max_length=100, blank=True)
@@ -221,6 +223,7 @@ class EmployeeDetail(models.Model):
     bank_proof_file = _document_field("Cancelled cheque / passbook (PDF/Image)")
 
     photo = _document_field("Employee photo (PDF/Image)")
+    cv_file = _document_field("CV / Resume (PDF/Image)")
 
     office_mobile = models.CharField(max_length=15, blank=True)
     device_details = models.CharField(max_length=255, blank=True, help_text="Office mobile make / model")

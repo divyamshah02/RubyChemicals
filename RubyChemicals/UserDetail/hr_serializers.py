@@ -53,6 +53,7 @@ AADHAR_RE = re.compile(r'^\d{12}$')
 PAN_RE = re.compile(r'^[A-Z]{5}[0-9]{4}[A-Z]$')
 IFSC_RE = re.compile(r'^[A-Z]{4}0[A-Z0-9]{6}$')
 IMEI_RE = re.compile(r'^\d{15}$')
+EMPLOYEE_CODE_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9\-_/]*$')
 
 
 def _clean_mobile(value, label):
@@ -131,14 +132,14 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
         model = EmployeeDetail
         fields = [
             'id', 'user', 'user_code', 'user_name', 'email', 'role', 'active_user',
-            'full_name', 'joining_date', 'department', 'position',
+            'full_name', 'employee_code', 'joining_date', 'department', 'position',
             'reporting_to', 'reporting_to_name',
             'marital_status', 'date_of_birth', 'anniversary_date', 'blood_group',
             'mother_name', 'father_name', 'spouse_name',
             'current_address', 'permanent_address', 'personal_mobile',
             'aadhar_number', 'aadhar_file', 'pan_number', 'pan_file',
             'bank_name', 'bank_account_no', 'bank_branch', 'bank_ifsc', 'bank_proof_file',
-            'photo',
+            'photo', 'cv_file',
             'office_mobile', 'device_details', 'imei_1', 'imei_2', 'sim_card_in_name_of',
             'tds_applicable', 'tds_amount',
             'basic_pay', 'da', 'hra', 'lta', 'epf', 'gratuity', 'esic', 'total_salary',
@@ -172,6 +173,20 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
         return not self.get_missing_fields(obj)
 
     # ── Field validation ─────────────────────────────────────────────────
+
+    def validate_employee_code(self, value):
+        value = (value or '').strip()
+        if not value:
+            return value
+        if not EMPLOYEE_CODE_RE.match(value):
+            raise serializers.ValidationError(
+                "Employee code can only contain letters, numbers, hyphen, underscore or slash.")
+        duplicates = EmployeeDetail.objects.filter(employee_code__iexact=value)
+        if self.instance:
+            duplicates = duplicates.exclude(pk=self.instance.pk)
+        if duplicates.exists():
+            raise serializers.ValidationError("This employee code is already used by another employee.")
+        return value
 
     def validate_personal_mobile(self, value):
         return _clean_mobile(value, "Personal mobile number")

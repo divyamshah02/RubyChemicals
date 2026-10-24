@@ -194,7 +194,7 @@ function tickClock() {
     el('liveDate').textContent = now.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-/* ── Check in / out ──────────────────────────────────────────────────────── */
+/* ── Check in / out ────────────────────────���─────────────────────────────── */
 
 async function loadCheckStatus() {
     const res = await api('GET', MY_ENDPOINTS.checkStatus)
@@ -277,6 +277,7 @@ function renderDetails(emp, user) {
             <div class="detail-grid">
                 ${detailItem('Name', esc(emp.full_name || user.name))}
                 ${detailItem('Employee ID', esc(user.user_code))}
+                ${detailItem('Employee Code', esc(emp.employee_code))}
                 ${detailItem('Email', esc(emp.email))}
                 ${detailItem('Role', esc(ROLE_LABELS[user.role] || user.role))}
                 ${detailItem('Joining Date', fmtDate(emp.joining_date))}
@@ -286,6 +287,7 @@ function renderDetails(emp, user) {
                 ${detailItem('Personal Mobile', esc(emp.personal_mobile))}
                 ${detailItem('Current Address', esc(emp.current_address))}
                 ${detailItem('Permanent Address', esc(emp.permanent_address))}
+                ${detailItem('CV / Resume', fileLink(emp.cv_file, 'View CV'))}
             </div>
         </div>
         <div class="form-section">

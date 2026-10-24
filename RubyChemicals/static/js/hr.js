@@ -15,9 +15,10 @@ let empSort = { key: 'user_name', dir: 'asc' }
 let attSort = 'date_asc'
 let leaveSort = { key: 'date', dir: 'desc' }
 
-const DOC_FIELDS = ['photo', 'aadhar_file', 'pan_file', 'bank_proof_file']
+const DOC_FIELDS = ['photo', 'aadhar_file', 'pan_file', 'bank_proof_file', 'cv_file']
+const OPTIONAL_DOC_FIELDS = ['cv_file']
 const TEXT_FIELDS = [
-    'full_name', 'joining_date', 'department', 'position', 'reporting_to',
+    'full_name', 'employee_code', 'joining_date', 'department', 'position', 'reporting_to',
     'current_address', 'permanent_address', 'personal_mobile',
     'aadhar_number', 'pan_number',
     'bank_name', 'bank_account_no', 'bank_branch', 'bank_ifsc',
@@ -223,7 +224,7 @@ function filteredEmployees() {
         if (completeness === 'complete' && !e.is_complete) return false
         if (completeness === 'incomplete' && e.is_complete) return false
         if (q) {
-            const haystack = [e.user_name, e.full_name, e.email, e.user_code, e.personal_mobile, e.office_mobile, e.position, e.department]
+            const haystack = [e.user_name, e.full_name, e.email, e.user_code, e.employee_code, e.personal_mobile, e.office_mobile, e.position, e.department]
                 .join(' ').toLowerCase()
             if (!haystack.includes(q)) return false
         }
@@ -399,6 +400,7 @@ function renderEmployeeView(emp) {
             <div class="detail-grid">
                 ${detailItem('Name', esc(emp.full_name || emp.user_name))}
                 ${detailItem('Employee ID', esc(emp.user_code))}
+                ${detailItem('Employee Code', esc(emp.employee_code))}
                 ${detailItem('Email', esc(emp.email))}
                 ${detailItem('Role', esc(ROLE_LABELS[emp.role] || emp.role))}
                 ${detailItem('Joining Date', fmtDate(emp.joining_date))}
@@ -409,6 +411,7 @@ function renderEmployeeView(emp) {
                 ${detailItem('Current Address', esc(emp.current_address))}
                 ${detailItem('Permanent Address', esc(emp.permanent_address))}
                 ${detailItem('Photo', fileLink(emp.photo, 'View photo'))}
+                ${detailItem('CV / Resume', fileLink(emp.cv_file, 'View CV'))}
             </div>
         </div>
         <div class="form-section">
@@ -498,7 +501,9 @@ function fillEmployeeForm(emp) {
         el(`f_${field}`).value = ''
         el(`cur_${field}`).innerHTML = emp[field]
             ? `Current: ${fileLink(emp[field], 'View file')}`
-            : '<span class="text-danger">Required - not uploaded yet</span>'
+            : OPTIONAL_DOC_FIELDS.includes(field)
+                ? '<span class="text-muted">Not uploaded yet</span>'
+                : '<span class="text-danger">Required - not uploaded yet</span>'
     })
 
     el('emergencyRows').innerHTML = ''
@@ -1338,7 +1343,7 @@ async function reviewApplication(id, decision) {
     await Promise.all([loadApplications(), loadLeaves(), loadAttendance(), loadQuotas()])
 }
 
-/* ── Leave quotas ────────────────────────────────────────────────────────── */
+/* ── Leave quotas ────────────────────────��───────────────────────────────── */
 
 async function loadQuotas() {
     const res = await api('GET', HR_ENDPOINTS.quotas)
@@ -1378,7 +1383,7 @@ async function saveQuota(userPk) {
     await loadQuotas()
 }
 
-/* ── Universal leaves ────────────────────────────────────────────────────── */
+/* ── Universal leaves ─────────────────────────────────────────────────────��� */
 
 async function loadHolidays() {
     const res = await api('GET', HR_ENDPOINTS.universalLeaves)
