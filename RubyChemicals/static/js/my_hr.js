@@ -194,7 +194,7 @@ function tickClock() {
     el('liveDate').textContent = now.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-/* ── Check in / out ────────────────────────���─────────────────────────────── */
+/* ── Check in / out ──────────────────────────────────────────────────────── */
 
 async function loadCheckStatus() {
     const res = await api('GET', MY_ENDPOINTS.checkStatus)
@@ -314,13 +314,14 @@ function renderDetails(emp, user) {
             <div class="v">${contacts || '<span class="text-muted">None added</span>'}</div>
         </div>
         <div class="form-section">
-            <div class="form-section-title">Office Device &amp; SIM</div>
+            <div class="form-section-title">My Assets</div>
             <div class="detail-grid">
-                ${detailItem('Office Mobile', esc(emp.office_mobile))}
-                ${detailItem('Mobile Details', esc(emp.device_details))}
-                ${detailItem('IMEI 1', esc(emp.imei_1))}
-                ${detailItem('IMEI 2', esc(emp.imei_2))}
-                ${detailItem('SIM Card In Name Of', esc(emp.sim_card_in_name_of))}
+                ${(emp.assets || []).length
+                    ? emp.assets.map(a => detailItem(
+                        `${a.asset_code} - ${a.type_display}${a.name ? ' (' + a.name + ')' : ''}`,
+                        `${esc(a.identifier_label)}: ${esc(a.unique_identifier)}${a.secondary_identifier ? ' / IMEI 2: ' + esc(a.secondary_identifier) : ''}<div class="text-muted" style="font-size:0.8rem;">Since ${fmtDate(a.assigned_on)}</div>`
+                    )).join('')
+                    : '<div class="text-muted">No assets assigned.</div>'}
             </div>
         </div>`
 }

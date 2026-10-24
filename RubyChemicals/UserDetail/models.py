@@ -11,6 +11,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 import os
 import random
@@ -225,6 +226,8 @@ class EmployeeDetail(models.Model):
     photo = _document_field("Employee photo (PDF/Image)")
     cv_file = _document_field("CV / Resume (PDF/Image)")
 
+    # Legacy device / SIM fields. Migration 0011 copied them into Asset records; the
+    # columns are kept only so no data is lost. Assets are managed through the Asset model.
     office_mobile = models.CharField(max_length=15, blank=True)
     device_details = models.CharField(max_length=255, blank=True, help_text="Office mobile make / model")
     imei_1 = models.CharField(max_length=20, blank=True)
@@ -513,3 +516,120 @@ class Reimbursement(models.Model):
 
     def __str__(self):
         return f"{self.user.name}: {self.amount} ({self.description[:30]})"
+
+
+class Asset(models.Model):
+    """
+    A company asset (laptop, mobile phone, SIM card or anything else).
+
+    Every asset gets a running code such as RBCA001 and one unique identifier
+    (IMEI for mobiles, serial number for laptops, the number for SIM cards).
+    `assigned_to` / `assigned_on` mirror the open AssetAssignment so lists stay
+    fast; AssetAssignment is the full history.
+    """
+
+    CODE_PREFIX = 'RBCA'
+
+    TYPE_LAPTOP = 'laptop'
+    TYPE_MOBILE = 'mobile'
+    TYPE_SIM = 'sim'
+    TYPE_OTHER = 'other'
+    TYPE_CHOICES = [
+        (TYPE_LAPTOP, 'Laptop'),
+        (TYPE_MOBILE, 'Mobile Phone'),
+        (TYPE_SIM, 'SIM Card'),
+        (TYPE_OTHER, 'Other'),
+    ]
+    IDENTIFIER_LABELS = {
+        TYPE_LAPTOP: 'Serial Number',
+        TYPE_MOBILE: 'IMEI Number',
+        TYPE_SIM: 'SIM Number',
+        TYPE_OTHER: 'Serial / Tag Number',
+    }
+
+    STATUS_AVAILABLE = 'available'
+    STATUS_ASSIGNED = 'assigned'
+    STATUS_RETIRED = 'retired'
+    STATUS_CHOICES = [
+        (STATUS_AVAILABLE, 'Available'),
+        (STATUS_ASSIGNED, 'Assigned'),
+        (STATUS_RETIRED, 'Retired'),
+    ]
+
+    code_number = models.PositiveIntegerField(unique=True, editable=False)
+    asset_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    type_label = models.CharField(max_length=100, blank=True, help_text="What it is, for type Other (e.g. Monitor)")
+    name = models.CharField(max_length=255, blank=True, help_text="Make / model or description")
+    unique_identifier = models.CharField(max_length=50, blank=True)
+    secondary_identifier = models.CharField(max_length=50, blank=True, help_text="Second IMEI of a dual-SIM phone")
+    registered_name = models.CharField(max_length=150, blank=True, help_text="SIM registered in the name of")
+    notes = models.TextField(blank=True)
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_AVAILABLE, db_index=True)
+    assigned_to = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='held_assets')
+    assigned_on = models.DateField(null=True, blank=True)
+
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-code_number']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['unique_identifier'],
+                condition=~Q(unique_identifier=''),
+                name='unique_asset_identifier',
+            ),
+        ]
+
+    @property
+    def asset_code(self):
+        return f"{self.CODE_PREFIX}{self.code_number:03d}"
+
+    def __str__(self):
+        return f"{self.asset_code} ({self.get_asset_type_display()})"
+
+
+class AssetAssignment(models.Model):
+    """One stretch of time an asset was with one employee."""
+
+    END_RETURNED = 'returned'
+    END_TRANSFERRED = 'transferred'
+    END_CHOICES = [
+        (END_RETURNED, 'Returned'),
+        (END_TRANSFERRED, 'Transferred'),
+    ]
+
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='assignments')
+    employee = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='asset_assignments')
+    employee_name = models.CharField(max_length=150, help_text="Name at the time of assignment")
+
+    assigned_on = models.DateField()
+    returned_on = models.DateField(null=True, blank=True)
+    end_reason = models.CharField(max_length=12, choices=END_CHOICES, blank=True)
+    assign_note = models.CharField(max_length=500, blank=True)
+    return_note = models.CharField(max_length=500, blank=True)
+
+    assigned_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    ended_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    created_at = models.DateTimeField(default=timezone.now)
+    ended_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-assigned_on', '-id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['asset'],
+                condition=Q(returned_on__isnull=True),
+                name='one_open_assignment_per_asset',
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.asset.asset_code} -> {self.employee_name}"

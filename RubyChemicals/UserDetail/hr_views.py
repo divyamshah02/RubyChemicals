@@ -124,7 +124,7 @@ def employee_queryset():
         EmployeeDetail.objects
         .filter(user__in=employee_users())
         .select_related('user', 'reporting_to')
-        .prefetch_related('emergency_contacts')
+        .prefetch_related('emergency_contacts', 'user__held_assets')
     )
 
 
@@ -691,7 +691,7 @@ class MyProfileViewSet(viewsets.ViewSet):
         detail = employee_detail_for(request.user)
         detail = (
             EmployeeDetail.objects.select_related('user', 'reporting_to')
-            .prefetch_related('emergency_contacts').get(pk=detail.pk)
+            .prefetch_related('emergency_contacts', 'user__held_assets').get(pk=detail.pk)
         )
         year, month = parse_month(request)
         return ok({
@@ -796,7 +796,7 @@ class MyLeaveViewSet(viewsets.ViewSet):
 
     @login_required_api
     def destroy(self, request, pk=None):
-        """DELETE — withdraw one of my pending applications."""
+        """DELETE ��� withdraw one of my pending applications."""
         application = LeaveApplication.objects.filter(pk=pk, user=request.user).first()
         if not application:
             return fail("Application not found.", status.HTTP_404_NOT_FOUND)

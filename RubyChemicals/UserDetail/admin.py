@@ -7,7 +7,7 @@ Changes vs original:
 """
 
 from django.contrib import admin
-from .models import User, ActivityLog, Attendance
+from .models import User, ActivityLog, Asset, AssetAssignment
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import AdminPasswordChangeForm
 from django.urls import path
@@ -150,15 +150,27 @@ class UserAdmin(BaseUserAdmin):
             context,
         )
 
+@admin.register(Asset)
+class AssetAdmin(admin.ModelAdmin):
+    list_display = ("code_display", "asset_type", "name", "unique_identifier", "status", "assigned_to", "assigned_on")
+    list_filter = ("asset_type", "status")
+    search_fields = ("name", "unique_identifier", "secondary_identifier", "assigned_to__name")
+    readonly_fields = ("code_number", "created_at")
+
+    @admin.display(description="Code")
+    def code_display(self, obj):
+        return obj.asset_code
+
+
+@admin.register(AssetAssignment)
+class AssetAssignmentAdmin(admin.ModelAdmin):
+    list_display = ("asset", "employee", "assigned_on", "returned_on", "end_reason")
+    list_filter = ("end_reason",)
+    search_fields = ("asset__unique_identifier", "employee__name", "employee_name")
+
+
 @admin.register(ActivityLog)
 class ActivityLogAdmin(admin.ModelAdmin):
     list_display = ("user", "action", "model_name", "record_id", "created_at")
     list_filter = ("action", "model_name")
     ordering = ("-created_at",)
-
-
-@admin.register(Attendance)
-class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ("user__name", "date", "check_in_time", "check_out_time", "created_at")
-    list_filter = ("user__name", "date")
-    search_fields = ("user__name", "date")

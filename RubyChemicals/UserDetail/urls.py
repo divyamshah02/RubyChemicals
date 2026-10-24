@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import *
+from .asset_views import HRAssetViewSet
 from .hr_views import (
     HREmployeeViewSet,
     HRAttendanceViewSet,
@@ -36,6 +37,7 @@ router.register(r'hr-leave-application-api', HRLeaveApplicationViewSet, basename
 router.register(r'hr-leave-quota-api', HRLeaveQuotaViewSet, basename='hr-leave-quota-api')
 router.register(r'hr-payroll-api', HRPayrollViewSet, basename='hr-payroll-api')
 router.register(r'hr-reimbursement-api', HRReimbursementViewSet, basename='hr-reimbursement-api')
+router.register(r'hr-asset-api', HRAssetViewSet, basename='hr-asset-api')
 
 # Employee self-service (profile page)
 router.register(r'my-profile-api', MyProfileViewSet, basename='my-profile-api')

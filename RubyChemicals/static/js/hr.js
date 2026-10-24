@@ -10,6 +10,7 @@ let leaves = []
 let holidays = []
 let applications = []
 let quotas = []
+let assets = []
 
 let empSort = { key: 'user_name', dir: 'asc' }
 let attSort = 'date_asc'
@@ -22,7 +23,6 @@ const TEXT_FIELDS = [
     'current_address', 'permanent_address', 'personal_mobile',
     'aadhar_number', 'pan_number',
     'bank_name', 'bank_account_no', 'bank_branch', 'bank_ifsc',
-    'office_mobile', 'device_details', 'imei_1', 'imei_2', 'sim_card_in_name_of',
     'marital_status', 'date_of_birth', 'anniversary_date', 'blood_group',
     'mother_name', 'father_name', 'spouse_name',
 ]
@@ -160,9 +160,16 @@ async function initHR(csrf, endpoints) {
     el('payPaidOn').value = toISODate(today)
     el('reimbDate').value = toISODate(today)
 
+    // Bootstrap clears body scroll-lock when a stacked modal closes; restore it while the employee modal is still open.
+    ;['assetModal', 'assetActionModal', 'assetHistoryModal'].forEach(id => {
+        el(id).addEventListener('hidden.bs.modal', () => {
+            if (el('employeeModal').classList.contains('show')) document.body.classList.add('modal-open')
+        })
+    })
+
     await Promise.all([
         loadEmployees(), loadLeaves(), loadHolidays(), loadApplications(), loadQuotas(), loadAttendance(),
-        loadPayroll(), loadReimbursements(),
+        loadPayroll(), loadReimbursements(), loadAssets(),
     ])
 }
 
@@ -196,6 +203,10 @@ function populateEmployeeSelects() {
     el('appUserFilter').value = appFilterValue
     el('leaveUser').value = leaveValue
 
+    const holderValue = el('assetHolderFilter').value
+    el('assetHolderFilter').innerHTML = `<option value="">Anyone</option>${options}`
+    el('assetHolderFilter').value = holderValue
+
     const departments = [...new Set(employees.map(e => (e.department || '').trim()).filter(Boolean))].sort()
     const deptValue = el('empDept').value
     el('empDept').innerHTML = `<option value="">All</option>${departments.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('')}`
@@ -224,7 +235,8 @@ function filteredEmployees() {
         if (completeness === 'complete' && !e.is_complete) return false
         if (completeness === 'incomplete' && e.is_complete) return false
         if (q) {
-            const haystack = [e.user_name, e.full_name, e.email, e.user_code, e.employee_code, e.personal_mobile, e.office_mobile, e.position, e.department]
+            const assetText = (e.assets || []).map(a => `${a.asset_code} ${a.unique_identifier} ${a.name}`).join(' ')
+            const haystack = [e.user_name, e.full_name, e.email, e.user_code, e.employee_code, e.personal_mobile, e.position, e.department, assetText]
                 .join(' ').toLowerCase()
             if (!haystack.includes(q)) return false
         }
@@ -460,14 +472,8 @@ function renderEmployeeView(emp) {
             <div class="v">${contacts || '<span class="text-muted">None added</span>'}</div>
         </div>
         <div class="form-section">
-            <div class="form-section-title">Office Device &amp; SIM</div>
-            <div class="detail-grid">
-                ${detailItem('Office Mobile', esc(emp.office_mobile))}
-                ${detailItem('Mobile Details', esc(emp.device_details))}
-                ${detailItem('IMEI 1', esc(emp.imei_1))}
-                ${detailItem('IMEI 2', esc(emp.imei_2))}
-                ${detailItem('SIM Card In Name Of', esc(emp.sim_card_in_name_of))}
-            </div>
+            <div class="form-section-title">Assets</div>
+            ${assetsReadOnly(emp)}
         </div>`
 }
 
@@ -509,6 +515,8 @@ function fillEmployeeForm(emp) {
     el('emergencyRows').innerHTML = ''
     if (emp.emergency_contacts.length) emp.emergency_contacts.forEach(addEmergencyRow)
     else addEmergencyRow()
+
+    renderEmpAssetsPanel(emp)
 }
 
 function copyCurrentAddress() {
@@ -577,6 +585,376 @@ async function saveEmployee() {
     el('employeeModalTitle').textContent = res.data.full_name || res.data.user_name
     showEmployeeView()
     toast('Employee details saved.')
+}
+
+/* ── Assets ──────────────────────────────────────────────────────────────── */
+
+const ASSET_IDENTIFIER_LABELS = {
+    laptop: 'Serial Number', mobile: 'IMEI 1 Number', sim: 'SIM Number', other: 'Serial / Tag Number',
+}
+
+function assetTitle(a) {
+    return [a.type_display, a.name].filter(Boolean).join(' - ')
+}
+
+function assetDetailText(a) {
+    const parts = [`${a.identifier_label}: ${a.unique_identifier}`]
+    if (a.secondary_identifier) parts.push(`IMEI 2: ${a.secondary_identifier}`)
+    if (a.registered_name) parts.push(`In name of ${a.registered_name}`)
+    return parts.join(' \u00B7 ')
+}
+
+function assetStatusPill(a) {
+    return `<span class="asset-status ${esc(a.status)}">${esc(a.status_display)}</span>`
+}
+
+function activeEmployeeOptions(excludePk, placeholder = 'Select employee') {
+    const list = employees
+        .filter(e => !e.is_exited && e.user !== excludePk)
+        .sort((a, b) => compare(a.user_name, b.user_name, 'asc'))
+    return `<option value="">${esc(placeholder)}</option>` +
+        list.map(e => `<option value="${e.user}">${esc(e.user_name)} (${esc(e.user_code)})</option>`).join('')
+}
+
+async function loadAssets() {
+    const res = await api('GET', HR_ENDPOINTS.assets)
+    if (!res.success) {
+        toast(res.error || 'Could not load assets.', 'err')
+        el('assetsBody').innerHTML = `<tr><td colspan="8" class="empty-state">Could not load assets.</td></tr>`
+        return
+    }
+    assets = res.data || []
+    renderAssets()
+}
+
+async function refreshAfterAssetChange() {
+    await Promise.all([loadAssets(), loadEmployees()])
+    const emp = el('empUserId').value ? currentEmployee() : null
+    if (emp && el('employeeModal').classList.contains('show')) {
+        renderEmployeeView(emp)
+        if (el('employeeForm').style.display !== 'none') renderEmpAssetsPanel(emp)
+    }
+}
+
+function filteredAssets() {
+    const q = el('assetSearch').value.trim().toLowerCase()
+    const type = el('assetTypeFilter').value
+    const status = el('assetStatusFilter').value
+    const holder = el('assetHolderFilter').value
+    return assets.filter(a => {
+        if (type && a.asset_type !== type) return false
+        if (status && a.status !== status) return false
+        if (holder && String(a.assigned_to) !== holder) return false
+        if (q) {
+            const haystack = [a.asset_code, a.type_display, a.name, a.unique_identifier, a.secondary_identifier,
+                a.registered_name, a.assigned_to_name, a.assigned_to_code].join(' ').toLowerCase()
+            if (!haystack.includes(q)) return false
+        }
+        return true
+    })
+}
+
+function assetRowButtons(a) {
+    const btn = (cls, icon, title, fn) =>
+        `<button class="btn ${cls}" title="${title}" aria-label="${title}" onclick="${fn}"><i class="fas ${icon}"></i></button>`
+    const buttons = [
+        btn('btn-info', 'fa-clock-rotate-left', 'History', `openAssetHistory(${a.id})`),
+        btn('btn-warning', 'fa-pen', 'Edit asset', `openAssetModal({ assetId: ${a.id} })`),
+    ]
+    if (a.status === 'available') {
+        buttons.push(
+            btn('btn-success-custom', 'fa-user-plus', 'Assign to employee', `openAssetAction(${a.id}, 'assign')`),
+            btn('btn-danger', 'fa-ban', 'Retire asset', `openAssetAction(${a.id}, 'retire')`),
+            btn('btn-danger', 'fa-trash', 'Delete asset', `deleteAsset(${a.id})`),
+        )
+    } else if (a.status === 'assigned') {
+        buttons.push(
+            btn('btn-primary-custom', 'fa-right-left', 'Transfer to another employee', `openAssetAction(${a.id}, 'transfer')`),
+            btn('btn-secondary', 'fa-rotate-left', 'Mark as returned', `openAssetAction(${a.id}, 'return')`),
+        )
+    } else {
+        buttons.push(btn('btn-success-custom', 'fa-rotate-right', 'Reinstate asset', `reinstateAsset(${a.id})`))
+    }
+    return `<div class="action-buttons">${buttons.join('')}</div>`
+}
+
+function renderAssets() {
+    const list = filteredAssets()
+    if (!list.length) {
+        el('assetsBody').innerHTML = `<tr><td colspan="8" class="empty-state">${assets.length ? 'No assets match the filters.' : 'No assets yet. Use Add Asset to create one.'}</td></tr>`
+        return
+    }
+    el('assetsBody').innerHTML = list.map(a => `
+        <tr>
+            <td><span class="asset-code">${esc(a.asset_code)}</span></td>
+            <td>${esc(a.type_display)}</td>
+            <td>${esc(a.name) || '-'}${a.registered_name ? `<div class="emp-sub">In name of ${esc(a.registered_name)}</div>` : ''}</td>
+            <td>${esc(a.unique_identifier)}${a.secondary_identifier ? `<div class="emp-sub">IMEI 2: ${esc(a.secondary_identifier)}</div>` : ''}</td>
+            <td>${assetStatusPill(a)}</td>
+            <td>${a.assigned_to_name ? `${esc(a.assigned_to_name)}<div class="emp-sub">${esc(a.assigned_to_code)}</div>` : '-'}</td>
+            <td>${a.assigned_to_name ? fmtDate(a.assigned_on) : '-'}</td>
+            <td>${assetRowButtons(a)}</td>
+        </tr>`).join('')
+}
+
+/* Employee modal: held assets */
+
+function heldAssetRow(a, withActions) {
+    const actions = withActions ? `
+        <div class="action-buttons">
+            <button type="button" class="btn btn-primary-custom" style="padding:0.3rem 0.65rem;font-size:0.8rem;" onclick="openAssetAction(${a.id}, 'transfer')"><i class="fas fa-right-left me-1"></i>Transfer</button>
+            <button type="button" class="btn btn-secondary" style="padding:0.3rem 0.65rem;font-size:0.8rem;" onclick="openAssetAction(${a.id}, 'return')"><i class="fas fa-rotate-left me-1"></i>Return</button>
+        </div>` : ''
+    return `
+        <div class="asset-row">
+            <span class="asset-code">${esc(a.asset_code)}</span>
+            <div class="asset-info">
+                <div class="fw-semibold">${esc(assetTitle(a))}</div>
+                <div class="asset-sub">${esc(assetDetailText(a))} &middot; since ${fmtDate(a.assigned_on)}</div>
+            </div>
+            ${actions}
+        </div>`
+}
+
+function assetsReadOnly(emp) {
+    const held = emp.assets || []
+    const list = held.length
+        ? held.map(a => heldAssetRow(a, false)).join('')
+        : '<div class="text-muted mb-2">No assets assigned.</div>'
+    return `${list}
+        <button type="button" class="btn btn-info mt-1" onclick="openEmployeeAssetHistory(${emp.user})">
+            <i class="fas fa-clock-rotate-left me-1"></i>Full asset history
+        </button>`
+}
+
+function renderEmpAssetsPanel(emp) {
+    const held = emp.assets || []
+    const available = assets.filter(a => a.status === 'available')
+    const list = held.length
+        ? held.map(a => heldAssetRow(a, true)).join('')
+        : '<div class="text-muted mb-2">No assets assigned.</div>'
+    const options = available.length
+        ? available.map(a => `<option value="${a.id}">${esc(a.asset_code)} - ${esc(assetTitle(a))} (${esc(a.unique_identifier)})</option>`).join('')
+        : ''
+    el('empAssetsPanel').innerHTML = `
+        ${list}
+        <div class="row g-2 align-items-end mt-2">
+            <div class="col-md-7">
+                <label class="form-label" for="empAssetSelect">Assign an available asset</label>
+                <select class="form-select" id="empAssetSelect" ${available.length ? '' : 'disabled'}>
+                    <option value="">${available.length ? 'Choose asset' : 'No available assets'}</option>${options}
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-success-custom" onclick="assignChosenAsset(${emp.user})"><i class="fas fa-user-plus me-1"></i>Assign</button>
+                <button type="button" class="btn btn-primary-custom" onclick="openAssetModal({ assignTo: ${emp.user} })"><i class="fas fa-plus me-1"></i>New asset</button>
+                <button type="button" class="btn btn-info" onclick="openEmployeeAssetHistory(${emp.user})"><i class="fas fa-clock-rotate-left me-1"></i>History</button>
+            </div>
+        </div>`
+}
+
+function assignChosenAsset(userPk) {
+    const assetId = el('empAssetSelect').value
+    if (!assetId) { toast('Choose an available asset first.', 'err'); return }
+    openAssetAction(Number(assetId), 'assign', userPk)
+}
+
+/* Create / edit asset */
+
+function syncAssetForm() {
+    const type = el('as_type').value
+    el('as_identifier_label').textContent = ASSET_IDENTIFIER_LABELS[type]
+    el('as_identifier').maxLength = type === 'mobile' ? 15 : 50
+    el('as_identifier').inputMode = type === 'mobile' || type === 'sim' ? 'numeric' : 'text'
+    el('as_type_label_wrap').style.display = type === 'other' ? '' : 'none'
+    el('as_identifier2_wrap').style.display = type === 'mobile' ? '' : 'none'
+    el('as_registered_wrap').style.display = type === 'sim' ? '' : 'none'
+    el('as_name_wrap').querySelector('label').textContent = type === 'sim' ? 'Operator / Plan' : 'Make / Model'
+}
+
+function openAssetModal({ assetId = null, assignTo = null } = {}) {
+    const asset = assetId ? assets.find(a => a.id === assetId) : null
+    el('assetForm').reset()
+    el('as_id').value = asset ? asset.id : ''
+    el('assetModalTitle').textContent = asset ? `Edit ${asset.asset_code}` : 'Add Asset'
+    el('as_type').disabled = !!asset
+    el('as_assign_wrap').style.display = asset ? 'none' : ''
+
+    if (asset) {
+        el('as_type').value = asset.asset_type
+        el('as_type_label').value = asset.type_label || ''
+        el('as_name').value = asset.name || ''
+        el('as_identifier').value = asset.unique_identifier || ''
+        el('as_identifier2').value = asset.secondary_identifier || ''
+        el('as_registered').value = asset.registered_name || ''
+        el('as_notes').value = asset.notes || ''
+    } else {
+        el('as_assign_to').innerHTML = activeEmployeeOptions(null, 'Keep unassigned (available)')
+        el('as_assign_to').value = assignTo ? String(assignTo) : ''
+        el('as_assigned_on').value = toISODate(new Date())
+    }
+    syncAssetForm()
+    bootstrap.Modal.getOrCreateInstance(el('assetModal')).show()
+}
+
+async function saveAsset() {
+    const id = el('as_id').value
+    const body = {
+        asset_type: el('as_type').value,
+        type_label: el('as_type_label').value.trim(),
+        name: el('as_name').value.trim(),
+        unique_identifier: el('as_identifier').value.trim(),
+        secondary_identifier: el('as_identifier2').value.trim(),
+        registered_name: el('as_registered').value.trim(),
+        notes: el('as_notes').value.trim(),
+    }
+    if (!body.unique_identifier) { toast(`${ASSET_IDENTIFIER_LABELS[body.asset_type]} is required.`, 'err'); return }
+    if (!id && el('as_assign_to').value) {
+        body.assign_to = el('as_assign_to').value
+        body.assigned_on = el('as_assigned_on').value
+    }
+
+    const button = el('assetSaveBtn')
+    button.disabled = true
+    const res = await api(id ? 'PATCH' : 'POST', id ? `${HR_ENDPOINTS.assets}${id}/` : HR_ENDPOINTS.assets, body)
+    button.disabled = false
+
+    if (!res.success) { toast(res.error || 'Could not save the asset.', 'err'); return }
+    bootstrap.Modal.getOrCreateInstance(el('assetModal')).hide()
+    toast(id ? `${res.data.asset_code} updated.` : `Asset created with code ${res.data.asset_code}.`)
+    await refreshAfterAssetChange()
+}
+
+async function deleteAsset(id) {
+    const asset = assets.find(a => a.id === id)
+    if (!asset || !confirm(`Delete ${asset.asset_code}? This is only for assets entered by mistake.`)) return
+    const res = await api('DELETE', `${HR_ENDPOINTS.assets}${id}/`)
+    if (!res.success) { toast(res.error || 'Could not delete the asset.', 'err'); return }
+    toast(`${asset.asset_code} deleted.`)
+    await refreshAfterAssetChange()
+}
+
+async function reinstateAsset(id) {
+    const res = await api('POST', `${HR_ENDPOINTS.assets}${id}/reinstate/`, {})
+    if (!res.success) { toast(res.error || 'Could not reinstate the asset.', 'err'); return }
+    toast(`${res.data.asset_code} is available again.`)
+    await refreshAfterAssetChange()
+}
+
+/* Assign / transfer / return / retire */
+
+const ASSET_ACTIONS = {
+    assign:   { title: 'Assign Asset', confirm: 'Assign', employee: true, date: 'Assigned on', note: 'Note (optional)' },
+    transfer: { title: 'Transfer Asset', confirm: 'Transfer', employee: true, date: 'Transferred on', note: 'Note (optional)' },
+    return:   { title: 'Mark Asset as Returned', confirm: 'Mark Returned', employee: false, date: 'Returned on', note: 'Return note (optional)' },
+    retire:   { title: 'Retire Asset', confirm: 'Retire', employee: false, date: null, note: 'Reason for retiring *' },
+}
+const ASSET_ACTION_DONE = { assign: 'assigned', transfer: 'transferred', return: 'marked as returned', retire: 'retired' }
+
+function openAssetAction(assetId, mode, employeePk = null) {
+    const asset = assets.find(a => a.id === assetId)
+    if (!asset) return
+    const cfg = ASSET_ACTIONS[mode]
+    el('aaAssetId').value = assetId
+    el('aaMode').value = mode
+    el('aaTitle').textContent = cfg.title
+    el('aaConfirmBtn').textContent = cfg.confirm
+    el('aaAssetInfo').innerHTML = `
+        <span class="asset-code">${esc(asset.asset_code)}</span>
+        <span class="ms-2 fw-semibold">${esc(assetTitle(asset))}</span>
+        <div class="asset-sub mt-1">${esc(assetDetailText(asset))}${asset.assigned_to_name ? ` &middot; held by ${esc(asset.assigned_to_name)} since ${fmtDate(asset.assigned_on)}` : ''}</div>`
+
+    el('aaEmployeeWrap').style.display = cfg.employee ? '' : 'none'
+    if (cfg.employee) {
+        el('aaEmployee').innerHTML = activeEmployeeOptions(asset.assigned_to)
+        el('aaEmployee').value = employeePk ? String(employeePk) : ''
+    }
+    el('aaDateWrap').style.display = cfg.date ? '' : 'none'
+    if (cfg.date) {
+        el('aaDateLabel').textContent = cfg.date
+        el('aaDate').value = toISODate(new Date())
+    }
+    el('aaNoteLabel').textContent = cfg.note
+    el('aaNote').value = ''
+    bootstrap.Modal.getOrCreateInstance(el('assetActionModal')).show()
+}
+
+async function confirmAssetAction() {
+    const id = el('aaAssetId').value
+    const mode = el('aaMode').value
+    const cfg = ASSET_ACTIONS[mode]
+    const body = { note: el('aaNote').value.trim() }
+
+    if (cfg.employee) {
+        body.employee = el('aaEmployee').value
+        if (!body.employee) { toast('Choose an employee.', 'err'); return }
+    }
+    if (cfg.date) body.date = el('aaDate').value
+    if (mode === 'retire' && !body.note) { toast('Add a reason for retiring this asset.', 'err'); return }
+
+    const button = el('aaConfirmBtn')
+    button.disabled = true
+    const res = await api('POST', `${HR_ENDPOINTS.assets}${id}/${mode}/`, body)
+    button.disabled = false
+
+    if (!res.success) { toast(res.error || 'Could not complete this action.', 'err'); return }
+    bootstrap.Modal.getOrCreateInstance(el('assetActionModal')).hide()
+    toast(`${res.data.asset_code} ${ASSET_ACTION_DONE[mode]}.`)
+    await refreshAfterAssetChange()
+}
+
+/* History */
+
+function assignmentTable(rows, showAsset) {
+    if (!rows.length) return '<div class="empty-state">No assignments recorded yet.</div>'
+    const body = rows.map(r => {
+        const ended = r.returned_on
+            ? `${fmtDate(r.returned_on)}<div class="emp-sub">${esc(r.end_reason_display)}${r.ended_by_name ? ` by ${esc(r.ended_by_name)}` : ''}</div>`
+            : '<span class="asset-status assigned">Currently held</span>'
+        const notes = [r.assign_note, r.return_note].filter(Boolean).map(esc).join('<br>')
+        return `
+        <tr>
+            ${showAsset
+                ? `<td><span class="asset-code">${esc(r.asset_code)}</span><div class="emp-sub">${esc(r.asset_type_display)}${r.asset_name ? ' - ' + esc(r.asset_name) : ''}</div></td>`
+                : `<td>${esc(r.employee_name)}<div class="emp-sub">${esc(r.employee_code)}</div></td>`}
+            <td>${fmtDate(r.assigned_on)}${r.assigned_by_name ? `<div class="emp-sub">by ${esc(r.assigned_by_name)}</div>` : ''}</td>
+            <td>${ended}</td>
+            <td>${r.days_held} day(s)</td>
+            <td>${notes || '-'}</td>
+        </tr>`
+    }).join('')
+    return `
+        <div class="table-responsive">
+            <table class="table">
+                <thead><tr><th>${showAsset ? 'Asset' : 'Employee'}</th><th>Assigned</th><th>Returned / Transferred</th><th>Held for</th><th>Notes</th></tr></thead>
+                <tbody>${body}</tbody>
+            </table>
+        </div>`
+}
+
+async function openAssetHistory(assetId) {
+    el('ahTitle').textContent = 'Asset History'
+    el('ahBody').innerHTML = '<div class="empty-state">Loading...</div>'
+    bootstrap.Modal.getOrCreateInstance(el('assetHistoryModal')).show()
+
+    const res = await api('GET', `${HR_ENDPOINTS.assets}${assetId}/`)
+    if (!res.success) { el('ahBody').innerHTML = `<div class="empty-state">${esc(res.error || 'Could not load history.')}</div>`; return }
+    const { asset, history } = res.data
+    el('ahTitle').textContent = `${asset.asset_code} - ${assetTitle(asset)}`
+    el('ahBody').innerHTML = `
+        <div class="mb-3">${assetStatusPill(asset)} <span class="asset-sub ms-2">${esc(assetDetailText(asset))}</span></div>
+        ${assignmentTable(history, false)}`
+}
+
+async function openEmployeeAssetHistory(userPk) {
+    const emp = employees.find(e => e.user === userPk)
+    el('ahTitle').textContent = `Asset history - ${emp ? emp.full_name || emp.user_name : 'Employee'}`
+    el('ahBody').innerHTML = '<div class="empty-state">Loading...</div>'
+    bootstrap.Modal.getOrCreateInstance(el('assetHistoryModal')).show()
+
+    const res = await api('GET', `${HR_ENDPOINTS.assets}employee-history/?employee=${userPk}`)
+    if (!res.success) { el('ahBody').innerHTML = `<div class="empty-state">${esc(res.error || 'Could not load history.')}</div>`; return }
+    el('ahBody').innerHTML = assignmentTable(res.data || [], true)
 }
 
 /* ── Payroll ─────────────────────────────────────────────────────────────── */
