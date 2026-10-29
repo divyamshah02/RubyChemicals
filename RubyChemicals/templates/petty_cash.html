@@ -84,22 +84,74 @@
     <div class="tab-content">
         <!-- All Transactions Tab -->
         <div id="allTransactions" class="tab-pane fade show active">
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <label for="transactionTypeFilter" class="mb-0" style="font-weight: 600; color: #475569;">
-                    <i class="fas fa-filter" style="margin-right: 0.25rem;"></i>Transaction Type
-                </label>
-                <select id="transactionTypeFilter" class="form-select" style="width: auto; min-width: 160px;"
-                    onchange="renderAllTransactionsTab()">
-                    <option value="">All</option>
-                    <option value="credit">Credit</option>
-                    <option value="debit">Debit</option>
-                </select>
+            <div class="row g-2 mb-3 align-items-end">
+                <div class="col-6 col-md-2">
+                    <label for="transactionTypeFilter" class="form-label small fw-semibold text-secondary mb-1">Type</label>
+                    <select id="transactionTypeFilter" class="form-select form-select-sm" onchange="applyFilters()">
+                        <option value="">All</option>
+                        <option value="credit">Credit</option>
+                        <option value="debit">Debit</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="headFilter" class="form-label small fw-semibold text-secondary mb-1">Expense Head</label>
+                    <select id="headFilter" class="form-select form-select-sm" onchange="applyFilters()">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="paidViaFilter" class="form-label small fw-semibold text-secondary mb-1">Paid Via</label>
+                    <select id="paidViaFilter" class="form-select form-select-sm" onchange="applyFilters()">
+                        <option value="">All</option>
+                        <option value="online">Online</option>
+                        <option value="cash">Cash</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="paymentTypeFilter" class="form-label small fw-semibold text-secondary mb-1">Payment Type</label>
+                    <select id="paymentTypeFilter" class="form-select form-select-sm" onchange="applyFilters()">
+                        <option value="">All</option>
+                        <option value="advance">Advance</option>
+                        <option value="part">Part</option>
+                        <option value="final">Final</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="dateFromFilter" class="form-label small fw-semibold text-secondary mb-1">From</label>
+                    <input id="dateFromFilter" type="date" class="form-control form-control-sm" onchange="applyFilters()">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="dateToFilter" class="form-label small fw-semibold text-secondary mb-1">To</label>
+                    <input id="dateToFilter" type="date" class="form-control form-control-sm" onchange="applyFilters()">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label for="searchFilter" class="form-label small fw-semibold text-secondary mb-1">Search</label>
+                    <input id="searchFilter" type="search" class="form-control form-control-sm"
+                        placeholder="Challan no., recipient, paid by, particulars, notes, head, amount..."
+                        oninput="debouncedApplyFilters()">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="pageSizeSelect" class="form-label small fw-semibold text-secondary mb-1">Rows per page</label>
+                    <select id="pageSizeSelect" class="form-select form-select-sm" onchange="applyFilters()">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetFilters()">
+                        <i class="fas fa-rotate-left"></i> Reset
+                    </button>
+                </div>
             </div>
+            <div id="transactionTotals" class="d-flex flex-wrap gap-3 mb-2 small"></div>
             <div
-                style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 600px; overflow-y: auto;">
+                style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; overflow-x: auto;">
                 <table class="table mb-0">
-                    <thead style="background: #f8fafc; position: sticky; top: 0;">
+                    <thead style="background: #f8fafc;">
                         <tr>
+                            <th>Challan</th>
                             <th>Date</th>
                             <th>Expense Head</th>
                             <th>To</th>
@@ -109,11 +161,17 @@
                             <th>Amount</th>
                             <th>Paid Via</th>
                             <th>Payment Type</th>
-                            <th>Action</th>
+                            <th style="min-width: 220px;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="allTransactionsTable"></tbody>
                 </table>
+            </div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+                <div id="paginationInfo" class="small text-muted"></div>
+                <nav aria-label="Transactions pages">
+                    <ul class="pagination pagination-sm mb-0" id="paginationControls"></ul>
+                </nav>
             </div>
         </div>
 
@@ -212,7 +270,11 @@
                     <textarea id="expenseParticulars" class="form-control mb-3"
                         placeholder="Details other than remarks..."></textarea>
                     <label class="form-label">Notes (Optional)</label>
-                    <textarea id="expenseNotes" class="form-control" placeholder="Add notes..."></textarea>
+                    <textarea id="expenseNotes" class="form-control mb-3" placeholder="Add notes..."></textarea>
+                    <label class="form-label">Attach Bill (PDF or Image, optional)</label>
+                    <input id="expenseBill" type="file" class="form-control"
+                        accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp">
+                    <div class="form-text">Max 10 MB. PDF, JPG, PNG or WEBP.</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -332,12 +394,53 @@
                     <textarea id="editExpenseParticulars" class="form-control mb-3"
                         placeholder="Details other than remarks..."></textarea>
                     <label class="form-label">Notes (Optional)</label>
-                    <textarea id="editExpenseNotes" class="form-control" placeholder="Add notes..."></textarea>
+                    <textarea id="editExpenseNotes" class="form-control mb-3" placeholder="Add notes..."></textarea>
+                    <label class="form-label">Attached Bill</label>
+                    <div id="editCurrentBill" class="small mb-2"></div>
+                    <input id="editExpenseBill" type="file" class="form-control"
+                        accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp">
+                    <div class="form-text">Choose a file to attach or replace the bill. Max 10 MB.</div>
+                    <div id="editRemoveBillWrap" class="form-check mt-2" style="display: none;">
+                        <input class="form-check-input" type="checkbox" id="editRemoveBill">
+                        <label class="form-check-label" for="editRemoveBill">Remove the current bill</label>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button class="btn btn-primary" onclick="updateTransaction()"><i class="fas fa-save"></i> Update
                         Expense</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Voucher Modal -->
+    <div class="modal fade" id="viewVoucherModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-invoice"></i> <span id="voucherModalTitle">Expense Voucher</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="background: #f1f5f9;">
+                    <div id="voucherSheet" class="voucher-sheet"></div>
+                    <div id="voucherBillSection" class="voucher-bill" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="fas fa-paperclip"></i> Attached Bill</h6>
+                            <a id="voucherBillOpen" class="btn btn-sm btn-outline-secondary" href="#" target="_blank"
+                                rel="noopener"><i class="fas fa-up-right-from-square"></i> Open in new tab</a>
+                        </div>
+                        <div id="voucherBillPreview"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button id="voucherPdfBtn" class="btn btn-outline-primary" onclick="downloadCurrentVoucherPdf()">
+                        <i class="fas fa-file-pdf"></i> Download PDF
+                    </button>
+                    <button class="btn btn-primary" onclick="downloadCurrentVoucherImage()">
+                        <i class="fas fa-image"></i> Download Image
+                    </button>
                 </div>
             </div>
         </div>
@@ -400,8 +503,143 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="/static/js/api_caller.js"></script>
     <script src="/static/js/petty_cash.js"></script>
+    <style>
+        .voucher-sheet {
+            background: #fff;
+            color: #111;
+            padding: 28px 32px;
+            max-width: 720px;
+            margin: 0 auto;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+        }
+
+        .voucher-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .voucher-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1e3a8a;
+            text-decoration: underline;
+            margin: 0;
+        }
+
+        .voucher-brand {
+            text-align: right;
+        }
+
+        .voucher-brand img {
+            height: 54px;
+            width: auto;
+        }
+
+        .voucher-brand small {
+            display: block;
+            color: #1e3a8a;
+            font-size: 12px;
+        }
+
+        .voucher-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 14px;
+        }
+
+        .voucher-field {
+            flex: 1;
+            display: flex;
+            gap: 6px;
+            align-items: baseline;
+            min-width: 0;
+        }
+
+        .voucher-field label {
+            font-size: 13px;
+            color: #334155;
+            white-space: nowrap;
+            margin: 0;
+        }
+
+        .voucher-field .v-line {
+            flex: 1;
+            border-bottom: 1px solid #1e3a8a;
+            padding: 0 4px;
+            min-height: 20px;
+            font-weight: 500;
+            text-transform: none;
+            word-break: break-word;
+        }
+
+        .voucher-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0 14px;
+        }
+
+        .voucher-table th {
+            background: #0f2557;
+            color: #fff;
+            text-align: center;
+            padding: 6px;
+            font-size: 13px;
+            border: 1px solid #0f2557;
+        }
+
+        .voucher-table td {
+            border: 1px solid #0f2557;
+            padding: 8px 10px;
+            vertical-align: top;
+        }
+
+        .voucher-table .particulars-cell {
+            height: 130px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .voucher-table .total-label {
+            text-align: right;
+            font-weight: 700;
+        }
+
+        .voucher-bill {
+            background: #fff;
+            max-width: 720px;
+            margin: 16px auto 0;
+            padding: 16px 20px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .voucher-bill img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .voucher-bill iframe {
+            width: 100%;
+            height: 520px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .voucher-remarks .v-line {
+            border-bottom: 1px solid #1e3a8a;
+            min-height: 26px;
+            padding: 0 4px;
+            word-break: break-word;
+        }
+    </style>
     <style>
         .collapse-header {
             text-align: left;

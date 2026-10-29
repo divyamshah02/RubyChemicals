@@ -2,7 +2,11 @@ let csrf, endpoints;
 let currentCashType = 'office';
 let headsByType = {};
 let allTransactions = [];
+let pageTransactions = [];
 let accounts = {};
+let currentPage = 1;
+let currentVoucher = null;
+let filterDebounce = null;
 
 function init(csrfToken, eps) {
   csrf = csrfToken;
@@ -10,8 +14,27 @@ function init(csrfToken, eps) {
   selectCashType('office');
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatVoucherDate(value) {
+  if (!value) return '';
+  const [y, m, d] = String(value).split('-');
+  return `${d}-${m}-${y}`;
+}
+
+function capitalize(value) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
+}
+
 function selectCashType(cashType) {
   currentCashType = cashType;
+  currentPage = 1;
 
   // Update button styles
   document.getElementById('officeBtn').className = cashType === 'office' ? 'btn btn-primary' : 'btn btn-outline-primary';
@@ -43,42 +66,151 @@ async function loadAccountBalance() {
 async function loadHeads() {
   const [ok, res] = await callApi("GET", endpoints.heads);
   if (ok && res.data) {
-    document.getElementById("expenseHead").innerHTML = '<option value="">Select Expense Head</option>' + res.data
-      .filter(h => h.is_active)
-      .map(h => `<option value="${h.id}">${h.name}</option>`).join("");
+    const heads = res.data.filter(h => h.is_active !== false);
+    document.getElementById("expenseHead").innerHTML = '<option value="">Select Expense Head</option>' + heads
+      .map(h => `<option value="${h.id}">${escapeHtml(h.name)}</option>`).join("");
+
+    const headFilter = document.getElementById("headFilter");
+    const selected = headFilter.value;
+    headFilter.innerHTML = '<option value="">All</option>' + heads
+      .map(h => `<option value="${h.id}">${escapeHtml(h.name)}</option>`).join("");
+    headFilter.value = selected;
   }
 }
 
+function getFilterParams() {
+  const params = new URLSearchParams();
+  params.set('cash_type', currentCashType);
+
+  const map = {
+    transaction_type: 'transactionTypeFilter',
+    expense_head_id: 'headFilter',
+    paid_via: 'paidViaFilter',
+    payment_type: 'paymentTypeFilter',
+    date_from: 'dateFromFilter',
+    date_to: 'dateToFilter',
+    search: 'searchFilter',
+  };
+  Object.entries(map).forEach(([key, id]) => {
+    const value = (document.getElementById(id)?.value || '').trim();
+    if (value) params.set(key, value);
+  });
+  return params;
+}
+
+function applyFilters() {
+  currentPage = 1;
+  loadTransactionsPage();
+}
+
+function debouncedApplyFilters() {
+  clearTimeout(filterDebounce);
+  filterDebounce = setTimeout(applyFilters, 350);
+}
+
+function resetFilters() {
+  ['transactionTypeFilter', 'headFilter', 'paidViaFilter', 'paymentTypeFilter',
+    'dateFromFilter', 'dateToFilter', 'searchFilter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  applyFilters();
+}
+
+function goToPage(page) {
+  currentPage = page;
+  loadTransactionsPage();
+}
+
 async function loadAllTransactions() {
-  const [ok, res] = await callApi("GET", endpoints.cash);
+  // Full list for the selected cash type (expense heads tab and Excel export)
+  const [ok, res] = await callApi("GET", `${endpoints.cash}?cash_type=${currentCashType}`);
   if (ok && res.data) {
     allTransactions = res.data;
-    renderAllTransactionsTab();
     renderExpenseHeadsTab();
   }
+  await loadTransactionsPage();
+}
+
+async function loadTransactionsPage() {
+  const params = getFilterParams();
+  params.set('page', currentPage);
+  params.set('page_size', document.getElementById('pageSizeSelect')?.value || 20);
+
+  const [ok, res] = await callApi("GET", `${endpoints.cash}?${params.toString()}`);
+  if (ok && res.data) {
+    pageTransactions = res.data;
+    renderAllTransactionsTab();
+    renderPagination(res.pagination, res.totals);
+  }
+}
+
+function renderPagination(pagination, totals) {
+  const info = document.getElementById('paginationInfo');
+  const controls = document.getElementById('paginationControls');
+  const totalsEl = document.getElementById('transactionTotals');
+
+  if (!pagination) {
+    info.textContent = '';
+    controls.innerHTML = '';
+    totalsEl.innerHTML = '';
+    return;
+  }
+
+  const { page, page_size, total_pages, total_items } = pagination;
+  currentPage = page;
+
+  if (total_items === 0) {
+    info.textContent = 'No results';
+  } else {
+    const start = (page - 1) * page_size + 1;
+    const end = Math.min(page * page_size, total_items);
+    info.textContent = `Showing ${start}-${end} of ${total_items}`;
+  }
+
+  totalsEl.innerHTML = totals ? `
+    <span class="badge" style="background:#dcfce7;color:#15803d;font-size:0.8rem;">Credit: ₹ ${parseFloat(totals.credit).toFixed(2)}</span>
+    <span class="badge" style="background:#fee2e2;color:#991b1b;font-size:0.8rem;">Debit: ₹ ${parseFloat(totals.debit).toFixed(2)}</span>
+  ` : '';
+
+  if (total_pages <= 1) {
+    controls.innerHTML = '';
+    return;
+  }
+
+  const pages = new Set([1, total_pages, page - 1, page, page + 1]);
+  if (page <= 3) { pages.add(2); pages.add(3); pages.add(4); }
+  if (page >= total_pages - 2) { pages.add(total_pages - 1); pages.add(total_pages - 2); pages.add(total_pages - 3); }
+  const sorted = [...pages].filter(p => p >= 1 && p <= total_pages).sort((a, b) => a - b);
+
+  let html = `<li class="page-item ${page === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); goToPage(${page - 1})">Prev</a></li>`;
+  let prev = 0;
+  sorted.forEach(p => {
+    if (p - prev > 1) html += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+    html += `<li class="page-item ${p === page ? 'active' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); goToPage(${p})">${p}</a></li>`;
+    prev = p;
+  });
+  html += `<li class="page-item ${page === total_pages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); goToPage(${page + 1})">Next</a></li>`;
+  controls.innerHTML = html;
 }
 
 function renderAllTransactionsTab() {
   const table = document.getElementById("allTransactionsTable");
 
-  const typeFilter = document.getElementById("transactionTypeFilter")?.value || "";
-  const filteredTransactions = allTransactions.filter(t =>
-    t.cash_type === currentCashType && (!typeFilter || t.transaction_type === typeFilter)
-  );
-
-  if (filteredTransactions.length === 0) {
-    table.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">No transactions</td></tr>';
+  if (pageTransactions.length === 0) {
+    table.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4">No transactions</td></tr>';
     return;
   }
 
-  table.innerHTML = filteredTransactions.map(trans => `
+  table.innerHTML = pageTransactions.map(trans => `
     <tr>
+      <td>#${trans.id}${trans.bill_url ? ' <i class="fas fa-paperclip text-muted" title="Bill attached"></i>' : ''}</td>
       <td>${trans.expense_date}</td>
       <td>
-        <strong>${trans.expense_head_name}</strong>
+        <strong>${escapeHtml(trans.expense_head_name)}</strong>
       </td>
-      <td>${trans.to || '—'}</td>
-      <td>${trans.paid_by || '—'}</td>
+      <td>${escapeHtml(trans.to) || '—'}</td>
+      <td>${escapeHtml(trans.paid_by) || '—'}</td>
       <td>
         <span style="background: ${trans.cash_type === 'office' ? '#dbeafe' : '#fef3c7'}; color: ${trans.cash_type === 'office' ? '#1e40af' : '#92400e'}; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
           ${trans.cash_type === 'office' ? 'Office' : 'Factory'}
@@ -101,17 +233,22 @@ function renderAllTransactionsTab() {
         </span>
       </td>
       <td>
-       ${trans.transaction_type === 'debit' ? `
-          <button class="btn btn-sm btn-outline-primary" onclick="downloadPettyCashPDF(${trans.id})" title="Download PDF">
-            <i class="fas fa-file-pdf"></i> PDF
+        <div class="d-flex flex-wrap gap-1">
+          <button class="btn btn-sm btn-outline-dark" onclick="viewTransaction(${trans.id})" title="View voucher">
+            <i class="fas fa-eye"></i> View
           </button>
-        ` : '—'}
-        <button class="btn btn-sm btn-outline-warning" onclick="editTransaction(${trans.id})" title="Edit transaction">
-          <i class="fas fa-edit"></i> Edit
-        </button>
-        <button class="btn btn-sm btn-outline-danger" onclick="deleteTransaction(${trans.id})" title="Delete transaction">
-          <i class="fas fa-trash"></i> Delete
-        </button>
+          ${trans.transaction_type === 'debit' ? `
+            <button class="btn btn-sm btn-outline-primary" onclick="downloadPettyCashPDF(${trans.id})" title="Download PDF">
+              <i class="fas fa-file-pdf"></i> PDF
+            </button>
+          ` : ''}
+          <button class="btn btn-sm btn-outline-warning" onclick="editTransaction(${trans.id})" title="Edit transaction">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteTransaction(${trans.id})" title="Delete transaction">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
       </td>
     </tr>
   `).join("");
@@ -217,6 +354,17 @@ async function addBalance() {
   }
 }
 
+const BILL_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+const BILL_MAX_BYTES = 10 * 1024 * 1024;
+
+function validateBillFile(file) {
+  if (!file) return null;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!BILL_EXTENSIONS.includes(ext)) return "Bill must be a PDF or an image (JPG, PNG, WEBP).";
+  if (file.size > BILL_MAX_BYTES) return "Bill must be 10 MB or smaller.";
+  return null;
+}
+
 async function createExpense() {
   const headId = document.getElementById("expenseHead").value;
   const amount = parseFloat(document.getElementById("expenseAmount").value);
@@ -235,23 +383,32 @@ async function createExpense() {
     return;
   }
 
-  const payload = {
-    cash_type: currentCashType,
-    expense_head_id: parseInt(headId),
-    expense_date: date,
-    amount: amount,
-    transaction_type: 'debit',
-    notes: notes,
-    to: to,
-    paid_via: paidVia,
-    payment_type: paymentType,
-    particulars: particulars,
-    paid_by: paidBy
-  };
+  const billInput = document.getElementById("expenseBill");
+  const billFile = billInput.files[0];
+  const billError = validateBillFile(billFile);
+  if (billError) {
+    alert(billError);
+    return;
+  }
 
-  const [ok, res] = await callApi("POST", endpoints.cash, payload, csrf);
+  const payload = new FormData();
+  payload.append("cash_type", currentCashType);
+  payload.append("expense_head_id", parseInt(headId));
+  payload.append("expense_date", date);
+  payload.append("amount", amount);
+  payload.append("transaction_type", "debit");
+  payload.append("notes", notes);
+  payload.append("to", to);
+  payload.append("paid_via", paidVia);
+  payload.append("payment_type", paymentType);
+  payload.append("particulars", particulars);
+  payload.append("paid_by", paidBy);
+  if (billFile) payload.append("bill", billFile);
+
+  const [ok, res] = await callApi("POST", endpoints.cash, payload, csrf, true);
   if (ok && res.success) {
     alert("Expense added successfully!");
+    billInput.value = "";
     document.getElementById("expenseAmount").value = "";
     document.getElementById("expenseDate").value = "";
     document.getElementById("expenseNotes").value = "";
@@ -290,10 +447,111 @@ async function createHead() {
 }
 
 async function downloadPettyCashPDF(pettyCashId) {
+  window.location = `/operation-api/download-petty-cash-api/${pettyCashId}/`;
+}
 
-  toggle_loader()
-  window.location = `/operation-api/download-petty-cash-api/${pettyCashId}/`
-  toggle_loader()  
+function buildVoucherHtml(t) {
+  const isDebit = t.transaction_type === 'debit';
+  const amount = parseFloat(t.amount).toFixed(2);
+  const dateText = formatVoucherDate(t.expense_date);
+  const toText = isDebit ? t.to : 'Balance Addition';
+  const particulars = isDebit ? t.particulars : (t.notes || 'Balance added to petty cash');
+  const remarks = isDebit ? t.notes : '';
+
+  return `
+    <div class="voucher-head">
+      <h2 class="voucher-title">${isDebit ? 'EXPENSE VOUCHER' : 'BALANCE ADDITION VOUCHER'}</h2>
+      <div class="voucher-brand">
+        <img src="/static/ruby_logo.png" alt="Ruby Chemicals">
+        <small>(A Unit of Ruby Build Care LLP)</small>
+      </div>
+    </div>
+    <div class="voucher-row">
+      <div class="voucher-field"><label>Challan No.:</label><span class="v-line">${escapeHtml(t.id)}</span></div>
+      <div class="voucher-field"><label>Date:</label><span class="v-line">${escapeHtml(dateText)}</span></div>
+    </div>
+    <div class="voucher-row">
+      <div class="voucher-field"><label>To:</label><span class="v-line">${escapeHtml(toText)}</span></div>
+    </div>
+    <div class="voucher-row">
+      <div class="voucher-field"><label>Expense Head:</label><span class="v-line">${escapeHtml(isDebit ? t.expense_head_name : 'Balance Addition')}</span></div>
+    </div>
+    <div class="voucher-row">
+      <div class="voucher-field"><label>Paid Via:</label><span class="v-line">${escapeHtml(capitalize(t.paid_via))}</span></div>
+      <div class="voucher-field"><label>Payment Type:</label><span class="v-line">${escapeHtml(capitalize(t.payment_type))}</span></div>
+    </div>
+    <table class="voucher-table">
+      <thead><tr><th>PARTICULARS</th><th style="width: 170px;">AMOUNT</th></tr></thead>
+      <tbody>
+        <tr><td class="particulars-cell">${escapeHtml(particulars)}</td><td>${amount}</td></tr>
+        <tr><td class="total-label">TOTAL</td><td>${amount}</td></tr>
+      </tbody>
+    </table>
+    <div class="voucher-remarks">
+      <div class="voucher-field"><label>Remarks:</label><span class="v-line">${escapeHtml(remarks)}</span></div>
+      <div class="v-line"></div>
+    </div>
+    <div class="voucher-row" style="margin-top: 28px;">
+      <div class="voucher-field"><label>${isDebit ? 'PAID BY:' : 'ADDED BY:'}</label><span class="v-line">${escapeHtml(t.paid_by || t.created_by)}</span></div>
+      <div class="voucher-field"><label>DATE:</label><span class="v-line">${escapeHtml(dateText)}</span></div>
+    </div>
+  `;
+}
+
+function renderVoucherBill(t) {
+  const section = document.getElementById('voucherBillSection');
+  const preview = document.getElementById('voucherBillPreview');
+  if (!t.bill_url) {
+    section.style.display = 'none';
+    preview.innerHTML = '';
+    return;
+  }
+
+  const url = encodeURI(t.bill_url);
+  document.getElementById('voucherBillOpen').href = url;
+  preview.innerHTML = t.bill_type === 'pdf'
+    ? `<iframe src="${url}" title="Attached bill"></iframe>`
+    : `<img src="${url}" alt="Attached bill">`;
+  section.style.display = '';
+}
+
+async function viewTransaction(transactionId) {
+  const [ok, res] = await callApi("GET", `${endpoints.cash}${transactionId}/`);
+  if (!(ok && res.data)) {
+    alert("Error: " + ((res && res.error) || "Failed to load transaction"));
+    return;
+  }
+
+  currentVoucher = res.data;
+  document.getElementById('voucherModalTitle').textContent =
+    `${currentVoucher.transaction_type === 'debit' ? 'Expense' : 'Balance Addition'} #${currentVoucher.id}`;
+  document.getElementById('voucherSheet').innerHTML = buildVoucherHtml(currentVoucher);
+  document.getElementById('voucherPdfBtn').style.display = currentVoucher.transaction_type === 'debit' ? '' : 'none';
+  renderVoucherBill(currentVoucher);
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('viewVoucherModal')).show();
+}
+
+function downloadCurrentVoucherPdf() {
+  if (currentVoucher) downloadPettyCashPDF(currentVoucher.id);
+}
+
+async function downloadCurrentVoucherImage() {
+  if (!currentVoucher) return;
+  if (typeof html2canvas === 'undefined') {
+    alert("Image export library failed to load. Please check your connection and try again.");
+    return;
+  }
+
+  const sheet = document.getElementById('voucherSheet');
+  try {
+    const canvas = await html2canvas(sheet, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const link = document.createElement('a');
+    link.download = `petty_cash_${currentVoucher.id}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (err) {
+    alert("Failed to create image: " + err.message);
+  }
 }
 
 async function editTransaction(transactionId) {
@@ -314,6 +572,18 @@ async function editTransaction(transactionId) {
     document.getElementById("editExpensePaidBy").value = trans.paid_by || "";
     document.getElementById("editExpenseParticulars").value = trans.particulars || "";
     document.getElementById("editExpenseNotes").value = trans.notes || "";
+
+    document.getElementById("editExpenseBill").value = "";
+    document.getElementById("editRemoveBill").checked = false;
+    const currentBill = document.getElementById("editCurrentBill");
+    const removeWrap = document.getElementById("editRemoveBillWrap");
+    if (trans.bill_url) {
+      currentBill.innerHTML = `<i class="fas fa-paperclip"></i> <a href="${encodeURI(trans.bill_url)}" target="_blank" rel="noopener">${escapeHtml(trans.bill_name)}</a>`;
+      removeWrap.style.display = "";
+    } else {
+      currentBill.innerHTML = '<span class="text-muted">No bill attached</span>';
+      removeWrap.style.display = "none";
+    }
     
     // Load expense heads for dropdown
     const [headsOk, headsRes] = await callApi("GET", endpoints.heads);
@@ -350,20 +620,28 @@ async function updateTransaction() {
     return;
   }
   
-  const payload = {
-    expense_head_id: parseInt(headId),
-    amount: amount,
-    expense_date: date,
-    transaction_type: 'debit',
-    notes: notes,
-    to: to,
-    paid_via: paidVia,
-    payment_type: paymentType,
-    particulars: particulars,
-    paid_by: paidBy
-  };
+  const billFile = document.getElementById("editExpenseBill").files[0];
+  const billError = validateBillFile(billFile);
+  if (billError) {
+    alert(billError);
+    return;
+  }
+
+  const payload = new FormData();
+  payload.append("expense_head_id", parseInt(headId));
+  payload.append("amount", amount);
+  payload.append("expense_date", date);
+  payload.append("transaction_type", "debit");
+  payload.append("notes", notes);
+  payload.append("to", to);
+  payload.append("paid_via", paidVia);
+  payload.append("payment_type", paymentType);
+  payload.append("particulars", particulars);
+  payload.append("paid_by", paidBy);
+  if (billFile) payload.append("bill", billFile);
+  if (document.getElementById("editRemoveBill").checked) payload.append("remove_bill", "true");
   
-  const [ok, res] = await callApi("PUT", `${endpoints.cash}${transactionId}/`, payload, csrf);
+  const [ok, res] = await callApi("PUT", `${endpoints.cash}${transactionId}/`, payload, csrf, true);
   if (ok && res.success) {
     alert("Expense updated successfully!");
     const modal = bootstrap.Modal.getInstance(document.getElementById("editExpenseModal"));

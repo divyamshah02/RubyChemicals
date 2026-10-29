@@ -51,7 +51,7 @@ class StockItemParameterViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["post"], url_path="bulk-save")
     @handle_exceptions
-    @check_authentication(required_role="admin")
+    @check_authentication(required_role="admin", required_permission="can_stock_items")
     def bulk_save(self, request):
         """Replaces every parameter of a stock item with the submitted ordered list."""
         stock_item_id = request.data.get("stock_item")

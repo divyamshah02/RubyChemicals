@@ -75,7 +75,7 @@ class VendorProfileViewSet(viewsets.ModelViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         """Update vendor"""
         try:
             vendor = VendorProfile.objects.get(id=pk)
@@ -240,7 +240,7 @@ class VendorAddressViewSet(viewsets.ModelViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         """Update address"""
         try:
             address = VendorAddress.objects.get(id=pk)

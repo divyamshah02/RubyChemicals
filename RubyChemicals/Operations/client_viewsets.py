@@ -75,7 +75,7 @@ class ClientProfileViewSet(viewsets.ModelViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         """Update client"""
         try:
             client = ClientProfile.objects.get(id=pk)
@@ -240,7 +240,7 @@ class ClientAddressViewSet(viewsets.ModelViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         """Update address"""
         try:
             address = ClientAddress.objects.get(id=pk)

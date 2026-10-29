@@ -1,5 +1,10 @@
+import os
+import uuid
+
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils import timezone
+
 
 
 # Create your models here.
@@ -353,6 +358,11 @@ class ExpenseHead(models.Model):
     def __str__(self):
         return self.name
 
+def petty_cash_bill_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return f"petty_cash_bills/{timezone.now():%Y/%m}/{uuid.uuid4().hex}{ext}"
+
+
 class PettyCash(models.Model):
     PAYMENT_TYPE_CHOICES = [
         ('advance', 'Advance'),
@@ -390,6 +400,13 @@ class PettyCash(models.Model):
     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, blank=True, null=True)
     particulars = models.TextField(blank=True, null=True, help_text="Details other than remarks")
     paid_by = models.CharField(max_length=255, blank=True, null=True, help_text="Person who made payment")
+    bill = models.FileField(
+        upload_to=petty_cash_bill_path,
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(['pdf', 'jpg', 'jpeg', 'png', 'webp'])],
+        help_text="Bill / receipt attached to the expense (PDF or image)",
+    )
     
     created_by = models.ForeignKey(
         'UserDetail.User',
@@ -720,7 +737,7 @@ class LeadCallRecord(models.Model):
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. LeadSubDepartment
-# ────────────────────────────���────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 
 class LeadSubDepartment(models.Model):
     """

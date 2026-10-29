@@ -12,7 +12,8 @@ from utils.create_product_card_pdf import generate_production_card
 from utils.create_dispatch_pdf import generate_challan
 from utils.create_petty_cash_pdf import generate_petty_cash_card
 from rest_framework.decorators import action
-from django.db.models import Q
+from django.db.models import Q, Sum
+
 
 from UserDetail.models import User
 
@@ -34,7 +35,7 @@ class StockGroupViewSet(viewsets.ViewSet):
 
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
+    @check_authentication(required_role='admin', required_permission='can_stock_items')
     def create(self, request):
         name = request.data.get("name")
         description = request.data.get("description", "")
@@ -153,7 +154,7 @@ class DownloadPettyCashPDFViewSet(viewsets.ViewSet):
 class StockItemViewSet(viewsets.ViewSet):
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
+    @check_authentication(required_role='admin', required_permission='can_stock_items')
     def create(self, request):
         serializer = StockItemSerializer(data=request.data)
         if not serializer.is_valid():
@@ -184,8 +185,8 @@ class StockItemViewSet(viewsets.ViewSet):
         }, status=201)
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
-    def update(self, request, pk=None):
+    @check_authentication(required_role='admin', required_permission='can_stock_items')
+    def update(self, request, pk=None, **kwargs):
         try:
             item = StockItem.objects.get(pk=pk)
         except StockItem.DoesNotExist:
@@ -239,7 +240,7 @@ class StockItemViewSet(viewsets.ViewSet):
         }, status=200)
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
+    @check_authentication(required_role='admin', required_permission='can_stock_items')
     def partial_update(self, request, pk=None):
         try:
             item = StockItem.objects.get(pk=pk)
@@ -978,7 +979,7 @@ class ProductionCardViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         try:
             card = ProductionCard.objects.get(pk=pk, is_active=True)
         except ProductionCard.DoesNotExist:
@@ -1518,7 +1519,7 @@ class DispatchViewSet(viewsets.ViewSet):
     @handle_exceptions
     @check_authentication()
     @transaction.atomic
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         """Update dispatch"""
         try:
             dispatch = Dispatch.objects.get(pk=pk)
@@ -1840,7 +1841,7 @@ class DownloadDispatchViewSet(viewsets.ViewSet):
 class ExpenseHeadViewSet(viewsets.ViewSet):
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
+    @check_authentication(required_role='admin', required_permission='can_petty_cash')
     def create(self, request):
         name = request.data.get("name")
 
@@ -1997,17 +1998,127 @@ class PettyCashAccountViewSet(viewsets.ViewSet):
         }, status=200)
 
 
+import os as _os
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+
+PETTY_CASH_BILL_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png', '.webp'}
+PETTY_CASH_BILL_MAX_MB = 10
+
+
+def validate_petty_cash_bill(uploaded):
+    """Return an error message when the uploaded bill is not an allowed type or is too large."""
+    ext = _os.path.splitext(uploaded.name)[1].lower()
+    if ext not in PETTY_CASH_BILL_EXTENSIONS:
+        return "Bill must be a PDF or an image (JPG, PNG, WEBP)."
+    if uploaded.size > PETTY_CASH_BILL_MAX_MB * 1024 * 1024:
+        return f"Bill must be {PETTY_CASH_BILL_MAX_MB} MB or smaller."
+    return None
+
+
+def petty_cash_bill_payload(trans):
+    if not trans.bill:
+        return {"bill_url": None, "bill_name": None, "bill_type": None}
+    ext = _os.path.splitext(trans.bill.name)[1].lower()
+    return {
+        "bill_url": trans.bill.url,
+        "bill_name": _os.path.basename(trans.bill.name),
+        "bill_type": "pdf" if ext == ".pdf" else "image",
+    }
+
+
 class PettyCashViewSet(viewsets.ViewSet):
     """Petty Cash transactions (expenses and balance additions)"""
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     @handle_exceptions
     @check_authentication()
     def list(self, request):
-        """List all petty cash transactions for all accounts (excluding soft-deleted)"""
+        """
+        List petty cash transactions (excluding soft-deleted).
+
+        Optional query params:
+          cash_type, transaction_type, expense_head_id, paid_via, payment_type,
+          date_from, date_to (YYYY-MM-DD), search,
+          page, page_size  -> when `page` is sent the response is paginated,
+                              otherwise the full filtered list is returned.
+        """
+        params = request.query_params
         transactions = PettyCash.objects.filter(is_active=True).select_related(
-        'cash_account', 'expense_head', 'created_by'
-        ).order_by('-expense_date')
-                
+            'cash_account', 'expense_head', 'created_by'
+        ).order_by('-expense_date', '-id')
+
+        cash_type = params.get('cash_type')
+        if cash_type in ('office', 'factory'):
+            transactions = transactions.filter(cash_account__cash_type=cash_type)
+
+        transaction_type = params.get('transaction_type')
+        if transaction_type in ('credit', 'debit'):
+            transactions = transactions.filter(transaction_type=transaction_type)
+
+        expense_head_id = params.get('expense_head_id')
+        if expense_head_id and expense_head_id.isdigit():
+            transactions = transactions.filter(expense_head_id=int(expense_head_id))
+
+        paid_via = params.get('paid_via')
+        if paid_via in ('online', 'cash'):
+            transactions = transactions.filter(paid_via=paid_via)
+
+        payment_type = params.get('payment_type')
+        if payment_type in ('advance', 'part', 'final'):
+            transactions = transactions.filter(payment_type=payment_type)
+
+        date_from = params.get('date_from')
+        if date_from:
+            transactions = transactions.filter(expense_date__gte=date_from)
+
+        date_to = params.get('date_to')
+        if date_to:
+            transactions = transactions.filter(expense_date__lte=date_to)
+
+        search = (params.get('search') or '').strip()
+        if search:
+            search_q = (
+                Q(to__icontains=search)
+                | Q(paid_by__icontains=search)
+                | Q(particulars__icontains=search)
+                | Q(notes__icontains=search)
+                | Q(expense_head__name__icontains=search)
+            )
+            if search.isdigit():
+                search_q |= Q(id=int(search)) | Q(amount=Decimal(search))
+            transactions = transactions.filter(search_q)
+
+        pagination = None
+        totals = None
+        if params.get('page'):
+            from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+            try:
+                page_size = min(max(int(params.get('page_size', 20)), 1), 200)
+            except (TypeError, ValueError):
+                page_size = 20
+
+            totals_qs = transactions.values('transaction_type').annotate(total=Sum('amount'))
+            totals = {"credit": "0.00", "debit": "0.00"}
+            for row in totals_qs:
+                totals[row['transaction_type']] = str(row['total'] or 0)
+
+            paginator = Paginator(transactions, page_size)
+            try:
+                page_obj = paginator.page(params.get('page'))
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+
+            pagination = {
+                "page": page_obj.number,
+                "page_size": page_size,
+                "total_pages": paginator.num_pages,
+                "total_items": paginator.count,
+            }
+            transactions = page_obj.object_list
+
         data = []
         for trans in transactions:
             data.append({
@@ -2025,15 +2136,21 @@ class PettyCashViewSet(viewsets.ViewSet):
                 'particulars': trans.particulars,
                 'paid_by': trans.paid_by,
                 'created_by': trans.created_by.username if trans.created_by else 'System',
+                **petty_cash_bill_payload(trans),
             })
-        
-        return Response({
+
+        response = {
             "success": True,
             "user_not_logged_in": False,
             "user_unauthorized": False,
             "data": data,
             "error": None
-        }, status=200)
+        }
+        if pagination:
+            response["pagination"] = pagination
+            response["totals"] = totals
+
+        return Response(response, status=200)
     
     @handle_exceptions
     @check_authentication()
@@ -2061,6 +2178,18 @@ class PettyCashViewSet(viewsets.ViewSet):
                 "data": None,
                 "error": "Missing required fields"
             }, status=400)
+
+        bill_file = request.FILES.get("bill")
+        if bill_file:
+            bill_error = validate_petty_cash_bill(bill_file)
+            if bill_error:
+                return Response({
+                    "success": False,
+                    "user_not_logged_in": False,
+                    "user_unauthorized": False,
+                    "data": None,
+                    "error": bill_error
+                }, status=400)
         
         try:
             # Get or create petty cash account
@@ -2084,6 +2213,7 @@ class PettyCashViewSet(viewsets.ViewSet):
                 payment_type=payment_type if payment_type else None,
                 particulars=particulars if particulars else None,
                 paid_by=paid_by if paid_by else None,
+                bill=bill_file if bill_file else None,
                 created_by=request.user
             )
             
@@ -2161,6 +2291,8 @@ class PettyCashViewSet(viewsets.ViewSet):
                     "payment_type": transaction.payment_type,
                     "particulars": transaction.particulars,
                     "paid_by": transaction.paid_by,
+                    "created_by": transaction.created_by.username if transaction.created_by else 'System',
+                    **petty_cash_bill_payload(transaction),
                 },
                 "error": None
             }, status=200)
@@ -2175,10 +2307,9 @@ class PettyCashViewSet(viewsets.ViewSet):
 
     # @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         """Update a petty cash transaction"""
-        try:
-            print("Update request data:", request.data)
+        try:            
             transaction = PettyCash.objects.select_related('cash_account').get(id=pk, is_active=True)
             account = transaction.cash_account
             
@@ -2226,6 +2357,26 @@ class PettyCashViewSet(viewsets.ViewSet):
             if transaction_type == 'debit' and expense_head_id:
                 expense_head = ExpenseHead.objects.get(id=expense_head_id)
                 transaction.expense_head = expense_head
+
+            # Replace or remove the attached bill
+            new_bill = request.FILES.get("bill")
+            remove_bill = str(request.data.get("remove_bill", "")).lower() in ("1", "true", "yes")
+            if new_bill:
+                bill_error = validate_petty_cash_bill(new_bill)
+                if bill_error:
+                    return Response({
+                        "success": False,
+                        "user_not_logged_in": False,
+                        "user_unauthorized": False,
+                        "data": None,
+                        "error": bill_error
+                    }, status=400)
+                if transaction.bill:
+                    transaction.bill.delete(save=False)
+                transaction.bill = new_bill
+            elif remove_bill and transaction.bill:
+                transaction.bill.delete(save=False)
+                transaction.bill = None
             
             transaction.save()
             
@@ -2734,7 +2885,7 @@ class LeadViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         """Update lead"""
         try:
             lead = Lead.objects.get(id=pk, is_active=True)
@@ -2920,7 +3071,7 @@ class LeadCallRecordViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         """Update call record and sync lead status / next follow-up"""
         try:
             record = LeadCallRecord.objects.get(id=pk, is_active=True)

@@ -4,6 +4,12 @@ from rest_framework.response import Response
 from rest_framework import status
 import logging
 
+def _as_list(value):
+    if not value:
+        return []
+    return list(value) if isinstance(value, (list, tuple, set)) else [value]
+
+
 def handle_exceptions(view_func):
     """Decorator to handle exceptions in API views, with logging."""
     @wraps(view_func)
@@ -44,9 +50,16 @@ def handle_exceptions(view_func):
             )
     return _wrapped_view
 
-def check_authentication(required_role=None):
+def check_authentication(required_role=None, required_permission=None):
     '''Checks if user is logged in or not.
-    If required_role is passed (as str or list), will check for that as well.'''
+
+    required_role / required_permission are optional (str or list). When either
+    is given the user passes if ANY of these is true:
+      * user.is_super_admin
+      * user.role is in required_role
+      * the user has at least one of the required_permission flags
+        (module permission fields such as "can_stock_items")
+    '''
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(self, request, *args, **kwargs):
@@ -86,22 +99,28 @@ def check_authentication(required_role=None):
                     }, status=status.HTTP_401_UNAUTHORIZED
                 )
 
-            if required_role:
-                # Convert to list if it's a string
-                allowed_roles = required_role if isinstance(required_role, (list, tuple, set)) else [required_role]
-                
-                if getattr(user, "role", None) not in allowed_roles:
-                    # logger.warning(
-                    #     f"Unauthorized access: User {user.id} role {user.role} "
-                    #     f"required {allowed_roles}"
-                    # )
+            if required_role or required_permission:
+                allowed_roles = _as_list(required_role)
+                allowed_permissions = _as_list(required_permission)
+
+                has_access = (
+                    getattr(user, "is_super_admin", False)
+                    or getattr(user, "role", None) in allowed_roles
+                    or any(bool(getattr(user, perm, False)) for perm in allowed_permissions)
+                )
+
+                if not has_access:
+                    if allowed_permissions:
+                        message = "You do not have permission to perform this action."
+                    else:
+                        message = f"User role must be one of {allowed_roles}"
                     return Response(
                         {
                             "success": False,
                             "user_not_logged_in": False,
                             "user_unauthorized": True,
                             "data": None,
-                            "error": f"User role must be one of {allowed_roles}"
+                            "error": message
                         }, status=status.HTTP_403_FORBIDDEN
                     )
 

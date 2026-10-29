@@ -204,10 +204,10 @@ class UserViewSet(viewsets.ViewSet):
             "error": None
         }, status=200)
 
-    # ── Update (PUT / PATCH) ────────────────────��─────────────────────────
+    # ── Update (PUT / PATCH) ──────────────────────────────────────────────
     @handle_exceptions
     @check_authentication(required_role="admin")
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         return self._update_user(request, pk, partial=False)
 
     @handle_exceptions

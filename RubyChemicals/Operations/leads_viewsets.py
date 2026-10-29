@@ -83,7 +83,7 @@ class LeadSubDepartmentViewSet(viewsets.ViewSet):
             return _std_response(False, error="Sub-department not found", http_status=404)
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
+    @check_authentication(required_role='admin', required_permission=['can_vendor_management', 'can_leads'])
     def create(self, request):
         serializer = LeadSubDepartmentSerializer(data=request.data)
         if not serializer.is_valid():
@@ -97,8 +97,8 @@ class LeadSubDepartmentViewSet(viewsets.ViewSet):
         return _std_response(True, LeadSubDepartmentSerializer(dept).data, http_status=201)
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
-    def update(self, request, pk=None):
+    @check_authentication(required_role='admin', required_permission=['can_vendor_management', 'can_leads'])
+    def update(self, request, pk=None, **kwargs):
         try:
             dept = LeadSubDepartment.objects.get(pk=pk)
         except LeadSubDepartment.DoesNotExist:
@@ -110,7 +110,7 @@ class LeadSubDepartmentViewSet(viewsets.ViewSet):
         return _std_response(True, serializer.data)
 
     @handle_exceptions
-    @check_authentication(required_role='admin')
+    @check_authentication(required_role='admin', required_permission=['can_vendor_management', 'can_leads'])
     def destroy(self, request, pk=None):
         try:
             dept = LeadSubDepartment.objects.get(pk=pk)
@@ -183,7 +183,7 @@ class SubDeptStockItemViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         if not _has_leads_access(request.user):
             return _std_response(False, error="Unauthorized", http_status=403)
         try:
@@ -308,7 +308,7 @@ class DeptLeadViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         if not _has_leads_access(request.user):
             return _std_response(False, error="Unauthorized", http_status=403)
         try:
@@ -508,7 +508,7 @@ class QuotationViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         if not _has_leads_access(request.user):
             return _std_response(False, error="Unauthorized", http_status=403)
         try:
@@ -702,7 +702,7 @@ class SampleRequisiteViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         if not _has_leads_access(request.user):
             return _std_response(False, error="Unauthorized", http_status=403)
         try:
@@ -879,7 +879,7 @@ class ApplicationAreaViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         if not _has_leads_access(request.user):
             return _std_response(False, error="Unauthorized", http_status=403)
         try:
@@ -1001,7 +1001,7 @@ class ApplicationSystemProductViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         if not _has_leads_access(request.user):
             return _std_response(False, error="Unauthorized", http_status=403)
         try:
@@ -1118,7 +1118,7 @@ class ApplicationFixedItemViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         if not _has_leads_access(request.user):
             return _std_response(False, error="Unauthorized", http_status=403)
         try:
@@ -1219,7 +1219,7 @@ class ApplicationLeadViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         if not _has_leads_access(request.user):
             return _std_response(False, error="Unauthorized", http_status=403)
         try:

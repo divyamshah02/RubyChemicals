@@ -264,7 +264,7 @@ class VendorInwardViewSet(viewsets.ViewSet):
 
     @handle_exceptions
     @check_authentication()
-    def update(self, request, pk=None):
+    def update(self, request, pk=None, **kwargs):
         """Update vendor inward entry"""
         try:
             inward = VendorInward.objects.get(id=pk, is_active=True)
