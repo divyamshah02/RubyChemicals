@@ -80,7 +80,7 @@ def generate_petty_cash_card(
         remarks_line_y -= 27
         remarks_line += 1
 
-    particulars_lst = split_text(particulars, max_len=60)
+    particulars_lst = split_text(particulars, max_len=50)
     particulars_line = 0
     particulars_line_y = 585
     for part_addr in particulars_lst:
