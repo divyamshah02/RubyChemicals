@@ -3329,13 +3329,16 @@ from rest_framework.permissions import IsAuthenticated
 from utils.create_daily_log_pdf import generate_daily_log_pdf, generate_all_users_daily_log_pdf
 
 
-def _collect_daily_logs(start, end, filter_user=None):
+def _collect_daily_logs(start, end, filter_user=None, all_leads=False):
     """Leads added + follow-up calls made in the [start, end) window."""
-    leads = Lead.objects.filter(
-        created_at__gte=start,
-        created_at__lt=end,
-        is_active=True
-    ).select_related("created_by")
+    if all_leads:
+        leads = Lead.objects.filter(is_active=True).select_related("created_by")
+    else:
+        leads = Lead.objects.filter(
+            created_at__gte=start,
+            created_at__lt=end,
+            is_active=True
+        ).select_related("created_by")
 
     if filter_user is not None:
         leads = leads.filter(
@@ -3346,6 +3349,7 @@ def _collect_daily_logs(start, end, filter_user=None):
 
     for lead in leads:
         logs.append({
+            "date": timezone.localdate(lead.created_at),
             "time": timezone.localtime(lead.created_at),
             "user": lead.created_by.name if lead.created_by else "",
             "action": "New Lead Added",
@@ -3368,6 +3372,7 @@ def _collect_daily_logs(start, end, filter_user=None):
 
     for call in calls:
         logs.append({
+            "date": timezone.localdate(call.created_at),        
             "time": timezone.localtime(call.created_at),
             "user": call.created_by.name if call.created_by else "",
             "action": "Call Record Added",
@@ -3379,7 +3384,8 @@ def _collect_daily_logs(start, end, filter_user=None):
             "remarks": call.briefing,
         })
 
-    logs.sort(key=lambda x: x["time"])
+    # logs.sort(key=lambda x: x["time"])
+    logs.sort(key=lambda x: x["date"])
     return logs
 
 
@@ -3491,7 +3497,7 @@ def export_daily_log(request):
 
     row += 2
 
-    headers = ["Time"]
+    headers = ["Date", "Time"]
 
     if is_admin:
         headers.append("User")
@@ -3516,6 +3522,7 @@ def export_daily_log(request):
     for log in logs:
 
         values = [
+            log["date"].strftime("%d-%m-%Y"),
             log["time"].strftime("%H:%M:%S")
         ]
 
@@ -3637,6 +3644,7 @@ def export_all_users_leads_report(request):
         }, status=403)
 
     date_str = request.GET.get("date_of_report")
+    all_leads = request.GET.get("all_leads", True)
     if date_str:
         try:
             report_date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -3661,7 +3669,7 @@ def export_all_users_leads_report(request):
         users_data.append({
             "name": lead_user.name,
             "email": lead_user.email,
-            "logs": _collect_daily_logs(start, end, filter_user=lead_user),
+            "logs": _collect_daily_logs(start, end, filter_user=lead_user, all_leads=all_leads),
             "pending_leads": _collect_pending_followups(start, end, filter_user=lead_user),
         })
 

@@ -11,6 +11,7 @@ from django.contrib.auth import authenticate, login, logout
 from Operations.models import *
 from UserDetail.models import User
 from django.db.models import Q
+from Operations.models import Lead, LeadCallRecord
 
 # ── Decorators ────────────────────────────────────────────────────────────────
 
@@ -321,3 +322,33 @@ class ExtraAddStockDetails(viewsets.ViewSet):
 ]
 
         return Response({"success": True, "data": stock_items, "error": None}, status=200)
+
+
+class TestViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    @check_authentication()
+    def list(self, request):
+        bhoomi_user = User.objects.filter(user_id='OF101052').first()
+        all_leads = Lead.objects.filter(created_by=bhoomi_user, is_active=True).order_by('-created_at')
+        final_output = []                                                        
+
+        for lead_d in all_leads:
+            last_call_records = LeadCallRecord.objects.filter(lead=lead_d).first()
+            
+            lead_data = {
+                "Lead ID": lead_d.lead_id,
+                "Lead Added": lead_d.created_at.strftime('%d-%m-%Y %H:%M:%S'),
+                "Company Name": lead_d.party_name,
+                "Contact Person": lead_d.contact_person,
+                "Status": lead_d.lead_status,
+                "Next Follow Up Date & Time": lead_d.next_followup.strftime('%d-%m-%Y %H:%M:%S') if lead_d.next_followup else None, 
+                "Last Call Date": last_call_records.call_date.strftime('%d-%m-%Y') if last_call_records else None,
+                "Last Call Record Details": last_call_records.briefing if last_call_records else None,
+            }            
+            final_output.append(lead_data)
+        import pyperclip
+        pyperclip.copy(str(final_output))
+        return Response({"success": True, "data": final_output, "error": None}, status=200)
+        return render(request, 'test.html')
+

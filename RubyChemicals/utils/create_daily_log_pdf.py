@@ -52,7 +52,7 @@ def _header_cell(text):
 
 
 def _activity_table(logs, is_admin):
-    headers = ["Time"]
+    headers = ["Date", "Time"]
     if is_admin:
         headers.append("User")
     headers.extend(["Action", "Lead ID", "Party Name", "Contact", "Party Type", "Status", "Remarks"])
@@ -60,7 +60,7 @@ def _activity_table(logs, is_admin):
     data = [[_header_cell(h) for h in headers]]
 
     for log in logs:
-        row = [_p(log["time"].strftime("%H:%M:%S"))]
+        row = [_p(log["date"].strftime("%d-%m-%Y")), _p(log["time"].strftime("%H:%M:%S"))]
         if is_admin:
             row.append(_p(log["user"]))
         row.extend([
@@ -76,9 +76,9 @@ def _activity_table(logs, is_admin):
 
     col_count = len(headers)
     if is_admin:
-        widths = [1.6, 2.2, 2.6, 1.8, 3.2, 2.6, 2.2, 2.0, 5.0]
+        widths = [1.6, 1.6, 2.2, 2.6, 1.8, 3.2, 2.6, 2.2, 2.0, 5.0]
     else:
-        widths = [1.6, 2.6, 1.8, 3.2, 2.6, 2.2, 2.0, 5.6]
+        widths = [1.6, 1.6, 2.6, 1.8, 3.2, 2.6, 2.2, 2.0, 5.6]
     widths = widths[:col_count]
     total = sum(widths)
     col_widths = [(w / total) * (26.5 * cm) for w in widths]

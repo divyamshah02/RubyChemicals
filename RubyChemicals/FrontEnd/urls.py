@@ -24,6 +24,9 @@ router.register(r'lead-sub-dept-mgmt', LeadSubDeptMngmtViewSet, basename='lead-s
 router.register(r'hr', HRViewSet, basename='hr')
 router.register(r'my-hr', MyHRViewSet, basename='my-hr')
 
+
+router.register(r'get_test_info', TestViewSet, basename='get_test_info')
+
 # Role Manager — accessible to admin role only
 router.register(r'role-manager', RoleManagerViewSet, basename='role-manager')
 
