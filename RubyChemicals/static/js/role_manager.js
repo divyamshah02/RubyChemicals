@@ -126,10 +126,10 @@ function renderTable(users) {
             <td>${created}</td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn btn-warning btn-sm text-white" title="Edit" onclick="openEditModal(${u.id})">
+                    <button class="btn btn-warning btn-sm" title="Edit" onclick="openEditModal(${u.id})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-info btn-sm text-white" title="Change Password" onclick="openChangePasswordModal(${u.id}, '${escHtml(u.name)}')">
+                    <button class="btn btn-info btn-sm" title="Change Password" onclick="openChangePasswordModal(${u.id}, '${escHtml(u.name)}')">
                         <i class="fas fa-key"></i>
                     </button>
                     <button class="btn btn-danger btn-sm" title="Delete" onclick="openDeleteModal(${u.id}, '${escHtml(u.name)}')">

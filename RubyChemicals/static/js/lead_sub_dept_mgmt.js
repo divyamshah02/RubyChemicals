@@ -119,7 +119,7 @@ function openSubDeptModal() {
   document.getElementById("sdDescription").value = ""
   document.getElementById("sdSubmitBtnText").textContent = "Create Sub-Department"
   document.getElementById("subDeptModalTitle").innerHTML =
-    '<i class="fas fa-sitemap" style="color:#7c3aed; margin-right:0.5rem;"></i>New Sub-Department'
+    '<i class="fas fa-sitemap" style="color:var(--violet-fg); margin-right:0.5rem;"></i>New Sub-Department'
   bootstrap.Modal.getOrCreateInstance(document.getElementById("subDeptModal")).show()
 }
 
@@ -132,7 +132,7 @@ async function openEditSubDept(sdId) {
   document.getElementById("sdDescription").value = dept.description || ""
   document.getElementById("sdSubmitBtnText").textContent = "Update Sub-Department"
   document.getElementById("subDeptModalTitle").innerHTML =
-    '<i class="fas fa-sitemap" style="color:#7c3aed; margin-right:0.5rem;"></i>Edit Sub-Department'
+    '<i class="fas fa-sitemap" style="color:var(--violet-fg); margin-right:0.5rem;"></i>Edit Sub-Department'
   bootstrap.Modal.getOrCreateInstance(document.getElementById("subDeptModal")).show()
 }
 
@@ -207,7 +207,7 @@ function renderStockItemsTable(items) {
       <td>&#8377;${parseFloat(item.rate || 0).toFixed(2)}</td>
       <td>${item.uom || "—"}</td>
       <td>${item.warranty
-        ? `<span style="font-size:0.8rem; color:#0369a1;">${item.warranty}</span>`
+        ? `<span style="font-size:0.8rem; color:var(--blue-fg);">${item.warranty}</span>`
         : '<span class="text-muted">—</span>'}</td>
       <td>
         <span class="${item.is_active ? 'badge-active' : 'badge-inactive'}">
@@ -352,10 +352,10 @@ function renderAppAreaCards() {
                 </tr>`).join('')
 
           return `
-            <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:8px; padding:0.75rem; margin-bottom:0.6rem;">
+            <div style="background:var(--violet-bg); border:1px solid var(--violet-bd); border-radius:8px; padding:0.75rem; margin-bottom:0.6rem;">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <div>
-                  <strong style="color:#6d28d9; font-size:0.85rem;">${sp.name}</strong>
+                  <strong style="color:var(--violet-fg); font-size:0.85rem;">${sp.name}</strong>
                   <span class="ms-2 badge bg-primary" style="font-size:0.7rem;">${spItems.length} item${spItems.length !== 1 ? 's' : ''}</span>
                   ${sp.description ? `<small class="text-muted ms-2">${sp.description}</small>` : ''}
                 </div>
@@ -446,13 +446,13 @@ function renderAppAreaCards() {
         <div class="app-area-card-body">
           <div class="row">
             <div class="col-md-7">
-              <p style="font-size:0.8rem; font-weight:700; color:#6d28d9; margin-bottom:0.6rem;">
+              <p style="font-size:0.8rem; font-weight:700; color:var(--violet-fg); margin-bottom:0.6rem;">
                 <i class="fas fa-cube me-2"></i>System Products (${sysProds.length})
               </p>
               ${sysProdsHtml}
             </div>
             <div class="col-md-5">
-              <p style="font-size:0.8rem; font-weight:700; color:#92400e; margin-bottom:0.6rem;">
+              <p style="font-size:0.8rem; font-weight:700; color:var(--amber-fg); margin-bottom:0.6rem;">
                 <i class="fas fa-thumbtack me-2"></i>Fixed Items (${fixedItems.length})
               </p>
               ${fixedItemsHtml}
@@ -564,7 +564,7 @@ async function openAddSystemProduct(areaId, subDeptId) {
   document.getElementById("spDescription").value = ""
   document.getElementById("spSubmitBtnText").textContent = "Create System Product"
   document.getElementById("spModalTitle").innerHTML =
-    '<i class="fas fa-cube" style="color:#7c3aed; margin-right:0.5rem;"></i>New System Product'
+    '<i class="fas fa-cube" style="color:var(--violet-fg); margin-right:0.5rem;"></i>New System Product'
 
   const stockItems = await loadStockForSubDept(subDeptId)
   buildSpStockSelect(stockItems)
@@ -594,7 +594,7 @@ async function openEditSystemProduct(spId, areaId, subDeptId) {
   document.getElementById("spDescription").value = sp.description || ""
   document.getElementById("spSubmitBtnText").textContent = "Update System Product"
   document.getElementById("spModalTitle").innerHTML =
-    '<i class="fas fa-cube" style="color:#7c3aed; margin-right:0.5rem;"></i>Edit System Product'
+    '<i class="fas fa-cube" style="color:var(--violet-fg); margin-right:0.5rem;"></i>Edit System Product'
 
   const stockItems = await loadStockForSubDept(subDeptId)
   buildSpStockSelect(stockItems)
@@ -649,7 +649,7 @@ function renderSpItems() {
           min="0" step="any" value="${item.rate}"
           onchange="spItems[${i}].rate = parseFloat(this.value) || 0">
       </td>
-      <td><span style="font-size:0.8rem; color:#0369a1;">${item.warranty || "—"}</span></td>
+      <td><span style="font-size:0.8rem; color:var(--blue-fg);">${item.warranty || "—"}</span></td>
       <td>
         <button class="btn btn-danger btn-sm" onclick="removeSpItem(${i})">
           <i class="fas fa-times"></i>

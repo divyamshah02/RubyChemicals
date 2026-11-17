@@ -4,16 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/static/js_1/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Admin Dashboard - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/portal.css">
-    <script src="/static/js/portal.js" defer></script>
+    <link rel="stylesheet" href="/static/css_1/style.css">
+    <link rel="stylesheet" href="/static/css_1/portal.css">
+    <script src="/static/js_1/portal.js" defer></script>
     <style>
-        body {
-            background: #f8fafc;
-        }
 
         .quick-add-btn {
             background: #3b82f6;
@@ -31,18 +32,18 @@
         }
 
         .badge-critical {
-            background: #fee2e2;
-            color: #991b1b;
+            background: var(--red-bg);
+            color: var(--red-fg);
         }
 
         .badge-warning {
-            background: #fef3c7;
-            color: #92400e;
+            background: var(--amber-bg);
+            color: var(--amber-fg);
         }
 
         .badge-success {
-            background: #dcfce7;
-            color: #166534;
+            background: var(--green-bg);
+            color: var(--green-fg);
         }
     </style>
 </head>
@@ -54,13 +55,13 @@
     <div class="container-fluid">
         <div class="page-header">
             <div>
-                <h1 class="page-title"><i class="fas fa-chart-line"></i>Admin Dashboard</h1>
-                <p class="page-sub">Manage inventory, production, and operations</p>
+                <h1 class="page-title"><i class="fas fa-chart-line"></i><span data-greeting>Admin Dashboard</span></h1>
+                <p class="page-sub">Inventory, production and operations overview for <span data-month-year></span></p>
             </div>
         </div>
 
         <!-- Stats Grid -->
-        <div class="stats-grid">
+        <div class="stats-grid stats-6">
             <div class="stat-card">
                 <div class="stat-icon" style="color: #ef4444;"><i class="fas fa-triangle-exclamation"></i></div>
                 <div class="stat-content">
@@ -240,31 +241,51 @@
     </div>
 
     <!-- View Production Card Modal -->
-    <div class="modal fade" id="viewProductionCardModal">
-        <div class="modal-dialog modal-lg">
+    <div class="modal fade" id="viewProductionCardModal" tabindex="-1" aria-labelledby="viewProductionCardTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-eye"></i> Production Card Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title" id="viewProductionCardTitle"><i class="fas fa-clipboard-list"></i> Production Card Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                        <div>
-                            <label style="font-weight: 600; color: #475569;">Production Code</label>
-                            <div id="viewCardCode" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: #475569;">Date</label>
-                            <div id="viewCardDate" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: #475569;">Output Quantity</label>
-                            <div id="viewCardOutput" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
-                        </div>
-                        <div>
-                            <label style="font-weight: 600; color: #475569;">Batches</label>
-                            <div id="viewCardBatches" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
-                        </div>
+                    <div class="detail-summary">
+                        <span class="detail-code" id="viewCardCode"></span>
+                        <span class="badge bg-warning"><i class="fas fa-hourglass-half"></i> Not accounted</span>
+                    </div>
+
+                    <div class="kv-grid">
+                        <div><div class="kv-label">Date</div><div class="kv-value" id="viewCardDate"></div></div>
+                        <div><div class="kv-label">Product</div><div class="kv-value" id="viewCardProduct">-</div></div>
+                        <div><div class="kv-label">Production Incharge</div><div class="kv-value" id="viewCardIncharge">-</div></div>
+                        <div><div class="kv-label">Total Output</div><div class="kv-value" id="viewCardOutput"></div></div>
+                        <div><div class="kv-label">Total Loss</div><div class="kv-value" id="viewCardLoss">-</div></div>
+                        <div><div class="kv-label">Batches / Materials</div><div class="kv-value" id="viewCardBatches"></div></div>
+                    </div>
+
+                    <div class="detail-heading"><i class="fas fa-flask"></i> Raw materials used <span class="count" id="viewCardMaterialsCount">0</span></div>
+                    <div class="table-container">
+                        <table class="table table-sm table-fit">
+                            <thead><tr><th>Material</th><th>Quantity used</th></tr></thead>
+                            <tbody id="viewCardMaterials">
+                                <tr><td colspan="2" class="text-center text-muted py-3">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="detail-heading"><i class="fas fa-cubes"></i> Batches <span class="count" id="viewCardBatchesCount">0</span></div>
+                    <div class="table-container">
+                        <table class="table table-sm table-fit">
+                            <thead><tr><th>Batch</th><th>Product</th><th>Output</th><th>Loss</th></tr></thead>
+                            <tbody id="viewCardBatchRows">
+                                <tr><td colspan="4" class="text-center text-muted py-3">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="viewCardRemarksWrap" hidden>
+                        <div class="detail-heading"><i class="fas fa-comment-dots"></i> Remarks</div>
+                        <p class="mb-0" id="viewCardRemarks"></p>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -288,28 +309,28 @@
                 <div class="modal-body">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Dispatch Code</label>
-                            <div id="viewDispatchCode" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Dispatch Code</label>
+                            <div id="viewDispatchCode" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Date</label>
-                            <div id="viewDispatchDate" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Date</label>
+                            <div id="viewDispatchDate" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Client</label>
-                            <div id="viewDispatchClient" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Client</label>
+                            <div id="viewDispatchClient" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Vehicle Number</label>
-                            <div id="viewDispatchVehicle" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Vehicle Number</label>
+                            <div id="viewDispatchVehicle" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Items Count</label>
-                            <div id="viewDispatchItems" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Items Count</label>
+                            <div id="viewDispatchItems" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Freight Amount</label>
-                            <div id="viewDispatchFreight" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Freight Amount</label>
+                            <div id="viewDispatchFreight" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                     </div>
                 </div>
@@ -363,20 +384,20 @@
                 <div class="modal-body">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Inward Code</label>
-                            <div id="viewInwardCode" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Inward Code</label>
+                            <div id="viewInwardCode" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Date</label>
-                            <div id="viewInwardDate" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Date</label>
+                            <div id="viewInwardDate" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Vendor</label>
-                            <div id="viewInwardVendor" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Vendor</label>
+                            <div id="viewInwardVendor" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                         <div>
-                            <label style="font-weight: 600; color: #475569;">Items Count</label>
-                            <div id="viewInwardItems" style="font-size: 1rem; color: #1e293b; margin-top: 0.5rem;"></div>
+                            <label style="font-weight: 600; color: var(--text-2);">Items Count</label>
+                            <div id="viewInwardItems" style="font-size: 1rem; color: var(--text); margin-top: 0.5rem;"></div>
                         </div>
                     </div>
                 </div>
@@ -461,8 +482,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/api_caller.js"></script>
-    <script src="/static/js/admin_dashboard.js"></script>
+    <script src="/static/js_1/api_caller.js"></script>
+    <script src="/static/js_1/admin_dashboard.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", async () => {

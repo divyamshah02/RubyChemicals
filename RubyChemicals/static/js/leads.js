@@ -166,7 +166,7 @@ function renderLeadsTable(leads) {
       <td data-label="Location">${lead.location       || "—"}</td>
       <td data-label="Status">${statusBadge(lead.lead_status)}</td>
       <td data-label="Next Follow-up">${lead.next_followup
-        ? `<span style="font-size:0.78rem; color:#92400e; font-weight:600;">${formatDateTime(lead.next_followup)}</span>`
+        ? `<span style="font-size:0.78rem; color:var(--amber-fg); font-weight:600;">${formatDateTime(lead.next_followup)}</span>`
         : '<span class="text-muted">—</span>'}</td>
       <td data-label="Calls"><span class="badge bg-primary">${lead.call_count || 0}</span></td>
       <td data-label="Created">${formatDate(lead.created_at)}</td>
@@ -380,14 +380,14 @@ async function viewLead(leadId) {
   // Quotations HTML
   const quotsHtml = quots.length > 0
     ? quots.map(q => `
-        <div style="background:white; border:1px solid #ddd6fe; border-radius:8px; padding:0.85rem 1.1rem; margin-bottom:0.75rem;">
+        <div style="background:var(--surface); border:1px solid var(--violet-bd); border-radius:8px; padding:0.85rem 1.1rem; margin-bottom:0.75rem;">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-              <strong style="color:#6d28d9;">${q.quotation_no}</strong>
+              <strong style="color:var(--violet-fg);">${q.quotation_no}</strong>
               <span class="text-muted ms-2" style="font-size:0.82rem;">${formatDate(q.quotation_date)}</span>
             </div>
             <div class="d-flex gap-2 align-items-center">
-              <strong style="color:#1e293b;">&#8377;${fmtCurrency(q.total_amount || 0)}</strong>
+              <strong style="color:var(--text);">&#8377;${fmtCurrency(q.total_amount || 0)}</strong>
               <button class="btn btn-sm btn-warning" onclick="downloadQuotation(${q.id})" style="font-size:0.78rem;">
                 <i class="fas fa-download me-1"></i>Download
               </button>
@@ -397,7 +397,7 @@ async function viewLead(leadId) {
             </div>
           </div>
           ${q.notes ? `<small class="text-muted">${q.notes}</small>` : ""}
-          <div style="margin-top:0.5rem; font-size:0.8rem; color:#475569;">
+          <div style="margin-top:0.5rem; font-size:0.8rem; color:var(--text-2);">
             ${(q.items || []).filter(i => i.is_active !== false).map(i => `${i.product_name} &times; ${i.quantity} ${i.uom || ""}`).join(", ") || "No items"}
           </div>
         </div>`).join("")
@@ -406,10 +406,10 @@ async function viewLead(leadId) {
   // Sample Requisites HTML
   const srsHtml = srs.length > 0
     ? srs.map(s => `
-        <div style="background:white; border:1px solid #bbf7d0; border-radius:8px; padding:0.85rem 1.1rem; margin-bottom:0.75rem;">
+        <div style="background:var(--surface); border:1px solid var(--green-bd); border-radius:8px; padding:0.85rem 1.1rem; margin-bottom:0.75rem;">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-              <strong style="color:#065f46;">${s.sr_no}</strong>
+              <strong style="color:var(--green-fg);">${s.sr_no}</strong>
               <span class="text-muted ms-2" style="font-size:0.82rem;">${formatDate(s.sr_date)}</span>
               ${srStatusBadge(s.status)}
             </div>
@@ -417,7 +417,7 @@ async function viewLead(leadId) {
               <i class="fas fa-edit me-1"></i>Edit
             </button>
           </div>
-          <div style="margin-top:0.5rem; font-size:0.8rem; color:#475569;">
+          <div style="margin-top:0.5rem; font-size:0.8rem; color:var(--text-2);">
             ${(s.items || []).map(i => `${i.product_name} &times; ${i.quantity} ${i.uom || ""}`).join(", ") || "No items"}
           </div>
         </div>`).join("")
@@ -445,14 +445,14 @@ async function viewLead(leadId) {
             </div>
           </div>
           ${c.contact_number ? `<small class="text-muted"><i class="fas fa-phone me-1"></i>${c.contact_number}</small><br>` : ""}
-          <p style="color:#374151; margin:0.3rem 0 0;">${c.briefing}</p>
-          ${c.forwarded_to ? `<small style="color:#9d174d;"><i class="fas fa-share me-1"></i>Forwarded to: ${c.forwarded_to}</small>` : ""}
+          <p style="color:var(--text-2); margin:0.3rem 0 0;">${c.briefing}</p>
+          ${c.forwarded_to ? `<small style="color:var(--pink-fg);"><i class="fas fa-share me-1"></i>Forwarded to: ${c.forwarded_to}</small>` : ""}
         </div>`).join("")}</div>`
     : '<p class="text-muted" style="font-size:0.85rem;">No call records yet. Click "Add Call Record" below.</p>'
 
   document.getElementById("leadDetailContent").innerHTML = `
     <!-- Lead Info -->
-    <div style="background:#f0f9ff; border:1px solid #bfdbfe; border-radius:10px; padding:1.25rem; margin-bottom:1.5rem;">
+    <div style="background:var(--blue-bg); border:1px solid var(--blue-bd); border-radius:10px; padding:1.25rem; margin-bottom:1.5rem;">
       <div class="row">
         <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Date of Connect</span><br>${formatDate(lead.date_of_connect)}</div>
         <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Lead Source</span><br>${lead.lead_source || "—"}</div>
@@ -474,23 +474,23 @@ async function viewLead(leadId) {
         <div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Created At</span><br>${formatDateTime(lead.created_at)}</div>
         ${lead.forwarded_to ? `<div class="col-md-3 mb-2"><span class="text-muted" style="font-size:0.8rem;">Forwarded To</span><br><strong>${lead.forwarded_to}</strong></div>` : ""}
       </div>
-      ${lead.remarks ? `<div class="mt-2"><span class="text-muted" style="font-size:0.8rem;">Remarks</span><br><p style="color:#374151; margin-top:0.25rem;">${lead.remarks}</p></div>` : ""}
+      ${lead.remarks ? `<div class="mt-2"><span class="text-muted" style="font-size:0.8rem;">Remarks</span><br><p style="color:var(--text-2); margin-top:0.25rem;">${lead.remarks}</p></div>` : ""}
     </div>
 
     <!-- Quotations -->
-    <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; padding:1.25rem; margin-bottom:1.5rem;">
-      <h6 style="color:#6d28d9; font-weight:700; margin-bottom:1rem;"><i class="fas fa-file-invoice me-2"></i>Quotations (${quots.length})</h6>
+    <div style="background:var(--violet-bg); border:1px solid var(--violet-bd); border-radius:10px; padding:1.25rem; margin-bottom:1.5rem;">
+      <h6 style="color:var(--violet-fg); font-weight:700; margin-bottom:1rem;"><i class="fas fa-file-invoice me-2"></i>Quotations (${quots.length})</h6>
       ${quotsHtml}
     </div>
 
     <!-- Sample Requisites -->
-    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:1.25rem; margin-bottom:1.5rem;">
-      <h6 style="color:#065f46; font-weight:700; margin-bottom:1rem;"><i class="fas fa-vial me-2"></i>Sample Requisites (${srs.length})</h6>
+    <div style="background:var(--green-bg); border:1px solid var(--green-bd); border-radius:10px; padding:1.25rem; margin-bottom:1.5rem;">
+      <h6 style="color:var(--green-fg); font-weight:700; margin-bottom:1rem;"><i class="fas fa-vial me-2"></i>Sample Requisites (${srs.length})</h6>
       ${srsHtml}
     </div>
 
     <!-- Call Records -->
-    <h6 style="color:#1e40af; font-weight:700; margin-bottom:1rem;">
+    <h6 style="color:var(--blue-fg); font-weight:700; margin-bottom:1rem;">
       <i class="fas fa-phone-alt me-2"></i>Call Records (${calls.length})
     </h6>
     ${callsHtml}`
@@ -1033,7 +1033,7 @@ function renderSrItems() {
           : '<span class="text-muted">—</span>'}
       </td>
       <td>${srStatusBadge(item.dispatch_status)}</td>
-      <td><span style="font-size:0.8rem; color:#0369a1;">${item.warranty || "—"}</span></td>
+      <td><span style="font-size:0.8rem; color:var(--blue-fg);">${item.warranty || "—"}</span></td>
       <td><button class="btn btn-danger btn-sm" onclick="removeSrItem(${i})"><i class="fas fa-times"></i></button></td>
     </tr>`).join("")
 }
@@ -1334,7 +1334,7 @@ async function submitTransferLead() {
 
 // ─────────────────────────────────────────────
 // COLLABORATORS
-// ───────────────────��─────────────────────────
+// ─────────────────────────────────────────────
 
 function collabEsc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))

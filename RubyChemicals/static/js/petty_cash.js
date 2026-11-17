@@ -167,8 +167,8 @@ function renderPagination(pagination, totals) {
   }
 
   totalsEl.innerHTML = totals ? `
-    <span class="badge" style="background:#dcfce7;color:#15803d;font-size:0.8rem;">Credit: ₹ ${parseFloat(totals.credit).toFixed(2)}</span>
-    <span class="badge" style="background:#fee2e2;color:#991b1b;font-size:0.8rem;">Debit: ₹ ${parseFloat(totals.debit).toFixed(2)}</span>
+    <span class="badge" style="background:var(--green-bg);color:var(--green-fg);font-size:0.8rem;">Credit: ₹ ${parseFloat(totals.credit).toFixed(2)}</span>
+    <span class="badge" style="background:var(--red-bg);color:var(--red-fg);font-size:0.8rem;">Debit: ₹ ${parseFloat(totals.debit).toFixed(2)}</span>
   ` : '';
 
   if (total_pages <= 1) {
@@ -210,23 +210,23 @@ function renderAllTransactionsTab() {
       <td>${escapeHtml(trans.to) || '—'}</td>
       <td>${escapeHtml(trans.paid_by) || '—'}</td>
       <td>
-        <span style="background: ${trans.cash_type === 'office' ? '#dbeafe' : '#fef3c7'}; color: ${trans.cash_type === 'office' ? '#1e40af' : '#92400e'}; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
+        <span style="background: ${trans.cash_type === 'office' ? 'var(--blue-bg)' : 'var(--amber-bg)'}; color: ${trans.cash_type === 'office' ? 'var(--blue-fg)' : 'var(--amber-fg)'}; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
           ${trans.cash_type === 'office' ? 'Office' : 'Factory'}
         </span>
       </td>
       <td>
-        <span style="background: ${trans.transaction_type === 'credit' ? '#dcfce7' : '#fee2e2'}; color: ${trans.transaction_type === 'credit' ? '#15803d' : '#991b1b'}; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
+        <span style="background: ${trans.transaction_type === 'credit' ? 'var(--green-bg)' : 'var(--red-bg)'}; color: ${trans.transaction_type === 'credit' ? 'var(--green-fg)' : 'var(--red-fg)'}; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
           ${trans.transaction_type === 'credit' ? 'Credit' : 'Debit'}
         </span>
       </td>
       <td><strong>₹ ${parseFloat(trans.amount).toFixed(2)}</strong></td>
       <td>
-        <span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">
+        <span style="background: var(--violet-bg); color: var(--violet-fg); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">
           ${trans.paid_via ? trans.paid_via.charAt(0).toUpperCase() + trans.paid_via.slice(1) : '—'}
         </span>
       </td>
       <td>
-        <span style="background: #f3e8ff; color: #6d28d9; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">
+        <span style="background: var(--violet-bg); color: var(--violet-fg); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">
           ${trans.payment_type ? trans.payment_type.charAt(0).toUpperCase() + trans.payment_type.slice(1) : '—'}
         </span>
       </td>
@@ -275,21 +275,21 @@ function renderExpenseHeadsTab() {
     const totalAmount = transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
     return `
-      <div style="border-bottom: 1px solid #e2e8f0;">
+      <div style="border-bottom: 1px solid var(--border);">
         <button class="collapse-header" data-bs-toggle="collapse" data-bs-target="#head-${idx}" aria-expanded="false">
           <div style="display: flex; align-items: center; gap: 1rem;">
             <i class="fas fa-chevron-down collapse-icon"></i>
             <div>
               <div style="font-size: 1rem; font-weight: 700;">${headName}</div>
-              <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">${transactions.length} transactions</div>
+              <div style="font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem;">${transactions.length} transactions</div>
             </div>
           </div>
-          <div style="background: #e0e7ff; color: #3730a3; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 700;">₹ ${parseFloat(totalAmount).toFixed(2)}</div>
+          <div style="background: var(--violet-bg); color: var(--violet-fg); padding: 0.5rem 1rem; border-radius: 6px; font-weight: 700;">₹ ${parseFloat(totalAmount).toFixed(2)}</div>
         </button>
         
-        <div id="head-${idx}" class="collapse" style="padding: 1.5rem; background: #f8fafc;">
+        <div id="head-${idx}" class="collapse" style="padding: 1.5rem; background: var(--surface-2);">
           <table class="table table-sm" style="margin: 0;">
-            <thead style="background: white; border-bottom: 2px solid #e2e8f0;">
+            <thead style="background: var(--surface); border-bottom: 2px solid var(--border);">
               <tr>
                 <th>Date</th>
                 <th>Type</th>
@@ -302,12 +302,12 @@ function renderExpenseHeadsTab() {
                 <tr>
                   <td>${trans.expense_date}</td>
                   <td>
-                    <span style="background: ${trans.transaction_type === 'credit' ? '#dcfce7' : '#fee2e2'}; color: ${trans.transaction_type === 'credit' ? '#15803d' : '#991b1b'}; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
+                    <span style="background: ${trans.transaction_type === 'credit' ? 'var(--green-bg)' : 'var(--red-bg)'}; color: ${trans.transaction_type === 'credit' ? 'var(--green-fg)' : 'var(--red-fg)'}; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
                       ${trans.transaction_type === 'credit' ? 'Credit' : 'Debit'}
                     </span>
                   </td>
-                  <td><strong style="color: ${trans.transaction_type === 'credit' ? '#15803d' : '#991b1b'};">₹ ${parseFloat(trans.amount).toFixed(2)}</strong></td>
-                  <td style="font-size: 0.85rem; color: #64748b;">${trans.notes || '—'}</td>
+                  <td><strong style="color: ${trans.transaction_type === 'credit' ? 'var(--green-fg)' : 'var(--red-fg)'};">₹ ${parseFloat(trans.amount).toFixed(2)}</strong></td>
+                  <td style="font-size: 0.85rem; color: var(--muted);">${trans.notes || '—'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -695,26 +695,26 @@ async function searchOldBalance() {
       
       // Build balance summary
       let balanceHtml = `
-        <div style="background: #f8fafc; border-radius: 8px; padding: 1.5rem; border: 1px solid #e2e8f0; margin-bottom: 1.5rem;">
-          <h6 style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem; text-transform: uppercase;">Balance Summary on ${date}</h6>
+        <div style="background: var(--surface-2); border-radius: 8px; padding: 1.5rem; border: 1px solid var(--border); margin-bottom: 1.5rem;">
+          <h6 style="color: var(--muted); font-size: 0.875rem; margin-bottom: 1rem; text-transform: uppercase;">Balance Summary on ${date}</h6>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div>
-              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.25rem;">Opening Balance</div>
+              <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">Opening Balance</div>
               <div style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">₹ ${parseFloat(data.opening_balance).toFixed(2)}</div>
             </div>
             <div>
-              <div style="font-size: 0.875rem; color: #64748b; margin-bottom: 0.25rem;">Closing Balance</div>
+              <div style="font-size: 0.875rem; color: var(--muted); margin-bottom: 0.25rem;">Closing Balance</div>
               <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">₹ ${parseFloat(data.closing_balance).toFixed(2)}</div>
             </div>
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div style="background: #fee2e2; padding: 1rem; border-radius: 6px;">
-              <div style="font-size: 0.75rem; color: #991b1b; margin-bottom: 0.25rem;">Total Debit (Expense)</div>
-              <div style="font-size: 1.25rem; font-weight: 700; color: #991b1b;">₹ ${parseFloat(data.total_debit).toFixed(2)}</div>
+            <div style="background: var(--red-bg); padding: 1rem; border-radius: 6px;">
+              <div style="font-size: 0.75rem; color: var(--red-fg); margin-bottom: 0.25rem;">Total Debit (Expense)</div>
+              <div style="font-size: 1.25rem; font-weight: 700; color: var(--red-fg);">₹ ${parseFloat(data.total_debit).toFixed(2)}</div>
             </div>
-            <div style="background: #dcfce7; padding: 1rem; border-radius: 6px;">
-              <div style="font-size: 0.75rem; color: #15803d; margin-bottom: 0.25rem;">Total Credit (Addition)</div>
-              <div style="font-size: 1.25rem; font-weight: 700; color: #15803d;">₹ ${parseFloat(data.total_credit).toFixed(2)}</div>
+            <div style="background: var(--green-bg); padding: 1rem; border-radius: 6px;">
+              <div style="font-size: 0.75rem; color: var(--green-fg); margin-bottom: 0.25rem;">Total Credit (Addition)</div>
+              <div style="font-size: 1.25rem; font-weight: 700; color: var(--green-fg);">₹ ${parseFloat(data.total_credit).toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -725,10 +725,10 @@ async function searchOldBalance() {
       if (expenses.length > 0) {
         expensesHtml = `
           <div style="margin-top: 1.5rem;">
-            <h6 style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem; text-transform: uppercase;">Expenses on ${date}</h6>
-            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 400px; overflow-y: auto;">
+            <h6 style="color: var(--muted); font-size: 0.875rem; margin-bottom: 1rem; text-transform: uppercase;">Expenses on ${date}</h6>
+            <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; max-height: 400px; overflow-y: auto;">
               <table class="table mb-0" style="font-size: 0.875rem;">
-                <thead style="background: #f8fafc; position: sticky; top: 0;">
+                <thead style="background: var(--surface-2); position: sticky; top: 0;">
                   <tr>
                     <th>Head</th>
                     <th>To</th>
@@ -745,18 +745,18 @@ async function searchOldBalance() {
                       <td><strong>${exp.expense_head}</strong></td>
                       <td>${exp.to}</td>
                       <td>
-                        <span style="background: ${exp.transaction_type === 'credit' ? '#dcfce7' : '#fee2e2'}; color: ${exp.transaction_type === 'credit' ? '#15803d' : '#991b1b'}; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; font-weight: 600;">
+                        <span style="background: ${exp.transaction_type === 'credit' ? 'var(--green-bg)' : 'var(--red-bg)'}; color: ${exp.transaction_type === 'credit' ? 'var(--green-fg)' : 'var(--red-fg)'}; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; font-weight: 600;">
                           ${exp.transaction_type === 'credit' ? 'Credit' : 'Debit'}
                         </span>
                       </td>
                       <td><strong>₹ ${parseFloat(exp.amount).toFixed(2)}</strong></td>
                       <td>
-                        <span style="background: #e0e7ff; color: #3730a3; padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">
+                        <span style="background: var(--violet-bg); color: var(--violet-fg); padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">
                           ${exp.paid_via}
                         </span>
                       </td>
                       <td>
-                        <span style="background: #f3e8ff; color: #6d28d9; padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">
+                        <span style="background: var(--violet-bg); color: var(--violet-fg); padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">
                           ${exp.payment_type}
                         </span>
                       </td>

@@ -4,12 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/static/js_1/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Accounts Dashboard - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/portal.css">
-    <script src="/static/js/portal.js" defer></script>
+    <link rel="stylesheet" href="/static/css_1/style.css">
+    <link rel="stylesheet" href="/static/css_1/portal.css">
+    <script src="/static/js_1/portal.js" defer></script>
 </head>
 
 <body>
@@ -89,7 +93,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/api_caller.js"></script>
+    <script src="/static/js_1/api_caller.js"></script>
     <script>
         const ACCOUNTS_DASHBOARD_API = "/operation-api/accounts-dashboard-api/";
 
@@ -105,17 +109,17 @@
                 // Low Stock Table
                 const lowStockTable = document.getElementById("lowStockTable");
                 lowStockTable.innerHTML = data.low_stock_items.map(item => `
-                    <tr style="background: ${item.current_quantity < 0 ? '#fee2e2' : '#fef3c7'};">
+                    <tr style="background: ${item.current_quantity < 0 ? 'var(--red-bg)' : 'var(--amber-bg)'};">
                         <td><strong>${item.name}</strong></td>
                         <td>${item.group__name}</td>
-                        <td style="color: ${item.current_quantity < 0 ? '#dc2626' : '#f97316'}; font-weight: 600;">
+                        <td style="color: ${item.current_quantity < 0 ? 'var(--red-fg)' : '#f97316'}; font-weight: 600;">
                             ${item.current_quantity}
                         </td>
                         <td>${item.unit}</td>
                         <td>
                             ${item.current_quantity < 0 
-                                ? '<span style="background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">⚠️ NEGATIVE</span>'
-                                : '<span style="background: #fef3c7; color: #b45309; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">⚡ LOW</span>'
+                                ? '<span style="background: var(--red-bg); color: var(--red-fg); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">⚠️ NEGATIVE</span>'
+                                : '<span style="background: var(--amber-bg); color: var(--amber-fg); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">⚡ LOW</span>'
                             }
                         </td>
                     </tr>
@@ -125,12 +129,12 @@
                 const unaccountedCardsTable = document.getElementById("unaccountedCardsTable");
                 unaccountedCardsTable.innerHTML = data.unaccounted_cards.map(card => `
                     <tr>
-                        <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px;">${card.production_code}</code></td>
+                        <td><code style="background: var(--blue-bg); color: var(--blue-fg); padding: 4px 8px; border-radius: 4px;">${card.production_code}</code></td>
                         <td>${card.production_date}</td>
                         <td>${card.total_output_quantity} ${card.unit}</td>
-                        <td><span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 3px; font-weight: 600;">${card.batch_count}</span></td>
-                        <td><span style="background: #e9d5ff; color: #6b21a8; padding: 2px 6px; border-radius: 3px;">${card.material_count}</span></td>
-                        <td><span style="background: #fecaca; color: #7f1d1d; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">Pending</span></td>
+                        <td><span style="background: var(--violet-bg); color: var(--violet-fg); padding: 2px 6px; border-radius: 3px; font-weight: 600;">${card.batch_count}</span></td>
+                        <td><span style="background: var(--violet-bg); color: var(--violet-fg); padding: 2px 6px; border-radius: 3px;">${card.material_count}</span></td>
+                        <td><span style="background: var(--red-bg); color: var(--red-fg); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">Pending</span></td>
                         <td>
                             <button class="btn btn-sm btn-success" onclick="markAccounted(${card.id})">
                                 <i class="fas fa-check"></i> Mark Accounted

@@ -1,242 +1,136 @@
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<nav class="d-flex app-shell" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
-  <!-- Top bar with hamburger (tablet / mobile only) -->
-  <header class="app-topbar">
-    <button type="button" class="app-menu-toggle" id="appMenuToggle"
-            aria-controls="appSidebar" aria-expanded="false" aria-label="Open navigation menu">
-      <i class="fas fa-bars" aria-hidden="true"></i>
-    </button>
-    <span class="app-topbar-brand"><i class="fas fa-flask" aria-hidden="true"></i>Ruby Chemicals</span>
-  </header>
-  <div class="app-sidebar-backdrop" id="appSidebarBackdrop" aria-hidden="true"></div>
+{# Application shell: sidebar, topbar and the attendance banner. Page content follows this include. #}
+<div class="app-shell"
+     data-csrf="{{ csrf_token }}"
+     data-user-name="{{ request.user.name }}"
+     data-user-role="{% if request.user.is_super_admin %}Super Admin{% else %}{{ request.user.get_role_display }}{% endif %}">
 
-  <!-- Sidebar (static on desktop, off-canvas drawer on tablet / mobile) -->
-  <div class="text-white p-4 app-sidebar" id="appSidebar">
-    <div class="app-sidebar-head mb-4">
-      <h5 class="mb-0" style="margin-top: 10px;">
-        <i class="fas fa-flask"></i> Ruby Chemicals
-      </h5>
-      <button type="button" class="app-sidebar-close" id="appSidebarClose" aria-label="Close navigation menu">
-        <i class="fas fa-xmark" aria-hidden="true"></i>
+  <aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">
+    <div class="sb-brand">
+      <a href="/" aria-label="Ruby Chemicals home">
+        <img class="brand-logo" src="/static/ruby_logo.png" alt="Ruby Chemicals" width="190" height="28">
+      </a>
+      <button type="button" class="icon-btn sb-close" id="appSidebarClose" aria-label="Close menu">
+        <i class="fas fa-xmark"></i>
       </button>
     </div>
 
-    {# ── Daily Check In / Check Out ── #}
-    <div class="mb-4 p-2 rounded" style="background: rgba(0,0,0,0.06);">
-      <div class="small mb-2" id="attendance-status-text">Loading attendance…</div>
-      <button type="button" id="btn-check-in" class="btn btn-success btn-sm w-100 mb-2" disabled>
-        <i class="fas fa-right-to-bracket"></i> Check In
-      </button>
-      <button type="button" id="btn-check-out" class="btn btn-danger btn-sm w-100" disabled>
-        <i class="fas fa-right-from-bracket"></i> Check Out
-      </button>
+    <nav class="sb-nav">
+      {# ── Dashboard: accounts role and super-admins ── #}
+      {% if request.user.role == 'accounts' or request.user.is_super_admin %}
+      <div class="sb-group">
+        <a href="/admin-dashboard/" class="sb-link"><i class="fas fa-table-columns"></i><span>Dashboard</span></a>
+      </div>
+      {% endif %}
+
+      {# ── Sales ── #}
+      {% if request.user.is_super_admin or request.user.can_leads or request.user.can_client_management %}
+      <div class="sb-group">
+        <div class="sb-label">Sales</div>
+        {% if request.user.is_super_admin or request.user.can_leads %}
+        <a href="/leads/" class="sb-link"><i class="fas fa-filter"></i><span>Leads</span></a>
+        {% endif %}
+        {% if request.user.is_super_admin or request.user.can_client_management %}
+        <a href="/client-management/" class="sb-link"><i class="fas fa-users"></i><span>Clients</span></a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {# ── Inventory ── #}
+      {% if request.user.is_super_admin or request.user.can_stock_items or request.user.can_vendor_management %}
+      <div class="sb-group">
+        <div class="sb-label">Inventory</div>
+        {% if request.user.is_super_admin or request.user.can_stock_items %}
+        <a href="/stock-items/" class="sb-link"><i class="fas fa-cube"></i><span>Stock Items</span></a>
+        <a href="/stock-inwards/" class="sb-link"><i class="fas fa-file-arrow-down"></i><span>Stock Inwards</span></a>
+        {% endif %}
+        {% if request.user.is_super_admin or request.user.can_vendor_management %}
+        <a href="/vendor-management/" class="sb-link"><i class="fas fa-handshake"></i><span>Vendors</span></a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {# ── Operations ── #}
+      {% if request.user.is_super_admin or request.user.can_production or request.user.can_dispatch %}
+      <div class="sb-group">
+        <div class="sb-label">Operations</div>
+        {% if request.user.is_super_admin or request.user.can_production %}
+        <a href="/production/" class="sb-link"><i class="fas fa-industry"></i><span>Production</span></a>
+        {% endif %}
+        {% if request.user.is_super_admin or request.user.can_dispatch %}
+        <a href="/dispatch/" class="sb-link"><i class="fas fa-truck-fast"></i><span>Dispatch</span></a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {# ── Finance ── #}
+      {% if request.user.is_super_admin or request.user.can_petty_cash %}
+      <div class="sb-group">
+        <div class="sb-label">Finance</div>
+        <a href="/petty-cash/" class="sb-link"><i class="fas fa-wallet"></i><span>Petty Cash</span></a>
+      </div>
+      {% endif %}
+
+      {# ── People: My HR for everyone, HR for permitted users ── #}
+      <div class="sb-group">
+        <div class="sb-label">People</div>
+        <a href="/my-hr/" class="sb-link"><i class="fas fa-user-clock"></i><span>My HR</span></a>
+        {% if request.user.is_super_admin or request.user.role == 'admin' or request.user.can_hr %}
+        <a href="/hr/" class="sb-link"><i class="fas fa-id-card"></i><span>HR</span></a>
+        {% endif %}
+      </div>
+
+      {# ── Admin ── #}
+      {% if request.user.role == 'admin' or request.user.is_super_admin %}
+      <div class="sb-group">
+        <div class="sb-label">Admin</div>
+        <a href="/role-manager/" class="sb-link"><i class="fas fa-user-shield"></i><span>Role Manager</span></a>
+      </div>
+      {% endif %}
+    </nav>
+
+    <div class="sb-user">
+      <span class="avatar-chip" id="sbAvatar" aria-hidden="true">{{ request.user.name|slice:":1"|upper }}</span>
+      <div class="sb-user-meta">
+        <span class="sb-user-name">{{ request.user.name }}</span>
+        <span class="sb-user-role">{% if request.user.is_super_admin %}Super Admin{% else %}{{ request.user.get_role_display }}{% endif %}</span>
+      </div>
+      <a href="/logout/" class="icon-btn" title="Log out" aria-label="Log out"><i class="fas fa-arrow-right-from-bracket"></i></a>
     </div>
+  </aside>
 
-    {# ── Dashboard: only accounts role and super-admins ── #}
-    {% if request.user.role == 'accounts' or request.user.is_super_admin %}
-    <a href="/admin-dashboard/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-tachometer-alt"></i> Dashboard
-    </a>
-    {% endif %}
+  <div class="app-backdrop" id="appBackdrop"></div>
 
-    {# ── Stock Items: can_stock_items permission ── #}
-    {% if request.user.is_super_admin or request.user.can_stock_items %}
-    <a href="/stock-items/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-cube"></i> Stock Items
-    </a>
+  <div class="app-main">
+    <header class="app-topbar">
+      <button type="button" class="icon-btn tb-menu" id="appMenuToggle" aria-label="Open menu" aria-controls="appSidebar" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+      </button>
+      <a href="/" class="tb-logo" aria-label="Ruby Chemicals home">
+        <img class="brand-logo" src="/static/ruby_logo.png" alt="Ruby Chemicals" width="150" height="22" style="height:22px;">
+      </a>
+      <p class="tb-title" id="tbTitle"></p>
+      <span class="tb-spacer"></span>
+      <time class="tb-date" id="tbDate"></time>
+      <button type="button" class="icon-btn theme-toggle" id="themeToggle" aria-label="Switch to dark mode" title="Toggle theme">
+        <i class="fas fa-moon"></i><i class="fas fa-sun"></i>
+      </button>
+    </header>
 
-    {# ── Stock Inwards: shown only when Stock Items is accessible (same permission) ── #}
-    <a href="/stock-inwards/" class="d-block mb-2 text-decoration-none" style="padding-left:1.25rem;">
-      <i class="fas fa-file-arrow-down"></i> Stock Inwards
-    </a>
-    {% endif %}
+    <main class="app-content" id="appContent">
 
-    {# ── Vendor Management ── #}
-    {% if request.user.is_super_admin or request.user.can_vendor_management %}
-    <a href="/vendor-management/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-user"></i> Vendor Management
-    </a>
-    {% endif %}
-
-    {# ── Production ── #}
-    {% if request.user.is_super_admin or request.user.can_production %}
-    <a href="/production/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-industry"></i> Production
-    </a>
-    {% endif %}
-
-    {# ── Dispatch ── #}
-    {% if request.user.is_super_admin or request.user.can_dispatch %}
-    <a href="/dispatch/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-shipping-fast"></i> Dispatch
-    </a>
-    {% endif %}
-
-    {# ── Client Management ── #}
-    {% if request.user.is_super_admin or request.user.can_client_management %}
-    <a href="/client-management/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-users"></i> Client Management
-    </a>
-    {% endif %}
-
-    {# ── Petty Cash ── #}
-    {% if request.user.is_super_admin or request.user.can_petty_cash %}
-    <a href="/petty-cash/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-wallet"></i> Petty Cash
-    </a>
-    {% endif %}
-
-    {# ── Leads ── #}
-    {% if request.user.is_super_admin or request.user.can_leads %}
-    <a href="/leads/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-gear"></i> Leads
-    </a>
-    {% endif %}
-
-    {# ── My HR profile: every signed-in user ── #}
-    <a href="/my-hr/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-user-clock"></i> My HR
-    </a>
-
-    {# ── HR ── #}
-    {% if request.user.is_super_admin or request.user.role == 'admin' or request.user.can_hr %}
-    <a href="/hr/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-id-card"></i> HR
-    </a>
-    {% endif %}
-
-    {# ── Role Manager: admin role or super-admin only ── #}
-    {% if request.user.role == 'admin' or request.user.is_super_admin %}
-    <hr class="mt-3 mb-2">
-    <a href="/role-manager/" class="d-block mb-2 text-decoration-none">
-      <i class="fas fa-users-cog"></i> Role Manager
-    </a>
-    {% endif %}
-
-    <hr class="mt-4">
-
-    <a href="/logout/" class="d-block text-decoration-none">
-      <i class="fas fa-sign-out-alt"></i> Logout
-    </a>
-
-    <hr class="mt-4 mb-6">
-
-    <a href="https://www.dynamiclabz.net/" target="_blank" class="d-block text-decoration-none">
-      Developed By <u>DynamicLabz</u>
-    </a>
-  </div>
-
-  <script>
-    // Hamburger / off-canvas drawer behaviour (tablet and mobile)
-    (function () {
-      const toggle = document.getElementById('appMenuToggle');
-      const closeBtn = document.getElementById('appSidebarClose');
-      const backdrop = document.getElementById('appSidebarBackdrop');
-      const sidebar = document.getElementById('appSidebar');
-      if (!toggle || !sidebar) return;
-
-      const desktop = window.matchMedia('(min-width: 992px)');
-
-      function setOpen(open, restoreFocus) {
-        document.body.classList.toggle('sidebar-open', open);
-        toggle.setAttribute('aria-expanded', String(open));
-        toggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
-        if (open && closeBtn) closeBtn.focus();
-        if (!open && restoreFocus) toggle.focus();
-      }
-
-      toggle.addEventListener('click', () =>
-        setOpen(!document.body.classList.contains('sidebar-open'), true));
-      if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false, true));
-      if (backdrop) backdrop.addEventListener('click', () => setOpen(false, true));
-
-      // Navigating from the drawer should close it
-      sidebar.addEventListener('click', (event) => {
-        if (event.target.closest('a[href]')) setOpen(false, false);
-      });
-
-      document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape' || !document.body.classList.contains('sidebar-open')) return;
-        if (document.querySelector('.modal.show')) return;
-        setOpen(false, true);
-      });
-
-      // Rotating a tablet or resizing to desktop must not leave the drawer state behind
-      const onBreakpointChange = (event) => { if (event.matches) setOpen(false, false); };
-      if (desktop.addEventListener) desktop.addEventListener('change', onBreakpointChange);
-      else desktop.addListener(onBreakpointChange);
-    })();
-  </script>
-
-  <script>
-    (function () {
-      const CSRF_TOKEN = "{{ csrf_token }}";
-      const checkInBtn = document.getElementById('btn-check-in');
-      const checkOutBtn = document.getElementById('btn-check-out');
-      const statusText = document.getElementById('attendance-status-text');
-
-      function formatDateTime(iso) {
-        if (!iso) return '';
-        const d = new Date(iso);
-        return d.toLocaleString('en-IN', {
-          day: '2-digit', month: '2-digit', year: 'numeric',
-          hour: '2-digit', minute: '2-digit'
-        });
-      }
-
-      async function loadAttendanceStatus() {
-        try {
-          const res = await fetch('/user-api/attendance-api/', { method: 'GET' });
-          const result = await res.json();
-          if (!result.success || !statusText) return;
-
-          const info = result.data;
-          if (info.has_checked_out_today) {
-            checkInBtn.disabled = true;
-            checkOutBtn.disabled = true;
-            statusText.innerHTML = `Checked out at<br><b>${formatDateTime(info.today.check_out_time)}</b>`;
-          } else if (info.has_checked_in_today) {
-            checkInBtn.disabled = true;
-            checkOutBtn.disabled = false;
-            statusText.innerHTML = `Checked in at<br><b>${formatDateTime(info.today.check_in_time)}</b>`;
-          } else {
-            checkInBtn.disabled = false;
-            checkOutBtn.disabled = true;
-            statusText.innerHTML = info.last_check_out_time
-              ? `Last checked out at<br><b>${formatDateTime(info.last_check_out_time)}</b>`
-              : 'Not checked in today';
-          }
-        } catch (err) {
-          console.error('Attendance status error:', err);
-        }
-      }
-
-      async function postAttendance(url) {
-        try {
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json' },
-          });
-          const result = await res.json();
-          if (!result.success) {
-            alert(result.error || 'Something went wrong');
-          }
-          loadAttendanceStatus();
-        } catch (err) {
-          console.error('Attendance action error:', err);
-        }
-      }
-
-      if (checkInBtn) {
-        checkInBtn.addEventListener('click', () => postAttendance('/user-api/attendance-api/check-in/'));
-      }
-      if (checkOutBtn) {
-        checkOutBtn.addEventListener('click', () => postAttendance('/user-api/attendance-api/check-out/'));
-      }
-
-      loadAttendanceStatus();
-    })();
-  </script>
-
-  <!-- Page Content -->
-  <div class="flex-grow-1 p-4 app-content">
+      {# ── Attendance: first thing on every page, so check in / check out is always one tap away ── #}
+      <section class="att-banner" id="attBanner" data-state="loading" aria-live="polite" aria-label="Attendance">
+        <span class="att-icon"><i class="fas fa-clock" id="attIcon"></i></span>
+        <div class="att-text">
+          <p class="att-title" id="attendance-status-text">Checking attendance...</p>
+          <p class="att-sub" id="attSub"></p>
+        </div>
+        <div class="att-actions">
+          <button type="button" id="btn-check-in" class="btn btn-primary" hidden disabled>
+            <i class="fas fa-right-to-bracket"></i> Check in
+          </button>
+          <button type="button" id="btn-check-out" class="btn btn-secondary" hidden disabled>
+            <i class="fas fa-right-from-bracket"></i> Check out
+          </button>
+        </div>
+      </section>

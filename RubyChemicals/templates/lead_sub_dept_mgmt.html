@@ -4,37 +4,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/static/js_1/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Leads Department Management - CRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/portal.css">
-    <script src="/static/js/portal.js" defer></script>
+    <link rel="stylesheet" href="/static/css_1/style.css">
+    <link rel="stylesheet" href="/static/css_1/portal.css">
+    <script src="/static/js_1/portal.js" defer></script>
     <style>
-        body { background: #f8fafc; }
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
 
         /* App area card */
         .app-area-card {
-            background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
             margin-bottom: 1rem; overflow: hidden;
         }
         .app-area-card-header {
-            background: #f8fafc; padding: 0.85rem 1.25rem;
+            background: var(--surface-2); padding: 0.85rem 1.25rem;
             display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border);
         }
         .app-area-card-body { padding: 1rem 1.25rem; }
 
         .items-list-sm { list-style: none; padding: 0; margin: 0; }
         .items-list-sm li {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; font-size: 0.82rem;
+            padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 0.82rem;
         }
         .items-list-sm li:last-child { border-bottom: none; }
 
-        .items-table th { background: #f8fafc; font-size: 0.78rem; color: #64748b; font-weight: 600; padding: 0.6rem 0.75rem; }
+        .items-table th { background: var(--surface-2); font-size: 0.78rem; color: var(--muted); font-weight: 600; padding: 0.6rem 0.75rem; }
         .items-table td { padding: 0.5rem 0.75rem; font-size: 0.82rem; vertical-align: middle; }
     </style>
 </head>
@@ -48,7 +51,7 @@
         <!-- Page Header -->
         <div class="page-header">
             <h1 class="page-title">
-                <i class="fas fa-layer-group" style="margin-right:0.75rem; color:#7c3aed;"></i>Leads Department Management
+                <i class="fas fa-layer-group" style="margin-right:0.75rem; color:var(--violet-fg);"></i>Leads Department Management
             </h1>
             <div class="page-actions" id="pageHeaderActions">
                 <!-- Dynamic buttons inserted per tab -->
@@ -158,7 +161,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="subDeptModalTitle">
-                        <i class="fas fa-sitemap" style="color:#7c3aed; margin-right:0.5rem;"></i>Sub-Department
+                        <i class="fas fa-sitemap" style="color:var(--violet-fg); margin-right:0.5rem;"></i>Sub-Department
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -183,7 +186,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
+                <div class="modal-footer" style="border-top:1px solid var(--border);">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:8px;">Cancel</button>
                     <button class="btn btn-purple" onclick="submitSubDept()" style="padding:0.5rem 1.25rem;">
                         <i class="fas fa-save me-2"></i><span id="sdSubmitBtnText">Create Sub-Department</span>
@@ -238,7 +241,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
+                <div class="modal-footer" style="border-top:1px solid var(--border);">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:8px;">Cancel</button>
                     <button class="btn btn-success-custom" onclick="submitStockItem()" style="padding:0.5rem 1.25rem;">
                         <i class="fas fa-save me-2"></i><span id="siSubmitBtnText">Add Stock Item</span>
@@ -281,7 +284,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
+                <div class="modal-footer" style="border-top:1px solid var(--border);">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:8px;">Cancel</button>
                     <button class="btn btn-success-custom" onclick="submitAppArea()" style="padding:0.5rem 1.25rem;">
                         <i class="fas fa-save me-2"></i><span id="aaSubmitBtnText">Create Area</span>
@@ -298,7 +301,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="spModalTitle">
-                        <i class="fas fa-cube" style="color:#7c3aed; margin-right:0.5rem;"></i>System Product
+                        <i class="fas fa-cube" style="color:var(--violet-fg); margin-right:0.5rem;"></i>System Product
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -348,7 +351,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
+                <div class="modal-footer" style="border-top:1px solid var(--border);">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:8px;">Cancel</button>
                     <button class="btn btn-purple" onclick="submitSystemProduct()" style="padding:0.5rem 1.25rem;">
                         <i class="fas fa-save me-2"></i><span id="spSubmitBtnText">Save System Product</span>
@@ -372,8 +375,8 @@
                 <div class="modal-body">
                     <input type="hidden" id="fiAppAreaId">
                     <input type="hidden" id="fiId">
-                    <div class="form-section" style="background:#fff7ed; border-color:#fed7aa;">
-                        <p class="form-section-title" style="color:#92400e;"><i class="fas fa-info-circle me-2"></i>Fixed Item Details</p>
+                    <div class="form-section" style="background:var(--amber-bg); border-color:var(--amber-bd);">
+                        <p class="form-section-title" style="color:var(--amber-fg);"><i class="fas fa-info-circle me-2"></i>Fixed Item Details</p>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Select Stock Item <span class="text-danger">*</span></label>
@@ -390,9 +393,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer" style="border-top:1px solid #e2e8f0;">
+                <div class="modal-footer" style="border-top:1px solid var(--border);">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:8px;">Cancel</button>
-                    <button class="btn btn-warning" onclick="submitFixedItem()" style="border-radius:8px; color:white; padding:0.5rem 1.25rem;">
+                    <button class="btn btn-warning" onclick="submitFixedItem()" style="border-radius:8px; padding:0.5rem 1.25rem;">
                         <i class="fas fa-save me-2"></i>Save Fixed Item
                     </button>
                 </div>
@@ -412,8 +415,8 @@
             fixedItems:     "{% url 'leads-fixed-item-list' %}",
         }
     </script>
-    <script src="/static/js/api_caller.js"></script>
-    <script src="/static/js/lead_sub_dept_mgmt.js"></script>
+    <script src="/static/js_1/api_caller.js"></script>
+    <script src="/static/js_1/lead_sub_dept_mgmt.js"></script>
     <script>
         initMgmt(CSRF, ENDPOINTS)
     </script>

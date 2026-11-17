@@ -57,8 +57,8 @@ function renderVendorInwards() {
             <td>${inward.item_count || 0} items</td>
             <td>
                 ${inward.accounted 
-                    ? '<span style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">✓ Yes</span>' 
-                    : '<span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">✗ No</span>'}
+                    ? '<span style="background: var(--green-bg); color: var(--green-fg); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">✓ Yes</span>' 
+                    : '<span style="background: var(--red-bg); color: var(--red-fg); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">✗ No</span>'}
             </td>
             <td>${inward.notes || ''}</td>
             <td>

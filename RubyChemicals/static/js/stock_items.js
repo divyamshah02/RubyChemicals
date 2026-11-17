@@ -26,7 +26,7 @@ function renderItems(items){
   const rows = items.map(i => `
     <tr>
       <td>${i.name}</td>
-      <td><span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">${i.group_name}</span></td>
+      <td><span style="background: var(--blue-bg); color: var(--blue-fg); padding: 4px 8px; border-radius: 6px; font-size: 0.85rem;">${i.group_name}</span></td>
       <td><strong>${i.current_quantity}</strong></td>
       <td>
         <button class="btn btn-sm btn-success" onclick="openInward(${i.id})"><i class="fas fa-arrow-down"></i> Inward</button>

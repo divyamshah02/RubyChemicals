@@ -4,16 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/static/js_1/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Production - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/portal.css">
-    <script src="/static/js/portal.js" defer></script>
+    <link rel="stylesheet" href="/static/css_1/style.css">
+    <link rel="stylesheet" href="/static/css_1/portal.css">
+    <script src="/static/js_1/portal.js" defer></script>
     <style>
-        body {
-            background: #f8fafc;
-        }
     </style>
 
 </head>
@@ -86,7 +87,7 @@
     <div class="modal fade" id="productionCardModal">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
-                <div class="modal-header" style="border-bottom: 1px solid #e2e8f0;">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border);">
                     <h5 class="modal-title"><i class="fas fa-industry"
                             style="color: #3b82f6; margin-right: 0.5rem;"></i>Create Production Card with Batches</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -94,56 +95,56 @@
                 <div class="modal-body" style="max-height: 85vh; overflow-y: auto;">
                     <!-- Card Info Section -->
                     <div
-                        style="background: #f0f9ff; padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem; border: 1px solid #bfdbfe;">
-                        <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-id-card"
+                        style="background: var(--blue-bg); padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem; border: 1px solid var(--blue-bd);">
+                        <h6 style="color: var(--blue-fg); font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-id-card"
                                 style="margin-right: 0.5rem;"></i>Card Information</h6>
                         <div class="row">
                             <div class="col-md-4">
-                                <label for="productionCode" style="font-weight: 600; color: #475569;">Production
+                                <label for="productionCode" style="font-weight: 600; color: var(--text-2);">Production
                                     Code</label>
                                 <input id="productionCode" class="form-control mb-3" placeholder="e.g., PROD-001"
-                                    autocomplete="off" style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    autocomplete="off" style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                             <div class="col-md-4">
-                                <label for="productionDate" style="font-weight: 600; color: #475569;">Production
+                                <label for="productionDate" style="font-weight: 600; color: var(--text-2);">Production
                                     Date</label>
                                 <input id="productionDate" type="date" class="form-control mb-3"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                             <div class="col-md-4">
-                                <label for="productionDate" style="font-weight: 600; color: #475569;">Production
+                                <label for="productionDate" style="font-weight: 600; color: var(--text-2);">Production
                                     Incharge</label>
                                 <input id="productionIncharge" type="text" class="form-control mb-3"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6">
-                                <label for="productName" style="font-weight: 600; color: #475569;">Product Name</label>
+                                <label for="productName" style="font-weight: 600; color: var(--text-2);">Product Name</label>
                                 <input id="productName" class="form-control mb-3" placeholder="e.g., Chemical XYZ"
-                                    autocomplete="off" style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    autocomplete="off" style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                             <div class="col-md-6">
-                                <label for="totalLoss" style="font-weight: 600; color: #475569;">Total Loss</label>
+                                <label for="totalLoss" style="font-weight: 600; color: var(--text-2);">Total Loss</label>
                                 <input id="totalLoss" type="number" class="form-control mb-3" placeholder="0"
                                     autocomplete="off" step="0.001"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6">
-                                <label for="totalOutputQty" style="font-weight: 600; color: #475569;">Total Output
+                                <label for="totalOutputQty" style="font-weight: 600; color: var(--text-2);">Total Output
                                     Qty</label>
                                 <input id="totalOutputQty" type="number" class="form-control mb-3" placeholder="0"
-                                    autocomplete="off" style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    autocomplete="off" style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                             <div class="col-md-6">
-                                <label for="unitSelect" style="font-weight: 600; color: #475569;">Unit of
+                                <label for="unitSelect" style="font-weight: 600; color: var(--text-2);">Unit of
                                     Measurement</label>
                                 <select id="unitSelect" class="form-control mb-3"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                                     <!-- <option value="kg">Kilogram (KG)</option>
                                     <option value="g">Gram (g)</option>
                                     <option value="pcs">Pieces (Pcs)</option> -->
@@ -163,20 +164,20 @@
 
                         <div class="row">
                             <div class="col-12">
-                                <label for="remarks" style="font-weight: 600; color: #475569;">Remarks</label>
+                                <label for="remarks" style="font-weight: 600; color: var(--text-2);">Remarks</label>
                                 <textarea id="remarks" class="form-control mb-3"
                                     placeholder="Add any remarks about this production..." rows="3"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;"></textarea>
+                                    style="border-radius: 8px; border: 1px solid var(--border);"></textarea>
                             </div>
                         </div>
                     </div>
 
                     <!-- Raw Materials Section -->
                     <hr style="margin: 1rem 0;">
-                    <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-flask"
+                    <h6 style="color: var(--blue-fg); font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-flask"
                             style="margin-right: 0.5rem;"></i>Raw Materials</h6>
                     <div id="rawList"
-                        style="background: #fafafa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #e2e8f0;">
+                        style="background: var(--surface-2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border);">
                     </div>
                     <button class="btn btn-secondary btn-sm mb-3" onclick="addRawMaterialRow()"
                         style="border-radius: 8px;"><i class="fas fa-plus" style="margin-right: 0.5rem;"></i>Add
@@ -184,16 +185,16 @@
 
                     <!-- Batches Section -->
                     <hr style="margin: 1rem 0;">
-                    <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-cubes"
+                    <h6 style="color: var(--blue-fg); font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-cubes"
                             style="margin-right: 0.5rem;"></i>Production Batches</h6>
                     <div id="batchesList"
-                        style="background: #fafafa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #e2e8f0;">
+                        style="background: var(--surface-2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border);">
                     </div>
                     <button class="btn btn-primary btn-sm" onclick="addBatchRow()"
                         style="border-radius: 8px; background: #3b82f6; border: none;"><i class="fas fa-plus"
                             style="margin-right: 0.5rem;"></i>Add Batch</button>
                 </div>
-                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                <div class="modal-footer" style="border-top: 1px solid var(--border);">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
                         style="border-radius: 8px;">Cancel</button>
                     <button class="btn btn-success" onclick="createProductionCardWithBatches()"
@@ -208,7 +209,7 @@
     <div class="modal fade" id="productionDetailModal">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header" style="border-bottom: 1px solid #e2e8f0;">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border);">
                     <h5 class="modal-title"><i class="fas fa-industry"
                             style="color: #3b82f6; margin-right: 0.5rem;"></i>Production Card Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -216,7 +217,7 @@
                 <div class="modal-body">
                     <div id="cardDetailsContent"></div>
                 </div>
-                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                <div class="modal-footer" style="border-top: 1px solid var(--border);">
                     <button type="button" class="btn btn-primary" onclick="generatePDF()" style="border-radius: 8px;">
                         <i class="fas fa-arrow-down" style="margin-right: 0.5rem;"></i>Download
                     </button>
@@ -239,7 +240,7 @@
     <div class="modal fade" id="editProductionCardModal">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
-                <div class="modal-header" style="border-bottom: 1px solid #e2e8f0;">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border);">
                     <h5 class="modal-title"><i class="fas fa-edit"
                             style="color: #3b82f6; margin-right: 0.5rem;"></i>Edit Production Card</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -247,55 +248,55 @@
                 <div class="modal-body" style="max-height: 85vh; overflow-y: auto;">
                     <!-- Edit Card Info Section -->
                     <div
-                        style="background: #f0f9ff; padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem; border: 1px solid #bfdbfe;">
-                        <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-id-card"
+                        style="background: var(--blue-bg); padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem; border: 1px solid var(--blue-bd);">
+                        <h6 style="color: var(--blue-fg); font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-id-card"
                                 style="margin-right: 0.5rem;"></i>Card Information</h6>
                         <div class="row">
                             <div class="col-md-4">
-                                <label for="editProductionCode" style="font-weight: 600; color: #475569;">Production
+                                <label for="editProductionCode" style="font-weight: 600; color: var(--text-2);">Production
                                     Code</label>
                                 <input id="editProductionCode" class="form-control mb-3" autocomplete="off"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                             <div class="col-md-4">
-                                <label for="editProductionDate" style="font-weight: 600; color: #475569;">Production
+                                <label for="editProductionDate" style="font-weight: 600; color: var(--text-2);">Production
                                     Date</label>
                                 <input id="editProductionDate" type="date" class="form-control mb-3"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                             <div class="col-md-4">
-                                <label for="editProductionIncharge" style="font-weight: 600; color: #475569;">Production
+                                <label for="editProductionIncharge" style="font-weight: 600; color: var(--text-2);">Production
                                     Incharge</label>
                                 <input id="editProductionIncharge" type="text" class="form-control mb-3"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6">
-                                <label for="editProductName" style="font-weight: 600; color: #475569;">Product
+                                <label for="editProductName" style="font-weight: 600; color: var(--text-2);">Product
                                     Name</label>
                                 <input id="editProductName" class="form-control mb-3" autocomplete="off"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                             <div class="col-md-6">
-                                <label for="editTotalLoss" style="font-weight: 600; color: #475569;">Total Loss</label>
+                                <label for="editTotalLoss" style="font-weight: 600; color: var(--text-2);">Total Loss</label>
                                 <input id="editTotalLoss" type="number" class="form-control mb-3" step="0.001"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6">
-                                <label for="editTotalOutputQty" style="font-weight: 600; color: #475569;">Total Output
+                                <label for="editTotalOutputQty" style="font-weight: 600; color: var(--text-2);">Total Output
                                     Qty</label>
                                 <input id="editTotalOutputQty" type="number" class="form-control mb-3"
-                                    autocomplete="off" style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    autocomplete="off" style="border-radius: 8px; border: 1px solid var(--border);">
                             </div>
                             <div class="col-md-6">
-                                <label for="editUnitSelect" style="font-weight: 600; color: #475569;">Unit</label>
+                                <label for="editUnitSelect" style="font-weight: 600; color: var(--text-2);">Unit</label>
                                 <select id="editUnitSelect" class="form-control mb-3"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    style="border-radius: 8px; border: 1px solid var(--border);">
                                     <option value="kg">Kilogram (KG)</option>
                                     <option value="g">Gram (g)</option>
                                     <option value="pcs">Pieces (Pcs)</option>
@@ -305,21 +306,21 @@
 
                         <div class="row">
                             <div class="col-12">
-                                <label for="editRemarks" style="font-weight: 600; color: #475569;">Remarks</label>
+                                <label for="editRemarks" style="font-weight: 600; color: var(--text-2);">Remarks</label>
                                 <textarea id="editRemarks" class="form-control mb-3" rows="3"
-                                    style="border-radius: 8px; border: 1px solid #e2e8f0;"></textarea>
+                                    style="border-radius: 8px; border: 1px solid var(--border);"></textarea>
                             </div>
                         </div>
                     </div>
 
                     <!-- Raw Materials Section -->
                     <div
-                        style="background: #f0fdf4; padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem; border: 1px solid #86efac;">
-                        <h6 style="color: #166534; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-flask"
+                        style="background: var(--green-bg); padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem; border: 1px solid var(--green-bd);">
+                        <h6 style="color: var(--green-fg); font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-flask"
                                 style="margin-right: 0.5rem;"></i>Raw Materials</h6>
                         <div id="editRawList"></div>
                         <button type="button" class="btn"
-                            style="background: #86efac; color: #166534; border-radius: 8px; font-weight: 500; margin-top: 1rem;"
+                            style="background: var(--green-bg); color: var(--green-fg); border-radius: 8px; font-weight: 500; margin-top: 1rem;"
                             onclick="addEditRawMaterial()">
                             <i class="fas fa-plus" style="margin-right: 0.5rem;"></i>Add Raw Material
                         </button>
@@ -327,17 +328,17 @@
 
                     <!-- Batches Section -->
                     <div style="background: #fff3e0; padding: 1.5rem; border-radius: 10px; border: 1px solid #fbbf24;">
-                        <h6 style="color: #b45309; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-cubes"
+                        <h6 style="color: var(--amber-fg); font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-cubes"
                                 style="margin-right: 0.5rem;"></i>Production Batches</h6>
                         <div id="editBatchesList"></div>
                         <button type="button" class="btn"
-                            style="background: #fbbf24; color: #b45309; border-radius: 8px; font-weight: 500; margin-top: 1rem;"
+                            style="background: #fbbf24; color: var(--amber-fg); border-radius: 8px; font-weight: 500; margin-top: 1rem;"
                             onclick="addEditBatch()">
                             <i class="fas fa-plus" style="margin-right: 0.5rem;"></i>Add Batch
                         </button>
                     </div>
                 </div>
-                <div class="modal-footer" style="border-top: 1px solid #e2e8f0;">
+                <div class="modal-footer" style="border-top: 1px solid var(--border);">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
                         style="border-radius: 8px;">Cancel</button>
                     <button type="button" class="btn btn-primary-custom" onclick="submitEditProductionCard()"
@@ -393,8 +394,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="/static/js/api_caller.js"></script>
-    <script src="/static/js/production.js"></script>
+    <script src="/static/js_1/api_caller.js"></script>
+    <script src="/static/js_1/production.js"></script>
     <script>
         init("{{csrf_token}}", {
             productionCard: "/operation-api/production-card-api/",
@@ -434,7 +435,7 @@
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-calendar-today stat-icon"></i>
+                    <i class="fas fa-calendar-day stat-icon"></i>
                     <div class="stat-content">
                         <h3>${todayCount}</h3>
                         <p>Today's Production</p>

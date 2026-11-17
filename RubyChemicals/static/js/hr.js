@@ -387,7 +387,7 @@ function renderEmployeeView(emp) {
         ? emp.emergency_contacts.map(c => `<div>${esc(c.name)} <span class="text-muted">(${esc(c.relation)})</span> &middot; ${esc(c.mobile)}</div>`).join('')
         : ''
     const photo = emp.photo && isImage(emp.photo)
-        ? `<img src="${esc(emp.photo)}" alt="${esc(emp.user_name)}" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid #e2e8f0;">`
+        ? `<img src="${esc(emp.photo)}" alt="${esc(emp.user_name)}" style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid var(--border);">`
         : ''
 
     const exitInfo = emp.is_exited ? `

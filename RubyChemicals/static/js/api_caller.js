@@ -133,7 +133,7 @@ function toggle_loader() {
         spinner.style.width = '3rem';
         spinner.style.height = '3rem';
         spinner.style.border = '6px solid #ccc';
-        spinner.style.borderTop = '6px solid #8b6f47';
+        spinner.style.borderTop = '6px solid #3730a3';
         spinner.style.borderRadius = '50%';
         spinner.style.animation = 'spin 1s linear infinite';
 

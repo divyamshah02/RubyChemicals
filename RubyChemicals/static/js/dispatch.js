@@ -38,7 +38,7 @@ async function loadDispatches(){
         <td>${CustomformatDate(d.dispatch_date)}</td>
         <td><strong>${d.customer_name}</strong></td>
         <td>${d.stock_item_name}</td>
-        <td><span style="background: #bfdbfe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-weight: 600;">${d.quantity}</span></td>
+        <td><span style="background: var(--blue-bg); color: var(--blue-fg); padding: 4px 8px; border-radius: 6px; font-weight: 600;">${d.quantity}</span></td>
       </tr>
     `).join("")
     table.innerHTML = headers + `<tbody>${rows}</tbody>`

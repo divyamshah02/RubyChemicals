@@ -4,48 +4,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/static/js_1/theme-init.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>My HR - CRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/portal.css">
-    <script src="/static/js/portal.js" defer></script>
+    <link rel="stylesheet" href="/static/css_1/style.css">
+    <link rel="stylesheet" href="/static/css_1/portal.css">
+    <script src="/static/js_1/portal.js" defer></script>
     <style>
-        body { background: #f8fafc; }
 
         .checkin-card { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
-        .checkin-clock { font-size: 2rem; font-weight: 700; color: #1e293b; line-height: 1.1; }
-        .checkin-date { color: #64748b; font-size: 0.85rem; }
-        .checkin-status { color: #475569; font-size: 0.9rem; margin-top: 0.5rem; }
+        .checkin-clock { font-size: 2rem; font-weight: 700; color: var(--text); line-height: 1.1; }
+        .checkin-date { color: var(--muted); font-size: 0.85rem; }
+        .checkin-status { color: var(--text-2); font-size: 0.9rem; margin-top: 0.5rem; }
         .checkin-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-        .table tbody tr.row-forgot { background: #fef2f2; }
-        .table tbody tr.row-muted td { color: #94a3b8; }
+        .table tbody tr.row-forgot { background: var(--red-bg); }
+        .table tbody tr.row-muted td { color: var(--faint); }
 
         .pill { padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; display: inline-block; }
-        .pill-present   { background: #dcfce7; color: #166534; }
-        .pill-half      { background: #fef3c7; color: #92400e; }
-        .pill-leave     { background: #dbeafe; color: #1d4ed8; }
-        .pill-holiday   { background: #ede9fe; color: #5b21b6; }
-        .pill-off       { background: #f1f5f9; color: #64748b; }
-        .pill-absent    { background: #fee2e2; color: #991b1b; }
-        .pill-pending   { background: #fef3c7; color: #92400e; }
-        .pill-approved  { background: #dcfce7; color: #166534; }
-        .pill-rejected  { background: #fee2e2; color: #991b1b; }
-        .pill-cancelled { background: #f1f5f9; color: #64748b; }
+        .pill-present   { background: var(--green-bg); color: var(--green-fg); }
+        .pill-half      { background: var(--amber-bg); color: var(--amber-fg); }
+        .pill-leave     { background: var(--blue-bg); color: var(--blue-fg); }
+        .pill-holiday   { background: var(--violet-bg); color: var(--violet-fg); }
+        .pill-off       { background: var(--surface-3); color: var(--muted); }
+        .pill-absent    { background: var(--red-bg); color: var(--red-fg); }
+        .pill-pending   { background: var(--amber-bg); color: var(--amber-fg); }
+        .pill-approved  { background: var(--green-bg); color: var(--green-fg); }
+        .pill-rejected  { background: var(--red-bg); color: var(--red-fg); }
+        .pill-cancelled { background: var(--surface-3); color: var(--muted); }
 
-        .forgot-flag { color: #dc2626; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
-        .in-progress-flag { color: #0369a1; font-weight: 600; font-size: 0.8rem; }
+        .forgot-flag { color: var(--red-fg); font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+        .in-progress-flag { color: var(--blue-fg); font-weight: 600; font-size: 0.8rem; }
 
         .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem 1.5rem; }
-        .detail-item .k { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
-        .detail-item .v { color: #1e293b; font-size: 0.9rem; word-break: break-word; }
+        .detail-item .k { font-size: 0.72rem; color: var(--faint); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+        .detail-item .v { color: var(--text); font-size: 0.9rem; word-break: break-word; }
         .profile-top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
         .profile-avatar {
-            width: 72px; height: 72px; border-radius: 16px; object-fit: cover; background: #e2e8f0;
-            color: #475569; font-weight: 700; font-size: 1.4rem; border: 1px solid #e2e8f0;
+            width: 72px; height: 72px; border-radius: 16px; object-fit: cover; background: var(--surface-3);
+            color: var(--text-2); font-weight: 700; font-size: 1.4rem; border: 1px solid var(--border);
             display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
-        .file-link a { color: #2563eb; text-decoration: none; font-weight: 600; }
+        .file-link a { color: var(--blue-fg); text-decoration: none; font-weight: 600; }
     </style>
 </head>
 
@@ -316,8 +319,8 @@
             checkOut: "/user-api/attendance-api/check-out/",
         }
     </script>
-    <script src="/static/js/api_caller.js"></script>
-    <script src="/static/js/my_hr.js"></script>
+    <script src="/static/js_1/api_caller.js"></script>
+    <script src="/static/js_1/my_hr.js"></script>
     <script>
         initMyHR(CSRF, ENDPOINTS)
     </script>

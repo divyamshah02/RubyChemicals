@@ -5,6 +5,7 @@ from utils.decorators import handle_exceptions, check_authentication
 from django.db.models import Q
 from decimal import Decimal
 from UserDetail.models import ActivityLog
+from datetime import datetime
 
 class AdminDashboardViewSet(viewsets.ViewSet):
 
@@ -16,7 +17,7 @@ class AdminDashboardViewSet(viewsets.ViewSet):
         # Stock items with low/negative quantities only
         low_stock_items = StockItem.objects.filter(
             current_quantity__lte=0, is_active=True
-        ).values('id', 'name', 'group__name', 'current_quantity', 'unit').order_by('current_quantity')
+        ).values('id', 'name', 'group__name', 'current_quantity', 'unit').order_by('current_quantity')[:5]
         
         # Total stock items
         total_items = StockItem.objects.filter(is_active=True).count()
@@ -26,22 +27,23 @@ class AdminDashboardViewSet(viewsets.ViewSet):
         
         # Production cards - unaccounted with batch and consumption counts (latest 5)
         unaccounted_cards_list = []
-        for card in ProductionCard.objects.filter(accounted=False, is_active=True).select_related('product').order_by('-production_date').values('id', 'production_code', 'production_date', 'total_output_quantity', 'unit', 'accounted'):
+        for card in ProductionCard.objects.filter(accounted=False, is_active=True).select_related('product').order_by('-production_date').values('id', 'production_code', 'production_date', 'total_output_quantity', 'unit', 'accounted')[:5]:
             batch_count = ProductionBatch.objects.filter(production_card_id=card['id']).count()
             consumption_count = ProductionConsumption.objects.filter(production_card_id=card['id']).count()
             card['batch_count'] = batch_count
             card['consumption_count'] = consumption_count
+            card['production_date'] = datetime.strptime(str(card['production_date']), "%Y-%m-%d").strftime("%d/%m/%Y")
             unaccounted_cards_list.append(card)
         
         # Latest dispatches (pending accounting, latest 5)
         pending_dispatches = []
-        for dispatch in Dispatch.objects.filter(accounted=False, is_active=True).select_related('client').prefetch_related('items').order_by('-dispatch_date'):
+        for dispatch in Dispatch.objects.filter(accounted=False, is_active=True).select_related('client').prefetch_related('items').order_by('-dispatch_date')[:5]:
             item_count = dispatch.items.count()
             total_qty = sum(float(item.quantity) for item in dispatch.items.all())
             pending_dispatches.append({
                 'id': dispatch.id,
                 'dispatch_code': dispatch.dispatch_code,
-                'dispatch_date': str(dispatch.dispatch_date),
+                'dispatch_date': datetime.strptime(str(dispatch.dispatch_date), "%Y-%m-%d").strftime("%d/%m/%Y"),
                 'client_name': dispatch.client.company_name if dispatch.client else 'N/A',
                 'vehicle_number': dispatch.vehicle_number,
                 'freight_amount': str(dispatch.freight_amount),
@@ -53,12 +55,12 @@ class AdminDashboardViewSet(viewsets.ViewSet):
         
         # Pending inwards (unaccounted stock inwards, latest 5)
         pending_inwards = []
-        for inward in VendorInward.objects.filter(accounted=False, is_active=True).select_related('vendor').prefetch_related('items').order_by('-inward_date'):
+        for inward in VendorInward.objects.filter(accounted=False, is_active=True).select_related('vendor').prefetch_related('items').order_by('-inward_date')[:5]:
             item_count = inward.items.filter(is_active=True).count()
             pending_inwards.append({
                 'id': inward.id,
                 'inward_code': inward.inward_code,
-                'inward_date': str(inward.inward_date),
+                'inward_date': datetime.strptime(str(inward.inward_date), "%Y-%m-%d").strftime("%d/%m/%Y"),
                 'vendor_name': inward.vendor.company_name,
                 'item_count': item_count,
                 'invoice_number': inward.invoice_number or 'N/A',
@@ -71,7 +73,7 @@ class AdminDashboardViewSet(viewsets.ViewSet):
         ).order_by('-created_at')[:10].values(
             'batch_code', 'product__name', 'production_card__production_code', 
             'output_quantity', 'loss_quantity', 'created_at'
-        )
+        )[:5]
         
         # Stock groups
         stock_groups = StockGroup.objects.values('id', 'name')
@@ -175,7 +177,7 @@ class AccountsDashboardViewSet(viewsets.ViewSet):
             pending_dispatches.append({
                 'id': dispatch.id,
                 'dispatch_code': dispatch.dispatch_code,
-                'dispatch_date': str(dispatch.dispatch_date),
+                'dispatch_date': datetime.strptime(str(dispatch.dispatch_date), "%Y-%m-%d").strftime("%d/%m/%Y"),
                 'client_name': dispatch.client.company_name if dispatch.client else 'N/A',
                 'vehicle_number': dispatch.vehicle_number,
                 'freight_amount': str(dispatch.freight_amount),

@@ -269,7 +269,7 @@ function renderDetails(emp, user) {
             <div class="profile-top">
                 ${avatar}
                 <div>
-                    <div class="fw-bold" style="font-size:1.1rem;color:#1e293b;">${esc(emp.full_name || user.name)}</div>
+                    <div class="fw-bold" style="font-size:1.1rem;color:var(--text);">${esc(emp.full_name || user.name)}</div>
                     <div class="text-muted small">${esc(emp.position) || '-'} · ${esc(emp.department) || '-'}</div>
                 </div>
             </div>

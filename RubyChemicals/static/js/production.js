@@ -210,7 +210,7 @@ async function viewProductionCard(cardId) {
 
     let batchesHtml = batches.map(b => `
       <tr>
-        <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px;">${b.batch_code}</code></td>
+        <td><code style="background: var(--blue-bg); color: var(--blue-fg); padding: 4px 8px; border-radius: 4px;">${b.batch_code}</code></td>
         <td>${b.product_name}</td>
         <td><strong>${b.output_quantity} ${b.product_unit}</strong></td>
         <td>${b.loss_quantity} ${b.product_unit}</td>
@@ -226,7 +226,7 @@ async function viewProductionCard(cardId) {
 
     const html = `
       <div style="margin-bottom: 2rem;">
-        <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-info-circle"></i> Card Details</h6>
+        <h6 style="color: var(--blue-fg); font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-info-circle"></i> Card Details</h6>
         <div class="row mb-3">
         <div class="col-md-6"><strong>Date:</strong> ${CustomformatDate(card.production_date)}</div>
         <div class="col-md-6"><strong>Code:</strong> ${card.production_code}</div>
@@ -242,30 +242,30 @@ async function viewProductionCard(cardId) {
         </div>        
       </div>
 
-      <hr style="border-color: #e2e8f0;">
+      <hr style="border-color: var(--border);">
 
-      <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-flask"></i> Raw Materials</h6>
+      <h6 style="color: var(--blue-fg); font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-flask"></i> Raw Materials</h6>
       <div style="overflow-x: auto;">
         <table class="table table-sm">
-          <thead style="background: #f0f9ff;">
+          <thead style="background: var(--blue-bg);">
             <tr><th>Material</th><th>Quantity Used</th></tr>
           </thead>
           <tbody>${consumptionsHtml || '<tr><td colspan="2" class="text-center text-muted">No materials</td></tr>'}</tbody>
         </table>
       </div>
 
-      <hr style="border-color: #e2e8f0;">
-      <h6 style="color: #1e40af; font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-cubes"></i> Batches (${batches.length})</h6>
+      <hr style="border-color: var(--border);">
+      <h6 style="color: var(--blue-fg); font-weight: 700; margin-bottom: 1rem;"><i class="fas fa-cubes"></i> Batches (${batches.length})</h6>
       <div style="overflow-x: auto;">
         <table class="table table-sm">
-          <thead style="background: #f0f9ff;">
+          <thead style="background: var(--blue-bg);">
             <tr><th>Batch Code</th><th>Product</th><th>Output</th><th>Loss</th></tr>
           </thead>
           <tbody>${batchesHtml || '<tr><td colspan="4" class="text-center text-muted">No batches</td></tr>'}</tbody>
         </table>
       </div>      
 
-      ${card.remarks ? `<div class="row mt-3"><div class="col-12"><strong>Remarks:</strong> <p style="margin-top: 0.5rem; color: #64748b;">${card.remarks}</p></div></div>` : ''}
+      ${card.remarks ? `<div class="row mt-3"><div class="col-12"><strong>Remarks:</strong> <p style="margin-top: 0.5rem; color: var(--muted);">${card.remarks}</p></div></div>` : ''}
     `
 
     document.getElementById("cardDetailsContent").innerHTML = html

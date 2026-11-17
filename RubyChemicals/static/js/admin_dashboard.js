@@ -42,11 +42,12 @@ async function loadAdminDashboard(csrf_token_param) {
                     badgeClass = 'badge-critical';
                     statusText = 'CRITICAL - Negative';
                 }
+                // <tr style="background: ${item.current_quantity < 0 ? 'var(--red-bg)' : 'var(--amber-bg)'};">
                 return `
-                    <tr style="background: ${item.current_quantity < 0 ? '#fef2f2' : '#fffbeb'};">
+                    <tr>
                         <td><strong>${item.name}</strong></td>
-                        <td><span style="background: #e0e7ff; color: #3730a3; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.85rem;">${item.group__name}</span></td>
-                        <td style="font-weight: 600; color: ${item.current_quantity < 0 ? '#dc2626' : '#f97316'};"><strong>${item.current_quantity.toFixed(2)}</strong></td>
+                        <td><span style="background: var(--violet-bg); color: var(--violet-fg); padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.85rem;">${item.group__name}</span></td>
+                        <td style="font-weight: 600; color: ${item.current_quantity < 0 ? 'var(--red-fg)' : '#f97316'};"><strong>${item.current_quantity.toFixed(2)}</strong></td>
                         <td>${item.unit}</td>
                         <td><span class="badge ${badgeClass}" style="font-size: 0.8rem;">${statusText}</span></td>
                     </tr>
@@ -61,12 +62,12 @@ async function loadAdminDashboard(csrf_token_param) {
         } else {
             unaccountedCardsTable.innerHTML = data.unaccounted_cards.map(card => `
                 <tr>
-                    <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-weight: 600;">${card.production_code}</code></td>
+                    <td><code style="background: var(--blue-bg); color: var(--blue-fg); padding: 4px 8px; border-radius: 6px; font-weight: 600;">${card.production_code}</code></td>
                     <td>${card.production_date}</td>
                     <td><strong>${card.total_output_quantity}</strong></td>
                     <td>${card.unit}</td>
-                    <td><span style="background: #f3e8ff; color: #6b21a8; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${card.batch_count || 0} batches</span></td>
-                    <td><span style="background: #e0f2fe; color: #0c4a6e; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${card.consumption_count || 0} items</span></td>
+                    <td><span style="background: var(--violet-bg); color: var(--violet-fg); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${card.batch_count || 0} batches</span></td>
+                    <td><span style="background: var(--blue-bg); color: var(--blue-fg); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">${card.consumption_count || 0} items</span></td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="viewProductionCard(${card.id})" title="View details">
                             <i class="fas fa-eye"></i> View
@@ -83,11 +84,11 @@ async function loadAdminDashboard(csrf_token_param) {
         } else {
             pendingDispatchesTable.innerHTML = data.pending_dispatches.map(dispatch => `
                 <tr>
-                    <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-weight: 600;">${dispatch.dispatch_code}</code></td>
+                    <td><code style="background: var(--blue-bg); color: var(--blue-fg); padding: 4px 8px; border-radius: 6px; font-weight: 600;">${dispatch.dispatch_code}</code></td>
                     <td>${dispatch.dispatch_date}</td>
                     <td>${dispatch.client_name}</td>
                     <td>${dispatch.vehicle_number || 'N/A'}</td>
-                    <td><span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-weight: 600;">${dispatch.item_count}</span></td>
+                    <td><span style="background: var(--violet-bg); color: var(--violet-fg); padding: 4px 8px; border-radius: 4px; font-weight: 600;">${dispatch.item_count}</span></td>
                     <td>₹${dispatch.freight_amount}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="viewDispatch(${dispatch.id})" title="View details">
@@ -105,10 +106,10 @@ async function loadAdminDashboard(csrf_token_param) {
         } else {
             pendingInwardsTable.innerHTML = data.pending_inwards.map(inward => `
                 <tr>
-                    <td><code style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-weight: 600;">${inward.inward_code}</code></td>
+                    <td><code style="background: var(--blue-bg); color: var(--blue-fg); padding: 4px 8px; border-radius: 6px; font-weight: 600;">${inward.inward_code}</code></td>
                     <td>${inward.inward_date}</td>
                     <td>${inward.vendor_name}</td>
-                    <td><span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-weight: 600;">${inward.item_count}</span></td>
+                    <td><span style="background: var(--violet-bg); color: var(--violet-fg); padding: 4px 8px; border-radius: 4px; font-weight: 600;">${inward.item_count}</span></td>
                     <td>${inward.invoice_number}</td>
                     <td>${inward.has_pdf ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-muted"></i>'}</td>
                     <td>
@@ -127,12 +128,12 @@ async function loadAdminDashboard(csrf_token_param) {
         } else {
             recentBatchesTable.innerHTML = data.recent_batches.map(batch => `
                 <tr>
-                    <td><code style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 3px; font-weight: 600;">${batch.batch_code}</code></td>
+                    <td><code style="background: var(--blue-bg); color: var(--blue-fg); padding: 2px 6px; border-radius: 3px; font-weight: 600;">${batch.batch_code}</code></td>
                     <td><strong>${batch.production_card__production_code}</strong></td>
                     <td>${batch.product__name}</td>
-                    <td><span style="background: #dcfce7; padding: 4px 8px; border-radius: 4px; color: #15803d; font-weight: 600;">${batch.output_quantity}</span></td>
-                    <td><span style="background: #fee2e2; padding: 4px 8px; border-radius: 4px; color: #991b1b;">${batch.loss_quantity}</span></td>
-                    <td style="color: #64748b; font-size: 0.875rem;">${batch.created_at ? new Date(batch.created_at).toLocaleDateString() : 'N/A'}</td>
+                    <td><span style="background: var(--green-bg); padding: 4px 8px; border-radius: 4px; color: var(--green-fg); font-weight: 600;">${batch.output_quantity}</span></td>
+                    <td><span style="background: var(--red-bg); padding: 4px 8px; border-radius: 4px; color: var(--red-fg);">${batch.loss_quantity}</span></td>
+                    <td style="color: var(--muted); font-size: 0.875rem;">${batch.created_at ? new Date(batch.created_at).toLocaleDateString() : 'N/A'}</td>
                 </tr>
             `).join("");
         }
@@ -197,17 +198,84 @@ async function markAccounted(cardId) {
     }
 }
 
-function viewProductionCard(cardId) {
+const PRODUCTION_CARD_API = "/operation-api/production-card-api/";
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+function setCardField(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value === null || value === undefined || value === "" ? "-" : value;
+}
+
+async function viewProductionCard(cardId) {
     const card = findCardById(cardId);
     if (!card) return;
-    
+
     currentCardId = cardId;
-    document.getElementById("viewCardCode").textContent = card.production_code;
-    document.getElementById("viewCardDate").textContent = card.production_date;
-    document.getElementById("viewCardOutput").textContent = card.total_output_quantity + " " + card.unit;
-    document.getElementById("viewCardBatches").textContent = card.batch_count + " batches, " + card.consumption_count + " materials";
-    
-    new bootstrap.Modal(document.getElementById("viewProductionCardModal")).show();
+
+    // The dashboard payload already holds the summary, so the modal opens immediately
+    setCardField("viewCardCode", card.production_code);
+    setCardField("viewCardDate", card.production_date);
+    setCardField("viewCardOutput", card.total_output_quantity + " " + card.unit);
+    setCardField("viewCardBatches", card.batch_count + " batches, " + card.consumption_count + " materials");
+    setCardField("viewCardProduct", "Loading...");
+    setCardField("viewCardIncharge", "Loading...");
+    setCardField("viewCardLoss", "Loading...");
+    document.getElementById("viewCardMaterials").innerHTML = '<tr><td colspan="2" class="text-center text-muted py-3">Loading...</td></tr>';
+    document.getElementById("viewCardBatchRows").innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Loading...</td></tr>';
+    document.getElementById("viewCardMaterialsCount").textContent = card.consumption_count;
+    document.getElementById("viewCardBatchesCount").textContent = card.batch_count;
+    document.getElementById("viewCardRemarksWrap").hidden = true;
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("viewProductionCardModal")).show();
+
+    // Product, loss, materials, batches and remarks come from the full production card
+    const [ok, res] = await callApi("GET", PRODUCTION_CARD_API + cardId + "/");
+    if (currentCardId !== cardId) return; // another card was opened while this one loaded
+
+    if (!ok || !res.data) {
+        setCardField("viewCardProduct", "-");
+        setCardField("viewCardIncharge", "-");
+        setCardField("viewCardLoss", "-");
+        document.getElementById("viewCardMaterials").innerHTML = '<tr><td colspan="2" class="text-center text-danger py-3">Could not load materials</td></tr>';
+        document.getElementById("viewCardBatchRows").innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Could not load batches</td></tr>';
+        return;
+    }
+
+    const full = res.data.production_card || {};
+    const batches = res.data.batches || [];
+    const consumptions = res.data.consumptions || [];
+
+    setCardField("viewCardProduct", full.product_name);
+    setCardField("viewCardIncharge", full.production_incharge);
+    setCardField("viewCardLoss", full.total_loss === null || full.total_loss === undefined ? "" : full.total_loss + " " + (full.unit || card.unit));
+    document.getElementById("viewCardMaterialsCount").textContent = consumptions.length;
+    document.getElementById("viewCardBatchesCount").textContent = batches.length;
+
+    document.getElementById("viewCardMaterials").innerHTML = consumptions.length
+        ? consumptions.map(c => `
+            <tr>
+                <td>${escapeHtml(c.stock_item_name)}</td>
+                <td><strong>${escapeHtml(c.quantity_used)}</strong> ${escapeHtml(c.stock_item_unit)}</td>
+            </tr>`).join("")
+        : '<tr><td colspan="2" class="text-center text-muted py-3">No materials recorded</td></tr>';
+
+    document.getElementById("viewCardBatchRows").innerHTML = batches.length
+        ? batches.map(b => `
+            <tr>
+                <td><span class="production-code">${escapeHtml(b.batch_code)}</span></td>
+                <td>${escapeHtml(b.product_name)}</td>
+                <td><strong>${escapeHtml(b.output_quantity)}</strong> ${escapeHtml(b.product_unit)}</td>
+                <td>${escapeHtml(b.loss_quantity)} ${escapeHtml(b.product_unit)}</td>
+            </tr>`).join("")
+        : '<tr><td colspan="4" class="text-center text-muted py-3">No batches recorded</td></tr>';
+
+    if (full.remarks) {
+        document.getElementById("viewCardRemarks").textContent = full.remarks;
+        document.getElementById("viewCardRemarksWrap").hidden = false;
+    }
 }
 
 function viewDispatch(dispatchId) {
