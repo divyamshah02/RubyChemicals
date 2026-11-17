@@ -4,8 +4,10 @@ from .views import *
 
 router = DefaultRouter()
 
+router.register(r'privacy', PrivacyViewSet, basename='privacy')
 router.register(r'login', LoginViewSet, basename='login')
 router.register(r'logout', LogoutViewSet, basename='logout')
+router.register(r'app', AppViewSet, basename='app')
 router.register(r'', AdminDashboardViewSet, basename='home')
 router.register(r'admin-dashboard', AdminDashboardViewSet, basename='admin-dashboard')
 router.register(r'accounts-dashboard', AccountsDashboardViewSet, basename='accounts-dashboard')
@@ -23,9 +25,7 @@ router.register(r'leads', LeadsViewSet, basename='leads')
 router.register(r'lead-sub-dept-mgmt', LeadSubDeptMngmtViewSet, basename='lead-sub-dept-mgmt')
 router.register(r'hr', HRViewSet, basename='hr')
 router.register(r'my-hr', MyHRViewSet, basename='my-hr')
-
-
-router.register(r'get_test_info', TestViewSet, basename='get_test_info')
+# router.register(r'get_test_info', TestViewSet, basename='get_test_info')
 
 # Role Manager — accessible to admin role only
 router.register(r'role-manager', RoleManagerViewSet, basename='role-manager')

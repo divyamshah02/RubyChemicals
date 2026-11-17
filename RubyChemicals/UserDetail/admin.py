@@ -18,6 +18,7 @@ class UserAdmin(BaseUserAdmin):
 
     list_display = (
         "user_id",
+        "device_id",
         "name",
         "email",
         "username",
@@ -54,6 +55,7 @@ class UserAdmin(BaseUserAdmin):
         ("Basic Info", {
             "fields": (
                 "user_id",
+                "device_id",
                 "username",
                 "name",
                 "email",

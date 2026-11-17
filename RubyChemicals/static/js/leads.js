@@ -148,29 +148,29 @@ function renderLeadsTable(leads) {
   document.getElementById("leadsCount").textContent = `${leads.length} lead${leads.length !== 1 ? "s" : ""}`
 
   if (leads.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">No leads found. Create your first lead!</td></tr>'
+    tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4">No leads found. Create your first lead!</td></tr>'
     return
   }
   /* <td><span class="subdept-badge">${lead.sub_department_name || "—"}</span></td> */
   tbody.innerHTML = leads.map(lead => `
     <tr style="cursor:pointer;" onclick="viewLead(${lead.id})">
-      <td><span class="lead-id-badge">${lead.lead_id || ("#" + lead.id)}</span></td>    
-      <td><strong>${lead.party_name}</strong>${
+      <td data-label="Lead ID"><span class="lead-id-badge">${lead.lead_id || ("#" + lead.id)}</span></td>
+      <td data-label="Party"><span><strong>${lead.party_name}</strong>${
         (lead.collaborator_names || []).length
           ? ` <span class="badge bg-info text-dark" title="Shared with: ${lead.collaborator_names.join(", ")}"><i class="fas fa-user-friends"></i> Shared</span>`
           : ""
-      }</td>
-      <td><small>${PARTY_LABELS[lead.party_type] || lead.party_type}</small></td>
-      <td>${lead.contact_person || "—"}</td>
-      <td>${lead.mobile_number  || "—"}</td>
-      <td>${lead.location       || "—"}</td>
-      <td>${statusBadge(lead.lead_status)}</td>
-      <td>${lead.next_followup
+      }</span></td>
+      <td data-label="Type"><small>${PARTY_LABELS[lead.party_type] || lead.party_type}</small></td>
+      <td data-label="Contact">${lead.contact_person || "—"}</td>
+      <td data-label="Mobile">${lead.mobile_number  || "—"}</td>
+      <td data-label="Location">${lead.location       || "—"}</td>
+      <td data-label="Status">${statusBadge(lead.lead_status)}</td>
+      <td data-label="Next Follow-up">${lead.next_followup
         ? `<span style="font-size:0.78rem; color:#92400e; font-weight:600;">${formatDateTime(lead.next_followup)}</span>`
         : '<span class="text-muted">—</span>'}</td>
-      <td><span class="badge bg-primary">${lead.call_count || 0}</span></td>
-      <td>${formatDate(lead.created_at)}</td>
-      <td onclick="event.stopPropagation()">
+      <td data-label="Calls"><span class="badge bg-primary">${lead.call_count || 0}</span></td>
+      <td data-label="Created">${formatDate(lead.created_at)}</td>
+      <td data-label="Action" onclick="event.stopPropagation()">
         <div class="action-buttons">
           <button class="btn btn-info btn-sm" onclick="viewLead(${lead.id})" title="View">
             <i class="fas fa-eye"></i>
@@ -346,7 +346,7 @@ async function createLead() {
   }
 }
 
-// ─────────────────────────────────────────────
+// ───���─────────────────────────────────────────
 // VIEW LEAD DETAIL
 // ─────────────────────────────────────────────
 
@@ -1334,7 +1334,7 @@ async function submitTransferLead() {
 
 // ─────────────────────────────────────────────
 // COLLABORATORS
-// ─────────────────────────────────────────────
+// ───────────────────��─────────────────────────
 
 function collabEsc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
@@ -1399,7 +1399,7 @@ async function removeCollaborator(userId) {
   }
 }
 
-// ���────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // GENERATE REPORT (PDF / EXCEL / ALL USERS)
 // ─────────────────────────────────────────────
 

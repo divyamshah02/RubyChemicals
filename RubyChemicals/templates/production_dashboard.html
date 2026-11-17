@@ -1,64 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Production Dashboard - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/portal.css">
+    <script src="/static/js/portal.js" defer></script>
 </head>
 
 <body>
 
     {% include 'header.html' %}
 
-    <div class="container mt-4">
-        <h3><i class="fas fa-industry" style="color: #3b82f6;"></i> Production Dashboard</h3>
-        <hr style="border-color: #e2e8f0;">
+    <div class="container-fluid">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title"><i class="fas fa-industry"></i>Production Dashboard</h1>
+                <p class="page-sub">Stock levels, production cards and batches at a glance</p>
+            </div>
+        </div>
 
-        <!-- Stats Row -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card" style="border-left: 4px solid #3b82f6;">
-                    <div class="card-body">
-                        <h6 class="text-muted">Total Stock Items</h6>
-                        <h3 id="totalItemsCount" style="color: #3b82f6;">0</h3>
-                    </div>
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #3b82f6;"><i class="fas fa-cube"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalItemsCount">0</h3>
+                    <p>Total Stock Items</p>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card" style="border-left: 4px solid #10b981;">
-                    <div class="card-body">
-                        <h6 class="text-muted">Total Production Cards</h6>
-                        <h3 id="totalCardCount" style="color: #10b981;">0</h3>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #10b981;"><i class="fas fa-clipboard-list"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalCardCount">0</h3>
+                    <p>Total Production Cards</p>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card" style="border-left: 4px solid #f59e0b;">
-                    <div class="card-body">
-                        <h6 class="text-muted">Total Batches</h6>
-                        <h3 id="totalBatchCount" style="color: #f59e0b;">0</h3>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #f59e0b;"><i class="fas fa-cubes"></i></div>
+                <div class="stat-content">
+                    <h3 id="totalBatchCount">0</h3>
+                    <p>Total Batches</p>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card" style="border-left: 4px solid #ef4444;">
-                    <div class="card-body">
-                        <h6 class="text-muted">Low Stock Items</h6>
-                        <h3 id="lowStockCount" style="color: #ef4444;">0</h3>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #ef4444;"><i class="fas fa-triangle-exclamation"></i></div>
+                <div class="stat-content">
+                    <h3 id="lowStockCount">0</h3>
+                    <p>Low Stock Items</p>
                 </div>
             </div>
         </div>
 
-        <!-- Stock Items Section -->
-        <h5 style="color: #1e40af; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">
-            <i class="fas fa-boxes"></i> All Stock Items
-        </h5>
-        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <table class="table table-sm mb-0">
-                <thead style="background: #f0f9ff; position: sticky; top: 0;">
+        <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-boxes"></i>All Stock Items</h2>
+        </div>
+        <div class="table-container table-scroll">
+            <table class="table">
+                <thead>
                     <tr>
                         <th>Item Name</th>
                         <th>Group</th>
@@ -72,13 +75,12 @@
             </table>
         </div>
 
-        <!-- Production Cards Section -->
-        <h5 style="color: #1e40af; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">
-            <i class="fas fa-industry"></i> Production Cards
-        </h5>
-        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <table class="table table-sm mb-0">
-                <thead style="background: #f0f9ff; position: sticky; top: 0;">
+        <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-industry"></i>Production Cards</h2>
+        </div>
+        <div class="table-container table-scroll">
+            <table class="table">
+                <thead>
                     <tr>
                         <th>Code</th>
                         <th>Date</th>
@@ -92,13 +94,12 @@
             </table>
         </div>
 
-        <!-- Stock Groups Section -->
-        <h5 style="color: #1e40af; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem;">
-            <i class="fas fa-layer-group"></i> Stock Groups
-        </h5>
-        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <table class="table table-sm mb-0">
-                <thead style="background: #f0f9ff; position: sticky; top: 0;">
+        <div class="section-header">
+            <h2 class="section-title"><i class="fas fa-layer-group"></i>Stock Groups</h2>
+        </div>
+        <div class="table-container table-scroll">
+            <table class="table">
+                <thead>
                     <tr>
                         <th>Group Name</th>
                     </tr>

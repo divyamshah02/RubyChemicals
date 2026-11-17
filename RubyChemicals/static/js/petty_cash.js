@@ -37,10 +37,8 @@ function selectCashType(cashType) {
   currentPage = 1;
 
   // Update button styles
-  document.getElementById('officeBtn').className = cashType === 'office' ? 'btn btn-primary' : 'btn btn-outline-primary';
-  document.getElementById('factoryBtn').className = cashType === 'factory' ? 'btn btn-primary' : 'btn btn-outline-secondary';
-  document.getElementById('officeBtn').style.borderWidth = '2px';
-  document.getElementById('factoryBtn').style.borderWidth = '2px';
+  document.getElementById('officeBtn').className = cashType === 'office' ? 'btn btn-primary-custom' : 'btn btn-outline-secondary';
+  document.getElementById('factoryBtn').className = cashType === 'factory' ? 'btn btn-primary-custom' : 'btn btn-outline-secondary';
 
   loadAccountBalance();
   loadHeads();

@@ -1,155 +1,154 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Petty Cash Management - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/portal.css">
+    <script src="/static/js/portal.js" defer></script>
 </head>
 
 <body>
     {% include 'header.html' %}
 
-    <div class="container" style="padding: 2rem 0;">
+    <div class="container-fluid">
         <!-- Header Section -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h4 style="color: #0f172a; font-weight: 700; margin: 0;">
-                <i class="fas fa-wallet" style="color: #3b82f6; margin-right: 0.5rem;"></i> Petty Cash Management
-            </h4>
+        <div class="page-header">
+            <h1 class="page-title"><i class="fas fa-wallet"></i>Petty Cash Management</h1>
+            <div class="page-actions">
+                <button class="btn btn-success-custom" data-bs-toggle="modal" data-bs-target="#addBalanceModal">
+                    <i class="fas fa-plus-circle"></i> Add Balance
+                </button>
+                <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#expenseModal">
+                    <i class="fas fa-receipt"></i> Add Expense
+                </button>
+                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#headModal">
+                    <i class="fas fa-tag"></i> Add Expense Head
+                </button>
+                <button class="btn btn-secondary" onclick="openOldBalanceModal()" title="View balance on a past date">
+                    <i class="fas fa-history"></i> Old Balance
+                </button>
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportExpenseSummaryModal">
+                    <i class="fas fa-file-export"></i> Export Expense Summary
+                </button>
+            </div>
         </div>
 
         <!-- Petty Cash Type Selector -->
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-            <button class="btn btn-outline-primary" id="officeBtn" onclick="selectCashType('office')"
-                style="border-width: 2px;">
+        <div class="btn-switch" role="group" aria-label="Cash account">
+            <button class="btn btn-primary-custom" id="officeBtn" onclick="selectCashType('office')">
                 <i class="fas fa-building"></i> Office Cash
             </button>
-            <button class="btn btn-outline-secondary" id="factoryBtn" onclick="selectCashType('factory')"
-                style="border-width: 2px;">
+            <button class="btn btn-outline-secondary" id="factoryBtn" onclick="selectCashType('factory')">
                 <i class="fas fa-industry"></i> Factory Cash
             </button>
         </div>
 
         <!-- Balance Cards -->
-        <div
-            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-            <div
-                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 1.5rem; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Current Balance</div>
-                <div id="currentBalance" style="font-size: 2rem; font-weight: 700;">₹ 0.00</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #3b82f6;"><i class="fas fa-wallet"></i></div>
+                <div class="stat-content">
+                    <h3 id="currentBalance">₹ 0.00</h3>
+                    <p>Current Balance</p>
+                </div>
             </div>
-            <div
-                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; padding: 1.5rem; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Credit Balance</div>
-                <div id="creditBalance" style="font-size: 2rem; font-weight: 700;">₹ 0.00</div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color: #10b981;"><i class="fas fa-credit-card"></i></div>
+                <div class="stat-content">
+                    <h3 id="creditBalance">₹ 0.00</h3>
+                    <p>Credit Balance</p>
+                </div>
             </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addBalanceModal">
-            <i class="fas fa-plus-circle"></i> Add Balance
-        </button>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#expenseModal">
-            <i class="fas fa-receipt"></i> Add Expense
-        </button>
-        <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#headModal">
-            <i class="fas fa-tag"></i> Add Expense Head
-        </button>
-        <button class="btn btn-secondary" onclick="openOldBalanceModal()" title="View balance on a past date">
-                <i class="fas fa-history"></i> Old Balance
-        </button>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#exportExpenseSummaryModal">
-            Export Expense Summary
-        </button>
-    </div>
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#allTransactions">
+                    <i class="fas fa-receipt me-2"></i>All Transactions
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#expenseHeads">
+                    <i class="fas fa-tag me-2"></i>Expense Heads
+                </a>
+            </li>
+        </ul>
 
-    <!-- Tabs -->
-    <ul class="nav nav-tabs" role="tablist" style="margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0;">
-        <li class="nav-item">
-            <a class="nav-link active" data-bs-toggle="tab" href="#allTransactions"
-                style="color: #475569; font-weight: 600;">
-                <i class="fas fa-receipt" style="margin-right: 0.5rem;"></i>All Transactions
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="tab" href="#expenseHeads" style="color: #475569; font-weight: 600;">
-                <i class="fas fa-tag" style="margin-right: 0.5rem;"></i>Expense Heads
-            </a>
-        </li>
-    </ul>
-
-    <!-- Tab Content -->
+        <!-- Tab Content -->
     <div class="tab-content">
         <!-- All Transactions Tab -->
         <div id="allTransactions" class="tab-pane fade show active">
-            <div class="row g-2 mb-3 align-items-end">
-                <div class="col-6 col-md-2">
-                    <label for="transactionTypeFilter" class="form-label small fw-semibold text-secondary mb-1">Type</label>
-                    <select id="transactionTypeFilter" class="form-select form-select-sm" onchange="applyFilters()">
+            <div class="filters-bar filters-compact">
+                <div>
+                    <label for="transactionTypeFilter" class="form-label mb-1">Type</label>
+                    <select id="transactionTypeFilter" class="form-select" onchange="applyFilters()">
                         <option value="">All</option>
                         <option value="credit">Credit</option>
                         <option value="debit">Debit</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2">
-                    <label for="headFilter" class="form-label small fw-semibold text-secondary mb-1">Expense Head</label>
-                    <select id="headFilter" class="form-select form-select-sm" onchange="applyFilters()">
+                <div>
+                    <label for="headFilter" class="form-label mb-1">Expense Head</label>
+                    <select id="headFilter" class="form-select" onchange="applyFilters()">
                         <option value="">All</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2">
-                    <label for="paidViaFilter" class="form-label small fw-semibold text-secondary mb-1">Paid Via</label>
-                    <select id="paidViaFilter" class="form-select form-select-sm" onchange="applyFilters()">
+                <div>
+                    <label for="paidViaFilter" class="form-label mb-1">Paid Via</label>
+                    <select id="paidViaFilter" class="form-select" onchange="applyFilters()">
                         <option value="">All</option>
                         <option value="online">Online</option>
                         <option value="cash">Cash</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2">
-                    <label for="paymentTypeFilter" class="form-label small fw-semibold text-secondary mb-1">Payment Type</label>
-                    <select id="paymentTypeFilter" class="form-select form-select-sm" onchange="applyFilters()">
+                <div>
+                    <label for="paymentTypeFilter" class="form-label mb-1">Payment Type</label>
+                    <select id="paymentTypeFilter" class="form-select" onchange="applyFilters()">
                         <option value="">All</option>
                         <option value="advance">Advance</option>
                         <option value="part">Part</option>
                         <option value="final">Final</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2">
-                    <label for="dateFromFilter" class="form-label small fw-semibold text-secondary mb-1">From</label>
-                    <input id="dateFromFilter" type="date" class="form-control form-control-sm" onchange="applyFilters()">
+                <div>
+                    <label for="dateFromFilter" class="form-label mb-1">From</label>
+                    <input id="dateFromFilter" type="date" class="form-control" onchange="applyFilters()">
                 </div>
-                <div class="col-6 col-md-2">
-                    <label for="dateToFilter" class="form-label small fw-semibold text-secondary mb-1">To</label>
-                    <input id="dateToFilter" type="date" class="form-control form-control-sm" onchange="applyFilters()">
+                <div>
+                    <label for="dateToFilter" class="form-label mb-1">To</label>
+                    <input id="dateToFilter" type="date" class="form-control" onchange="applyFilters()">
                 </div>
-                <div class="col-12 col-md-6">
-                    <label for="searchFilter" class="form-label small fw-semibold text-secondary mb-1">Search</label>
-                    <input id="searchFilter" type="search" class="form-control form-control-sm"
+                <div class="filters-wide">
+                    <label for="searchFilter" class="form-label mb-1">Search</label>
+                    <input id="searchFilter" type="search" class="form-control"
                         placeholder="Challan no., recipient, paid by, particulars, notes, head, amount..."
                         oninput="debouncedApplyFilters()">
                 </div>
-                <div class="col-6 col-md-2">
-                    <label for="pageSizeSelect" class="form-label small fw-semibold text-secondary mb-1">Rows per page</label>
-                    <select id="pageSizeSelect" class="form-select form-select-sm" onchange="applyFilters()">
+                <div>
+                    <label for="pageSizeSelect" class="form-label mb-1">Rows per page</label>
+                    <select id="pageSizeSelect" class="form-select" onchange="applyFilters()">
                         <option value="10">10</option>
                         <option value="20" selected>20</option>
                         <option value="50">50</option>
                         <option value="100">100</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2">
-                    <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetFilters()">
+                <div>
+                    <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
                         <i class="fas fa-rotate-left"></i> Reset
                     </button>
                 </div>
             </div>
             <div id="transactionTotals" class="d-flex flex-wrap gap-3 mb-2 small"></div>
-            <div
-                style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; overflow-x: auto;">
-                <table class="table mb-0">
-                    <thead style="background: #f8fafc;">
+            <div class="table-container">
+                <table class="table wide-table">
+                    <thead>
                         <tr>
                             <th>Challan</th>
                             <th>Date</th>
@@ -161,7 +160,7 @@
                             <th>Amount</th>
                             <th>Paid Via</th>
                             <th>Payment Type</th>
-                            <th style="min-width: 220px;">Action</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="allTransactionsTable"></tbody>
@@ -177,8 +176,10 @@
 
         <!-- Expense Heads Tab -->
         <div id="expenseHeads" class="tab-pane fade">
-            <h5 style="color: #0f172a; font-weight: 700; margin-bottom: 1.5rem;">Expense Heads Details</h5>
-            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <div class="section-header" style="margin-top: 0;">
+                <h2 class="section-title"><i class="fas fa-tag"></i>Expense Heads Details</h2>
+            </div>
+            <div class="panel p-0 overflow-hidden">
                 <div id="expenseHeadsAccordion"></div>
             </div>
         </div>

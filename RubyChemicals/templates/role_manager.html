@@ -1,67 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Role Manager - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/portal.css">
+    <script src="/static/js/portal.js" defer></script>
     <style>
         body { background: #f8fafc; }
-
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .page-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin: 0;
-        }
-        .table-container {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,.05);
-        }
-        .table { margin: 0; }
-        .table thead {
-            background: #f1f5f9;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .table thead th {
-            color: #475569;
-            font-weight: 600;
-            padding: 0.875rem 1rem;
-            border: none;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: .5px;
-            white-space: nowrap;
-        }
-        .table tbody td {
-            padding: 0.875rem 1rem;
-            border-color: #e2e8f0;
-            vertical-align: middle;
-            color: #475569;
-            font-size: 0.875rem;
-        }
-        .table tbody tr { transition: background 0.15s; }
-        .table tbody tr:hover { background: #f8fafc; }
-
-        .user-id-badge {
-            background: #dbeafe;
-            color: #1e40af;
-            padding: .3rem .65rem;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 0.8rem;
-        }
         .role-badge {
             padding: .3rem .7rem;
             border-radius: 20px;
@@ -95,17 +44,6 @@
             color: #831843;
         }
 
-        .action-buttons { display: flex; gap: .4rem; }
-        .action-buttons .btn {
-            padding: .3rem .65rem;
-            font-size: 0.8rem;
-            border-radius: 6px;
-        }
-
-        .modal-content { border-radius: 12px; border: 1px solid #e2e8f0; }
-        .modal-header  { background: #f1f5f9; border-bottom: 1px solid #e2e8f0; border-radius: 12px 12px 0 0; }
-        .modal-title   { font-weight: 700; color: #1e293b; }
-
         .perm-section {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -134,51 +72,23 @@
             margin-bottom: .5rem;
         }
         .super-admin-banner i { margin-right: .4rem; }
-
-        /* Filters bar */
-        .filters-bar {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 1rem 1.25rem;
-            margin-bottom: 1.25rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: .75rem;
-            align-items: center;
-        }
-        .filters-bar .form-control,
-        .filters-bar .form-select {
-            font-size: 0.875rem;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        .stat-pill {
-            background: #f1f5f9;
-            border-radius: 20px;
-            padding: .3rem .85rem;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #475569;
-        }
-        .stat-pill span { color: #1e293b; }
     </style>
 </head>
 <body>
 
 {% include 'header.html' %}
 
-<div class="container-fluid" style="padding: 2rem 1.5rem;">
+<div class="container-fluid">
 
     <!-- Page Header -->
     <div class="page-header">
         <h1 class="page-title">
             <i class="fas fa-users-cog" style="margin-right:.75rem; color:#3b82f6;"></i>Role Manager
         </h1>
-        <div class="d-flex gap-2 align-items-center">
+        <div class="page-actions">
             <span class="stat-pill">Total: <span id="statTotal">—</span></span>
             <span class="stat-pill">Active: <span id="statActive">—</span></span>
-            <button class="btn btn-primary" style="border-radius:8px;" onclick="openCreateModal()">
+            <button class="btn btn-primary-custom" onclick="openCreateModal()">
                 <i class="fas fa-plus" style="margin-right:.4rem;"></i>Add User
             </button>
         </div>
@@ -186,8 +96,8 @@
 
     <!-- Filters -->
     <div class="filters-bar">
-        <input  id="filterSearch" class="form-control" style="max-width:240px;" placeholder="Search name or email…" oninput="applyFilters()">
-        <select id="filterRole"   class="form-select"  style="max-width:160px;" onchange="applyFilters()">
+        <input  id="filterSearch" class="form-control" placeholder="Search name or email…" oninput="applyFilters()">
+        <select id="filterRole"   class="form-select" onchange="applyFilters()">
             <option value="">All Roles</option>
             <option value="admin">Admin</option>
             <option value="accounts">Accounts</option>
@@ -196,12 +106,12 @@
             <option value="office">Office</option>
             <option value="hr">HR</option>
         </select>
-        <select id="filterStatus" class="form-select"  style="max-width:160px;" onchange="applyFilters()">
+        <select id="filterStatus" class="form-select" onchange="applyFilters()">
             <option value="">All Status</option>
             <option value="true">Active</option>
             <option value="false">Inactive</option>
         </select>
-        <select id="filterSuper"  class="form-select"  style="max-width:180px;" onchange="applyFilters()">
+        <select id="filterSuper"  class="form-select" onchange="applyFilters()">
             <option value="">All Types</option>
             <option value="true">Super Admin</option>
             <option value="false">Regular Users</option>

@@ -1,90 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Items - Ruby Chemicals</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/portal.css">
+    <script src="/static/js/portal.js" defer></script>
     <style>
         body { background: #f8fafc; }
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .page-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin: 0;
-        }
-        .btn-primary-custom {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 0.625rem 1.25rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-        .btn-primary-custom:hover { background: #2563eb; transform: translateY(-2px); }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            border: 1px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            transition: all 0.3s;
-        }
-        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
-        .stat-icon { font-size: 2.5rem; opacity: 0.7; }
-        .stat-content h3 { margin: 0; font-size: 1.75rem; font-weight: 700; }
-        .stat-content p { margin: 0.25rem 0 0; color: #64748b; font-size: 0.875rem; }
-        
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 2rem 0 1.5rem 0;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-        
-        .data-table {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
-        }
-        .data-table table { margin-bottom: 0; }
-        .data-table thead {
-            background: #f1f5f9;
-            font-weight: 600;
-            color: #475569;
-        }
-        .data-table tbody tr {
-            border-bottom: 1px solid #e2e8f0;
-            transition: background 0.2s;
-        }
-        .data-table tbody tr:hover { background: #f8fafc; }
         
         .group-grid {
             display: grid;
@@ -107,8 +33,6 @@
         .group-name { font-size: 1.125rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
         .group-description { color: #64748b; font-size: 0.875rem; line-height: 1.5; }
         .group-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
-        .action-buttons { display: flex; gap: 0.5rem; }
-        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.75rem; }
         
         .group-row {
             display: flex;
@@ -227,20 +151,31 @@
             gap: 0.5rem;
             justify-content: flex-end;
         }        
+    
+        /* Phones: expandable group rows and their item lines wrap instead of overflowing */
+        @media (max-width: 767.98px) {
+            .group-row { padding: 0.85rem 1rem; }
+            .group-row-content { flex-wrap: wrap; gap: 0.5rem 1rem; }
+            .group-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .items-table tbody tr { flex-wrap: wrap; gap: 0.35rem 0.75rem; padding: 0.85rem 1rem; }
+            .item-col-name { flex: 1 1 100%; }
+            .item-col-qty, .item-col-unit, .item-col-rate, .item-col-value { width: auto; text-align: left; }
+            .item-col-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+        }
     </style>
 </head>
 <body>
     {% include 'header.html' %}
 
-    <div class="container-fluid mt-4">
+    <div class="container-fluid">
         <div class="page-header">
             <h1 class="page-title"><i class="fas fa-boxes" style="color: #3b82f6; margin-right: 0.75rem;"></i>Stock Inwards</h1>
-            <div class="text-end">                
+            <div class="page-actions">
                 <button class="btn-primary-custom" onclick="openCreateInwardModal()">
                     <i class="fas fa-plus" style="margin-right: 0.5rem;"></i> New Inward
                 </button>
-                <br>
-                <!-- <button class="btn btn-sm btn-secondary mt-2" onclick="openStockHistoryModal()" title="View Old Stock">
+
+                <!-- <button class="btn btn-secondary" onclick="openStockHistoryModal()" title="View Old Stock">
                     <i class="fas fa-history"></i> Old Stock
                 </button> -->
             </div>
@@ -248,28 +183,28 @@
 
         <!-- Stats Grid -->
         <div class="stats-grid" style="display: none;">
-            <div class="stat-card" style="border-left: 4px solid #3b82f6;">
+            <div class="stat-card">
                 <div class="stat-icon" style="color: #3b82f6;"><i class="fas fa-cube"></i></div>
                 <div class="stat-content">
                     <h3 id="totalItemsCount">0</h3>
                     <p>Total Stock Items</p>
                 </div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #8b5cf6;">
+            <div class="stat-card">
                 <div class="stat-icon" style="color: #8b5cf6;"><i class="fas fa-layer-group"></i></div>
                 <div class="stat-content">
                     <h3 id="totalGroupsCount">0</h3>
                     <p>Stock Groups</p>
                 </div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #ef4444;">
+            <div class="stat-card">
                 <div class="stat-icon" style="color: #ef4444;"><i class="fas fa-exclamation-triangle"></i></div>
                 <div class="stat-content">
                     <h3 id="negativeStockCount">0</h3>
                     <p>Negative Stock Items</p>
                 </div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #10b981;">
+            <div class="stat-card">
                 <div class="stat-icon" style="color: #10b981;"><i class="fas fa-coins"></i></div>
                 <div class="stat-content">
                     <h3 id="totalStockValue">₹0</h3>
@@ -279,19 +214,19 @@
         </div>
 
         <!-- Tabs -->
-        <ul class="nav nav-tabs" role="tablist" style="margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; display: none;">
+        <ul class="nav nav-tabs" role="tablist" style="display: none;">
             <!-- <li class="nav-item">
-                <a class="nav-link active" data-bs-toggle="tab" href="#stockItems" style="color: #475569; font-weight: 600;">
+                <a class="nav-link active" data-bs-toggle="tab" href="#stockItems">
                     <i class="fas fa-list" style="margin-right: 0.5rem;"></i>Stock Items
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#stockGroups" style="color: #475569; font-weight: 600;">
+                <a class="nav-link" data-bs-toggle="tab" href="#stockGroups">
                     <i class="fas fa-object-group" style="margin-right: 0.5rem;"></i>Stock Groups
                 </a>
             </li> -->
             <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#inwards" style="color: #475569; font-weight: 600;">
+                <a class="nav-link" data-bs-toggle="tab" href="#inwards">
                     <i class="fas fa-arrow-down" style="margin-right: 0.5rem;"></i>Vendor Inwards
                 </a>
             </li>
@@ -302,11 +237,10 @@
             <!-- Stock Items Tab -->
             <div id="stockItems" class="tab-pane fade">
                 <div style="margin-bottom: 1.5rem;">
-                    <input type="text" id="searchInput" placeholder="Search stock items..." 
-                           style="width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem;">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search stock items..." autocomplete="off">
                 </div>
                 
-                <div class="data-table" style="max-height: 600px; overflow-y: auto;">
+                <div class="table-container table-scroll" style="max-height: 600px;">
                     <table class="table">
                         <thead>
                             <tr>
@@ -338,7 +272,7 @@
                     </button>
                 </div>
                 
-                <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+                <div class="panel p-0 overflow-hidden">
                     <div id="stockGroupsAccordion"></div>
                 </div>
             </div>
@@ -352,7 +286,7 @@
                     </button> -->
                 </div>
 
-                <div class="data-table">
+                <div class="table-container">
                     <table class="table">
                         <thead>
                             <tr>
@@ -609,7 +543,7 @@
                     <div>
                         <label
                             style="font-weight: 600; color: #475569; display: block; margin-bottom: 0.75rem;">Items</label>
-                        <div class="data-table" style="max-height: 400px; overflow-y: auto;">
+                        <div class="table-container table-scroll" style="max-height: 400px;">
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
@@ -682,7 +616,7 @@
                     
                     <div id="stockHistoryContent" style="display: none;">
                         <h6 style="margin-bottom: 1rem; color: #1e293b;">Stock on <span id="historyDateDisplay"></span></h6>
-                        <div class="data-table" style="max-height: 400px; overflow-y: auto;">
+                        <div class="table-container table-scroll" style="max-height: 400px;">
                             <table class="table table-sm">
                                 <thead>
                                     <tr>

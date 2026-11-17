@@ -29,18 +29,109 @@ body {
   min-height: 100vh;
 }
 
-/* ===== Sidebar ===== */
-nav {
+/* ===== App shell (header.html) ===== */
+nav.app-shell {
   min-height: 100vh;
 }
 
-nav > div:first-child {
+/* Desktop: sticky sidebar that scrolls on its own if the menu is long */
+nav.app-shell > .app-sidebar {
+  flex: 0 0 280px;
+  width: 280px;
+  align-self: flex-start;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: 1040;
   background: linear-gradient(135deg, var(--dark-bg) 0%, var(--dark-card) 100%);
   border-right: 1px solid rgba(100, 116, 139, 0.1);
   box-shadow: 2px 0 8px rgba(0,0,0,0.1);
 }
 
-nav h5 {
+/* Mobile top bar, drawer close button and backdrop are hidden on desktop */
+.app-topbar,
+.app-sidebar-backdrop,
+.app-sidebar-close {
+  display: none;
+}
+
+.app-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
+  height: 56px;
+  padding: env(safe-area-inset-top, 0) 0.75rem 0;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, var(--dark-bg) 0%, var(--dark-card) 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.app-topbar-brand {
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-size: 1.05rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-topbar-brand i {
+  color: var(--accent-light);
+  margin-right: 6px;
+}
+
+.app-menu-toggle,
+.app-sidebar-close {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.app-menu-toggle {
+  display: inline-flex;
+}
+
+.app-menu-toggle:hover,
+.app-sidebar-close:hover {
+  background: rgba(59, 130, 246, 0.25);
+}
+
+.app-menu-toggle:focus-visible,
+.app-sidebar-close:focus-visible,
+.app-sidebar a:focus-visible,
+.app-sidebar .btn:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+}
+
+.app-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.app-content {
+  min-width: 0;
+}
+
+.app-sidebar h5 {
   font-weight: 700;
   letter-spacing: 1px;
   color: #fff;
@@ -51,7 +142,7 @@ nav h5 {
   background-clip: text;
 }
 
-nav a {
+.app-sidebar a {
   padding: 12px 16px;
   border-radius: 8px;
   transition: all 0.3s ease;
@@ -62,29 +153,29 @@ nav a {
   gap: 8px;
 }
 
-nav a:hover {
+.app-sidebar a:hover {
   background: rgba(59, 130, 246, 0.15);
   color: #fff;
   border-left: 3px solid var(--accent-light);
   padding-left: 13px;
 }
 
-nav a.active {
+.app-sidebar a.active {
   background: rgba(59, 130, 246, 0.2);
   color: var(--primary-light);
   border-left: 3px solid var(--accent-light);
 }
 
-nav hr {
+.app-sidebar hr {
   background: rgba(59, 130, 246, 0.1);
   margin: 16px 0;
 }
 
-nav a[href*="logout"] {
+.app-sidebar a[href*="logout"] {
   color: #fca5a5;
 }
 
-nav a[href*="logout"]:hover {
+.app-sidebar a[href*="logout"]:hover {
   background: rgba(220, 38, 38, 0.15);
   color: #fff;
 }
@@ -337,17 +428,83 @@ label {
 }
 
 /* ===== Responsive ===== */
+
+/* Small laptops: slightly narrower sidebar to leave room for content */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  nav.app-shell > .app-sidebar {
+    flex-basis: 240px;
+    width: 240px;
+  }
+}
+
+/* Tablet and mobile: sidebar becomes an off-canvas drawer opened by the hamburger */
+@media (max-width: 991.98px) {
+  .app-topbar {
+    display: flex;
+  }
+
+  .app-sidebar-close {
+    display: inline-flex;
+  }
+
+  nav.app-shell > .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    flex: none;
+    width: min(300px, 86vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    box-shadow: none;
+    z-index: 1045;
+  }
+
+  body.sidebar-open nav.app-shell > .app-sidebar {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.25s ease, visibility 0s;
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .app-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background: rgba(15, 23, 42, 0.55);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+  }
+
+  body.sidebar-open .app-sidebar-backdrop {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.25s ease, visibility 0s;
+  }
+
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+  /* Bootstrap's p-4 is !important, so the override has to be too */
+  nav.app-shell > .app-content {
+    width: 100%;
+    padding: calc(56px + 1rem) 1rem 1.5rem !important;
+    min-height: 100vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  nav.app-shell > .app-sidebar,
+  .app-sidebar-backdrop {
+    transition: none !important;
+  }
+}
+
 @media (max-width: 768px) {
-  nav > div:first-child {
-    width: 100% !important;
-    min-height: auto;
-    padding: 1rem;
-  }
-
-  .flex-grow-1 {
-    padding: 1rem;
-  }
-
   h4 {
     font-size: 1.5rem;
   }

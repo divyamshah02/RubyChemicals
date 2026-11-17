@@ -135,6 +135,18 @@ class LogoutViewSet(viewsets.ViewSet):
         logout(request)
         return redirect('login-list')
 
+class AppViewSet(viewsets.ViewSet):
+    """
+    Dashboard is only accessible to the 'accounts' role and super-admins.
+    All other roles are redirected to their first permitted plugin page.
+    """
+
+    @handle_exceptions
+    @check_authentication(dashboard_only=True)
+    def list(self, request):
+        return redirect(get_first_permitted_url(request.user))
+        # return render(request, 'admin_dashboard.html')
+
 
 class AdminDashboardViewSet(viewsets.ViewSet):
     """
@@ -352,3 +364,8 @@ class TestViewSet(viewsets.ViewSet):
         return Response({"success": True, "data": final_output, "error": None}, status=200)
         return render(request, 'test.html')
 
+class PrivacyViewSet(viewsets.ViewSet):
+
+    @handle_exceptions
+    def list(self, request):
+        return render(request, 'privacy.html')

@@ -89,7 +89,7 @@ async function adminLogin() {
 
     // Redirect to admin dashboard
     setTimeout(() => {
-      window.location.href = "/admin-dashboard/"
+      window.location.href = "/admin-dashboard/" + "?user_id=" + encodeURIComponent(response.data.user_id)
     }, 1000)
   } else {
     const errorMessage = response.error || "Login failed. Please try again."

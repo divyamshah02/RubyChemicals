@@ -66,6 +66,7 @@ class User(AbstractUser):
     name = models.CharField(max_length=255)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     user_id = models.CharField(max_length=10, unique=True)
+    device_id = models.CharField(max_length=255, blank=True, default="")
     created_at = models.DateTimeField(default=timezone.now)
     active_user = models.BooleanField(default=True)
 

@@ -1,9 +1,25 @@
-<nav class="d-flex" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
-  <!-- Sidebar -->
-  <div class="text-white p-4" style="width:280px; min-height:100vh;">
-    <h5 class="mb-4" style="margin-top: 10px;">
-      <i class="fas fa-flask"></i> Ruby Chemicals
-    </h5>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<nav class="d-flex app-shell" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
+  <!-- Top bar with hamburger (tablet / mobile only) -->
+  <header class="app-topbar">
+    <button type="button" class="app-menu-toggle" id="appMenuToggle"
+            aria-controls="appSidebar" aria-expanded="false" aria-label="Open navigation menu">
+      <i class="fas fa-bars" aria-hidden="true"></i>
+    </button>
+    <span class="app-topbar-brand"><i class="fas fa-flask" aria-hidden="true"></i>Ruby Chemicals</span>
+  </header>
+  <div class="app-sidebar-backdrop" id="appSidebarBackdrop" aria-hidden="true"></div>
+
+  <!-- Sidebar (static on desktop, off-canvas drawer on tablet / mobile) -->
+  <div class="text-white p-4 app-sidebar" id="appSidebar">
+    <div class="app-sidebar-head mb-4">
+      <h5 class="mb-0" style="margin-top: 10px;">
+        <i class="fas fa-flask"></i> Ruby Chemicals
+      </h5>
+      <button type="button" class="app-sidebar-close" id="appSidebarClose" aria-label="Close navigation menu">
+        <i class="fas fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
 
     {# ── Daily Check In / Check Out ── #}
     <div class="mb-4 p-2 rounded" style="background: rgba(0,0,0,0.06);">
@@ -111,6 +127,48 @@
   </div>
 
   <script>
+    // Hamburger / off-canvas drawer behaviour (tablet and mobile)
+    (function () {
+      const toggle = document.getElementById('appMenuToggle');
+      const closeBtn = document.getElementById('appSidebarClose');
+      const backdrop = document.getElementById('appSidebarBackdrop');
+      const sidebar = document.getElementById('appSidebar');
+      if (!toggle || !sidebar) return;
+
+      const desktop = window.matchMedia('(min-width: 992px)');
+
+      function setOpen(open, restoreFocus) {
+        document.body.classList.toggle('sidebar-open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+        if (open && closeBtn) closeBtn.focus();
+        if (!open && restoreFocus) toggle.focus();
+      }
+
+      toggle.addEventListener('click', () =>
+        setOpen(!document.body.classList.contains('sidebar-open'), true));
+      if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false, true));
+      if (backdrop) backdrop.addEventListener('click', () => setOpen(false, true));
+
+      // Navigating from the drawer should close it
+      sidebar.addEventListener('click', (event) => {
+        if (event.target.closest('a[href]')) setOpen(false, false);
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || !document.body.classList.contains('sidebar-open')) return;
+        if (document.querySelector('.modal.show')) return;
+        setOpen(false, true);
+      });
+
+      // Rotating a tablet or resizing to desktop must not leave the drawer state behind
+      const onBreakpointChange = (event) => { if (event.matches) setOpen(false, false); };
+      if (desktop.addEventListener) desktop.addEventListener('change', onBreakpointChange);
+      else desktop.addListener(onBreakpointChange);
+    })();
+  </script>
+
+  <script>
     (function () {
       const CSRF_TOKEN = "{{ csrf_token }}";
       const checkInBtn = document.getElementById('btn-check-in');
@@ -181,4 +239,4 @@
   </script>
 
   <!-- Page Content -->
-  <div class="flex-grow-1 p-4">
+  <div class="flex-grow-1 p-4 app-content">
